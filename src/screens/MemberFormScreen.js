@@ -8,7 +8,7 @@ import {
   StyleSheet, SafeAreaView, ActivityIndicator,
   Platform, StatusBar,
 } from 'react-native';
-import { getMyMemberRecord, saveMember, getRegions } from '../db/memberQueries';
+import { getMyMemberRecord, saveMember, getRegions, getDegrees } from '../db/memberQueries';
 import { supabase } from '../db/supabase';
 import {
   FormInput, DateInput, FormPicker, FormSwitch,
@@ -162,7 +162,7 @@ export default function MemberFormScreen({ navigation }) {
         {activeTab === 1 && <ContactTab    form={form} set={set} memberId={memberId} navigation={navigation} />}
         {activeTab === 2 && <FamilyTab     form={form} set={set} memberId={memberId} navigation={navigation} />}
         {activeTab === 3 && <EmploymentTab form={form} set={set} />}
-        {activeTab === 4 && <DegreesTab    form={form} set={set} memberId={memberId} navigation={navigation} />}
+        {activeTab === 4 && <DegreesTab    memberId={memberId} navigation={navigation} />}
         {activeTab === 5 && <MilitaryTab   memberId={memberId} navigation={navigation} />}
         {activeTab === 6 && <PositionsTab  memberId={memberId} navigation={navigation} />}
         {activeTab === 7 && <OtherTab      form={form} set={set} />}
@@ -256,20 +256,89 @@ function EmploymentTab({ form, set }) {
   );
 }
 
-function DegreesTab({ form, set, memberId, navigation }) {
+function DegreesTab({ memberId, navigation }) {
+  const [degrees, setDegrees] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadDegreeSummary() {
+      if (!memberId) return;
+      setLoading(true);
+      try {
+        const data = await getDegrees(memberId);
+        if (active) setDegrees(data || []);
+      } catch (e) {
+        Alert.alert('Error', e.message);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    loadDegreeSummary();
+
+    return () => {
+      active = false;
+    };
+  }, [memberId]);
+
+  if (!memberId) {
+    return (
+      <>
+        <SectionHeader title="Degree Records" />
+        <SaveFirstNote />
+      </>
+    );
+  }
+
   return (
     <>
-      <SectionHeader title="Degree Places of Exemplification" />
-      <FormInput label="1st Degree Place" value={form.degree1_place} onChangeText={set('degree1_place')} />
-      <FormInput label="2nd & 3rd Degree Place" value={form.degree23_place} onChangeText={set('degree23_place')} />
-      <FormInput label="4th Degree Place" value={form.degree4_place} onChangeText={set('degree4_place')} />
-      <FormInput label="Noble Degree Place" value={form.degree_noble_place} onChangeText={set('degree_noble_place')} />
-      {memberId ? (
-        <>
-          <SectionHeader title="Degree Records" />
-          <SubformLink icon="🎓" label="Manage Degree Records" onPress={() => navigation.navigate('Degrees', { memberId })} />
-        </>
-      ) : <SaveFirstNote />}
+      <SectionHeader title="Degree Summary" />
+
+      {loading ? (
+        <View style={s.summaryLoadingWrap}>
+          <ActivityIndicator size="small" color={Colors.navy} />
+          <Text style={s.summaryLoadingText}>Loading degree summary…</Text>
+        </View>
+      ) : degrees.length === 0 ? (
+        <View style={s.summaryEmptyCard}>
+          <Text style={s.summaryEmptyTitle}>No degree records yet</Text>
+          <Text style={s.summaryEmptyText}>
+            Use “Manage Degree Records” below to add the member’s degrees, dates,
+            and places of exemplification.
+          </Text>
+        </View>
+      ) : (
+        degrees.map((item) => (
+          <View key={item.id} style={s.degreeSummaryCard}>
+            <Text style={s.degreeSummaryTitle}>
+              {item.degree_type || 'Degree'}
+            </Text>
+
+            <View style={s.degreeSummaryRow}>
+              <Text style={s.degreeSummaryLabel}>Place:</Text>
+              <Text style={s.degreeSummaryValue}>
+                {item.degree_place || '—'}
+              </Text>
+            </View>
+
+            <View style={s.degreeSummaryRow}>
+              <Text style={s.degreeSummaryLabel}>Date:</Text>
+              <Text style={s.degreeSummaryValue}>
+                {item.degree_date || '—'}
+              </Text>
+            </View>
+          </View>
+        ))
+      )}
+
+      <SectionHeader title="Degree Records" />
+      <SubformLink
+        icon="🎓"
+        label="Manage Degree Records"
+        onPress={() => navigation.navigate('Degrees', { memberId })}
+      />
     </>
   );
 }
@@ -362,6 +431,69 @@ const s = StyleSheet.create({
   body:        { flex: 1 },
   bodyContent: { padding: Spacing.lg },
   saveBtn:     { marginTop: Spacing.xl },
+
+  summaryLoadingWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+    ...Shadows.card,
+  },
+  summaryLoadingText: {
+    marginLeft: Spacing.sm,
+    color: Colors.grey400,
+    fontSize: Typography.sizes.sm,
+  },
+
+  summaryEmptyCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radii.md,
+    padding: Spacing.lg,
+    marginTop: Spacing.sm,
+    ...Shadows.card,
+  },
+  summaryEmptyTitle: {
+    color: Colors.navy,
+    fontSize: Typography.sizes.md,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  summaryEmptyText: {
+    color: Colors.grey400,
+    fontSize: Typography.sizes.sm,
+    lineHeight: 20,
+  },
+
+  degreeSummaryCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radii.md,
+    padding: Spacing.lg,
+    marginTop: Spacing.sm,
+    ...Shadows.card,
+  },
+  degreeSummaryTitle: {
+    color: Colors.navy,
+    fontSize: Typography.sizes.md,
+    fontWeight: '800',
+    marginBottom: Spacing.sm,
+  },
+  degreeSummaryRow: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  degreeSummaryLabel: {
+    width: 52,
+    color: Colors.grey400,
+    fontSize: Typography.sizes.sm,
+    fontWeight: '700',
+  },
+  degreeSummaryValue: {
+    flex: 1,
+    color: Colors.grey700,
+    fontSize: Typography.sizes.sm,
+  },
 
   saveNote: {
     flexDirection: 'row', alignItems: 'center',
