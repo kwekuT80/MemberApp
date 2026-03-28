@@ -11,6 +11,22 @@ export async function getCurrentUser() {
   return user;
 }
 
+function toPgDate(value) {
+  if (!value) return null;
+
+  // Already in YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+  // Convert DD/MM/YYYY -> YYYY-MM-DD
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (match) {
+    const [, dd, mm, yyyy] = match;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  return value;
+}
+
 // Helper — gets the current user's member record ID
 async function getMyMemberId() {
   const user = await getCurrentUser();
@@ -407,13 +423,13 @@ export async function saveUniformedRankRecord(item) {
     if (resetError) throw resetError;
   }
 
-  const payload = {
-    member_id: memberId,
-    rank_title: item.rank_title || null,
-    commission_date: item.commission_date || null,
-    notes: item.notes || null,
-    is_current: !!item.is_current,
-  };
+const payload = {
+  member_id: memberId,
+  rank_title: item.rank_title || null,
+  commission_date: toPgDate(item.commission_date),
+  notes: item.notes || null,
+  is_current: !!item.is_current,
+};
 
   if (item.id) {
     const { error } = await supabase
