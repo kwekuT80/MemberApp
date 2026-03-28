@@ -25,6 +25,27 @@ import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
 
 const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 0;
 
+const POSITION_OPTIONS = [
+  'President',
+  '1st Vice President',
+  '2nd Vice President',
+  'Recording & Corresponding Secretary',
+  'Assistant Secretary',
+  'Financial Secretary',
+  'Treasurer',
+  '1st Trustee',
+  '2nd Trustee',
+  '3rd Trustee',
+  'Commander',
+  'First Vice Commander',
+  'Second Vice Commander',
+  'Messenger',
+  'Sergeant-at-Arms',
+  'Guard',
+];
+
+const POSITION_SORT_OPTIONS = ['Newest First', 'Oldest First'];
+
 // ════════════════════════════════════════════════════════════════════
 // CHILDREN
 // ════════════════════════════════════════════════════════════════════
@@ -121,15 +142,54 @@ export function ChildrenScreen({ route, navigation }) {
 
 export function PositionsScreen({ route, navigation }) {
   const { memberId } = route.params;
-  const [items, setItems]     = useState([]);
-  const [editing, setEditing] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems]       = useState([]);
+  const [editing, setEditing]   = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [sortOrder, setSortOrder] = useState('Newest First');
+
+  const sortPositions = useCallback((records, order = 'Newest First') => {
+    const parseDate = (value) => {
+      if (!value) return Number.NEGATIVE_INFINITY;
+
+      const text = String(value);
+
+      if (text.includes('/')) {
+        const parts = text.split('/');
+        if (parts.length === 3) {
+          const dd = Number(parts[0]);
+          const mm = Number(parts[1]);
+          const yyyy = Number(parts[2]);
+          return new Date(yyyy, mm - 1, dd).getTime();
+        }
+      }
+
+      if (text.includes('-')) {
+        const parts = text.split('-');
+        if (parts.length === 3) {
+          const yyyy = Number(parts[0]);
+          const mm = Number(parts[1]);
+          const dd = Number(parts[2]);
+          return new Date(yyyy, mm - 1, dd).getTime();
+        }
+      }
+
+      const fallback = new Date(text).getTime();
+      return Number.isNaN(fallback) ? Number.NEGATIVE_INFINITY : fallback;
+    };
+
+    return [...(records || [])].sort((a, b) => {
+      const aFrom = parseDate(a?.date_from);
+      const bFrom = parseDate(b?.date_from);
+      return order === 'Oldest First' ? aFrom - bFrom : bFrom - aFrom;
+    });
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
-    setItems(await getPositions(memberId));
+    const records = await getPositions(memberId);
+    setItems(sortPositions(records, sortOrder));
     setLoading(false);
-  }, [memberId]);
+  }, [memberId, sortOrder, sortPositions]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -162,10 +222,11 @@ export function PositionsScreen({ route, navigation }) {
         onSave={handleSave}
         onDelete={editing.id ? handleDelete : null}
       >
-        <FormInput
+        <FormPicker
           label="Position Title"
           value={editing.position_title}
-          onChangeText={v => setEditing(e => ({ ...e, position_title: v }))}
+          onValueChange={v => setEditing(e => ({ ...e, position_title: v }))}
+          items={POSITION_OPTIONS}
           required
         />
         <DateInput
@@ -183,25 +244,65 @@ export function PositionsScreen({ route, navigation }) {
   }
 
   return (
-    <SubformList
-      title="Positions"
-      icon="📋"
-      onBack={() => navigation.goBack()}
-      onAdd={() => setEditing({ position_title: '', date_from: '', date_to: '' })}
-      loading={loading}
-      emptyIcon="📋"
-      emptyTitle="No positions recorded"
-      emptyMessage="Tap '+ Add New' to record a position held."
-    >
-      {items.map(item => (
-        <ListCard key={item.id} onPress={() => setEditing({ ...item })}>
-          <Text style={s.itemTitle}>{item.position_title || '(No Title)'}</Text>
-          <Text style={s.itemSub}>
-            {[item.date_from, item.date_to].filter(Boolean).join(' – ')}
-          </Text>
-        </ListCard>
-      ))}
-    </SubformList>
+    <View style={s.screenWrapper}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.navy} />
+      <SubformHeader
+        title="Positions"
+        icon="📋"
+        onBack={() => navigation.goBack()}
+        rightAction={{ label: '+ Add', onPress: () => setEditing({ position_title: '', date_from: '', date_to: '' }) }}
+      />
+
+      {loading ? (
+        <LoadingView />
+      ) : (
+        <ScrollView
+          contentContainerStyle={[s.listContent, items.length === 0 && s.listContentEmpty]}
+          showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={s.sortCard}>
+            <FormPicker
+              label="Sort Order"
+              value={sortOrder}
+              onValueChange={setSortOrder}
+              items={POSITION_SORT_OPTIONS}
+            />
+          </View>
+
+          {items.length === 0 ? (
+            <EmptyState
+              icon="📋"
+              title="No positions recorded"
+              message="Tap '+ Add New' to record a position held."
+              actionLabel="+ Add"
+              onAction={() => setEditing({ position_title: '', date_from: '', date_to: '' })}
+            />
+          ) : (
+            items.map(item => (
+              <ListCard key={item.id} onPress={() => setEditing({ ...item })}>
+                <Text style={s.itemTitle}>{item.position_title || '(No Title)'}</Text>
+                <Text style={s.itemSub}>
+                  {[item.date_from, item.date_to].filter(Boolean).join(' – ')}
+                </Text>
+              </ListCard>
+            ))
+          )}
+
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      )}
+
+      {!loading && (
+        <TouchableOpacity
+          style={s.fab}
+          onPress={() => setEditing({ position_title: '', date_from: '', date_to: '' })}
+          activeOpacity={0.85}
+        >
+          <Text style={s.fabText}>＋ Add New</Text>
+        </TouchableOpacity>
+      )}
+    </View>
   );
 }
 
@@ -887,5 +988,13 @@ const s = StyleSheet.create({
     paddingVertical: 2,
     marginRight: Spacing.sm,
     overflow: 'hidden',
+  },
+  sortCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    marginBottom: Spacing.md,
+    ...Shadows.card,
   },
 });
