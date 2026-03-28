@@ -12,6 +12,7 @@ import {
   getPositions, savePosition, deletePosition,
   getEmergencyContacts, saveEmergencyContact, deleteEmergencyContact,
   getMilitary, saveMilitary,
+  getUniformedRankRecords, saveUniformedRankRecord, deleteUniformedRankRecord,
   getDegrees, saveDegree, deleteDegree, getDegreeTypes,
   getSpouse, saveSpouse,
 } from '../db/memberQueries';
@@ -307,87 +308,203 @@ export function EmergencyContactsScreen({ route, navigation }) {
 }
 
 // ════════════════════════════════════════════════════════════════════
-// MILITARY
+// UNIFORMED RANK
 // ════════════════════════════════════════════════════════════════════
 
 export function MilitaryScreen({ route, navigation }) {
   const { memberId } = route.params;
-  const [data, setData]       = useState({ member_id: memberId, is_military: false });
+  const [summary, setSummary] = useState({
+    member_id: memberId,
+    is_military: true,
+    uniform_blessed_date: '',
+    first_uniform_use_date: '',
+    current_rank: '',
+    commission: '',
+  });
+  const [items, setItems] = useState([]);
+  const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving]   = useState(false);
+  const [savingSummary, setSavingSummary] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const mil = await getMilitary(memberId);
-      setData(mil);
-      setLoading(false);
-    })();
-  }, [memberId]);
-
-  function set(field) { return v => setData(d => ({ ...d, [field]: v })); }
-
-  async function handleSave() {
-    setSaving(true);
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      await saveMilitary({ ...data, member_id: memberId });
-      Alert.alert('✓ Saved', 'Military details saved.');
+      const [mil, ranks] = await Promise.all([
+        getMilitary(memberId),
+        getUniformedRankRecords(memberId),
+      ]);
+      setSummary({
+        member_id: memberId,
+        is_military: !!mil?.is_military,
+        uniform_blessed_date: mil?.uniform_blessed_date || '',
+        first_uniform_use_date: mil?.first_uniform_use_date || '',
+        current_rank: mil?.current_rank || '',
+        commission: mil?.commission || '',
+      });
+      setItems(ranks || []);
     } catch (e) {
       Alert.alert('Error', e.message);
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
+  }, [memberId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  function setSummaryField(field) {
+    return v => setSummary(d => ({ ...d, [field]: v }));
+  }
+
+  async function handleSaveSummary() {
+    setSavingSummary(true);
+    try {
+      await saveMilitary({
+        member_id: memberId,
+        is_military: true,
+        uniform_blessed_date: summary.uniform_blessed_date || null,
+        first_uniform_use_date: summary.first_uniform_use_date || null,
+        current_rank: summary.current_rank || null,
+        commission: summary.commission || null,
+      });
+      await load();
+      Alert.alert('✓ Saved', 'Uniform details saved.');
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setSavingSummary(false);
+    }
+  }
+
+  async function handleSaveRecord() {
+    try {
+      await saveUniformedRankRecord({ ...editing, member_id: memberId });
+      setEditing(null);
+      await load();
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    }
+  }
+
+  async function handleDeleteRecord() {
+    Alert.alert('Delete Record', 'Remove this commission record?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteUniformedRankRecord(editing.id, memberId);
+            setEditing(null);
+            await load();
+          } catch (e) {
+            Alert.alert('Error', e.message);
+          }
+        },
+      },
+    ]);
   }
 
   if (loading) return <LoadingView />;
 
+  if (editing !== null) {
+    return (
+      <SubformEditor
+        title={editing.id ? 'Edit Uniformed Rank Record' : 'New Uniformed Rank Record'}
+        onBack={() => setEditing(null)}
+        onSave={handleSaveRecord}
+        onDelete={editing.id ? handleDeleteRecord : null}
+      >
+        <FormInput
+          label="Rank Title"
+          value={editing.rank_title}
+          onChangeText={v => setEditing(e => ({ ...e, rank_title: v }))}
+          required
+        />
+        <DateInput
+          label="Commission Date"
+          value={editing.commission_date}
+          onChangeText={v => setEditing(e => ({ ...e, commission_date: v }))}
+        />
+        <FormSwitch
+          label="Current Rank?"
+          value={!!editing.is_current}
+          onValueChange={v => setEditing(e => ({ ...e, is_current: v }))}
+          hint="Turn this on for the member's present rank."
+        />
+        <FormInput
+          label="Notes"
+          value={editing.notes}
+          onChangeText={v => setEditing(e => ({ ...e, notes: v }))}
+          multiline
+        />
+      </SubformEditor>
+    );
+  }
+
   return (
     <View style={s.screenWrapper}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.navy} />
-      <SubformHeader title="Military Details" icon="🪖" onBack={() => navigation.goBack()} />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <SubformHeader
+        title="Uniformed Rank"
+        icon="🪖"
+        onBack={() => navigation.goBack()}
+        rightAction={{
+          label: '+ Add',
+          onPress: () => setEditing({ rank_title: '', commission_date: '', notes: '', is_current: items.length === 0 }),
+        }}
+      />
+      <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+        <SectionHeader title="Uniform Details" />
+        <DateInput
+          label="Uniform Blessed Date"
+          value={summary.uniform_blessed_date}
+          onChangeText={setSummaryField('uniform_blessed_date')}
+        />
+        <DateInput
+          label="First Uniform Use Date"
+          value={summary.first_uniform_use_date}
+          onChangeText={setSummaryField('first_uniform_use_date')}
+        />
+        <PrimaryButton
+          title={savingSummary ? 'Saving…' : 'Save Uniform Details'}
+          icon="💾"
+          onPress={handleSaveSummary}
+          disabled={savingSummary}
+          style={s.saveBtn}
+        />
+
+        <SectionHeader title="Commission History" />
+
+        {items.length === 0 ? (
+          <EmptyState
+            icon="🪖"
+            title="No rank records yet"
+            message="Tap '+ Add' to record the member's commissions."
+            actionLabel="+ Add"
+            onAction={() => setEditing({ rank_title: '', commission_date: '', notes: '', is_current: true })}
+          />
+        ) : (
+          items.map(item => (
+            <ListCard key={item.id} onPress={() => setEditing({ ...item })}>
+              <Text style={s.itemTitle}>{item.rank_title || '(No Rank Title)'}</Text>
+              <Text style={s.itemSub}>
+                {[item.commission_date, item.is_current ? 'Current' : null].filter(Boolean).join('  ·  ')}
+              </Text>
+              {item.notes ? <Text style={s.itemSub}>{item.notes}</Text> : null}
+            </ListCard>
+          ))
+        )}
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      <TouchableOpacity
+        style={s.fab}
+        onPress={() => setEditing({ rank_title: '', commission_date: '', notes: '', is_current: items.length === 0 })}
+        activeOpacity={0.85}
       >
-        <ScrollView
-          contentContainerStyle={s.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <SectionHeader title="Service Status" />
-          <FormSwitch
-            label="In the Military?"
-            value={!!data.is_military}
-            onValueChange={v => setData(d => ({ ...d, is_military: v }))}
-          />
-          <SectionHeader title="Uniform & Commission" />
-          <DateInput
-            label="Uniform Blessed Date"
-            value={data.uniform_blessed_date}
-            onChangeText={set('uniform_blessed_date')}
-          />
-          <DateInput
-            label="First Uniform Use Date"
-            value={data.first_uniform_use_date}
-            onChangeText={set('first_uniform_use_date')}
-          />
-          <FormInput
-            label="Current Rank"
-            value={data.current_rank}
-            onChangeText={set('current_rank')}
-          />
-          <FormInput
-            label="Date of Commission"
-            value={data.commission}
-            onChangeText={set('commission')}
-          />
-          <PrimaryButton
-            title={saving ? 'Saving…' : 'Save Military Details'}
-            icon="💾"
-            onPress={handleSave}
-            disabled={saving}
-            style={s.saveBtn}
-          />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        <Text style={s.fabText}>＋ Add New</Text>
+      </TouchableOpacity>
     </View>
   );
 }

@@ -360,3 +360,86 @@ export async function getDegreeTypes() {
   if (error) throw error;
   return (data || []).map(r => r.degree_type_name);
 }
+
+export async function getUniformedRankRecords(memberId) {
+  const { data, error } = await supabase
+    .from('uniformed_rank_records')
+    .select('*')
+    .eq('member_id', memberId)
+    .order('is_current', { ascending: false })
+    .order('commission_date', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+async function syncCurrentUniformedRank(memberId) {
+  const records = await getUniformedRankRecords(memberId);
+  const current =
+    records.find(r => r.is_current) ||
+    records
+      .filter(r => !!r.commission_date)
+      .sort((a, b) => String(b.commission_date).localeCompare(String(a.commission_date)))[0] ||
+    records[0] ||
+    null;
+
+  const military = await getMilitary(memberId);
+
+  await saveMilitary({
+    member_id: memberId,
+    is_military: !!military.is_military,
+    uniform_blessed_date: military.uniform_blessed_date || null,
+    first_uniform_use_date: military.first_uniform_use_date || null,
+    current_rank: current?.rank_title || null,
+    commission: current?.commission_date || null,
+  });
+}
+
+export async function saveUniformedRankRecord(item) {
+  const memberId = item.member_id || await getMyMemberId();
+
+  if (item.is_current) {
+    const { error: resetError } = await supabase
+      .from('uniformed_rank_records')
+      .update({ is_current: false })
+      .eq('member_id', memberId);
+
+    if (resetError) throw resetError;
+  }
+
+  const payload = {
+    member_id: memberId,
+    rank_title: item.rank_title || null,
+    commission_date: item.commission_date || null,
+    notes: item.notes || null,
+    is_current: !!item.is_current,
+  };
+
+  if (item.id) {
+    const { error } = await supabase
+      .from('uniformed_rank_records')
+      .update(payload)
+      .eq('id', item.id);
+
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from('uniformed_rank_records')
+      .insert(payload);
+
+    if (error) throw error;
+  }
+
+  await syncCurrentUniformedRank(memberId);
+}
+
+export async function deleteUniformedRankRecord(id, memberId) {
+  const { error } = await supabase
+    .from('uniformed_rank_records')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+
+  await syncCurrentUniformedRank(memberId);
+}ww

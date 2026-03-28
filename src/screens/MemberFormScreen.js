@@ -2,21 +2,37 @@
 // Member registration form — reads/writes via Supabase.
 // Each logged-in user has exactly one member record linked to their account.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Alert,
-  StyleSheet, SafeAreaView, ActivityIndicator,
+  StyleSheet, ActivityIndicator,
   Platform, StatusBar,
 } from 'react-native';
-import { getMyMemberRecord, saveMember, getRegions, getDegrees } from '../db/memberQueries';
+import { useFocusEffect } from '@react-navigation/native';
+import {
+  getMyMemberRecord,
+  saveMember,
+  getRegions,
+  getDegrees,
+  getMilitary,
+  saveMilitary,
+} from '../db/memberQueries';
 import { supabase } from '../db/supabase';
 import {
   FormInput, DateInput, FormPicker, FormSwitch,
-  SectionHeader, PrimaryButton, SecondaryButton, SubformLink,
+  SectionHeader, PrimaryButton, SubformLink,
 } from '../components/FormComponents';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
 
 const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 0;
+
+const EMPTY_MILITARY = {
+  is_military: false,
+  uniform_blessed_date: '',
+  first_uniform_use_date: '',
+  current_rank: '',
+  commission: '',
+};
 
 const TABS = [
   { key: 'bio',        label: 'Bio',        icon: '👤' },
@@ -29,7 +45,7 @@ const TABS = [
   { key: 'other',      label: 'Other',      icon: '📝' },
 ];
 
-const TITLES     = ['Bro.', 'Sir', 'Rev.', 'Dr.', 'Prof.', 'Mr.', 'Mrs.', 'Ms.'];
+const TITLES     = ['Bro.', 'Sir', 'Rev.', 'Dr.', 'Prof.', 'N/B'];
 const MARITAL    = ['Married', 'Single', 'Widowed', 'Religious', 'Separated'];
 const EMP_STATUS = ['Employed', 'Self-employed', 'Unemployed', 'Student', 'Other'];
 
@@ -39,13 +55,30 @@ export default function MemberFormScreen({ navigation }) {
   const [saving, setSaving]       = useState(false);
   const [regions, setRegions]     = useState([]);
   const [form, setForm]           = useState({});
+  const [military, setMilitary]   = useState(EMPTY_MILITARY);
   const [dirty, setDirty]         = useState(false);
+
+  const loadMilitarySummary = useCallback(async (memberId) => {
+    if (!memberId) {
+      setMilitary(EMPTY_MILITARY);
+      return;
+    }
+    try {
+      const data = await getMilitary(memberId);
+      setMilitary({ ...EMPTY_MILITARY, ...(data || {}) });
+    } catch (e) {
+      setMilitary(EMPTY_MILITARY);
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
       try {
         const [record, rgns] = await Promise.all([getMyMemberRecord(), getRegions()]);
-        if (record) setForm(record);
+        if (record) {
+          setForm(record);
+          await loadMilitarySummary(record.id);
+        }
         setRegions(rgns);
       } catch (e) {
         Alert.alert('Error', e.message);
@@ -53,11 +86,24 @@ export default function MemberFormScreen({ navigation }) {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [loadMilitarySummary]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (form.id) loadMilitarySummary(form.id);
+    }, [form.id, loadMilitarySummary])
+  );
 
   function set(field) {
     return (value) => {
       setForm(prev => ({ ...prev, [field]: value }));
+      setDirty(true);
+    };
+  }
+
+  function setMilitaryField(field) {
+    return (value) => {
+      setMilitary(prev => ({ ...prev, [field]: value }));
       setDirty(true);
     };
   }
@@ -70,7 +116,16 @@ export default function MemberFormScreen({ navigation }) {
     setSaving(true);
     try {
       const saved = await saveMember(form);
+      await saveMilitary({
+        member_id: saved.id,
+        is_military: !!military.is_military,
+        uniform_blessed_date: military.uniform_blessed_date || null,
+        first_uniform_use_date: military.first_uniform_use_date || null,
+        current_rank: military.current_rank || null,
+        commission: military.commission || null,
+      });
       setForm(saved);
+      await loadMilitarySummary(saved.id);
       setDirty(false);
       Alert.alert('✓ Saved', 'Your member record has been saved.');
     } catch (e) {
@@ -105,7 +160,6 @@ export default function MemberFormScreen({ navigation }) {
     <View style={s.screenWrapper}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.navy} />
 
-      {/* ── Header ── */}
       <View style={s.header}>
         <View style={s.headerLeft}>
           <Text style={s.headerEyebrow}>My Profile</Text>
@@ -128,7 +182,6 @@ export default function MemberFormScreen({ navigation }) {
         </View>
       </View>
 
-      {/* ── Tab bar ── */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -152,20 +205,19 @@ export default function MemberFormScreen({ navigation }) {
         })}
       </ScrollView>
 
-      {/* ── Content ── */}
       <ScrollView
         style={s.body}
         contentContainerStyle={s.bodyContent}
         keyboardShouldPersistTaps="handled"
       >
-        {activeTab === 0 && <BioTab        form={form} set={set} regions={regions} />}
-        {activeTab === 1 && <ContactTab    form={form} set={set} memberId={memberId} navigation={navigation} />}
-        {activeTab === 2 && <FamilyTab     form={form} set={set} memberId={memberId} navigation={navigation} />}
+        {activeTab === 0 && <BioTab form={form} set={set} regions={regions} military={military} setMilitaryField={setMilitaryField} />}
+        {activeTab === 1 && <ContactTab form={form} set={set} memberId={memberId} navigation={navigation} />}
+        {activeTab === 2 && <FamilyTab form={form} set={set} memberId={memberId} navigation={navigation} />}
         {activeTab === 3 && <EmploymentTab form={form} set={set} />}
-        {activeTab === 4 && <DegreesTab    memberId={memberId} navigation={navigation} />}
-        {activeTab === 5 && <MilitaryTab   memberId={memberId} navigation={navigation} />}
-        {activeTab === 6 && <PositionsTab  memberId={memberId} navigation={navigation} />}
-        {activeTab === 7 && <OtherTab      form={form} set={set} />}
+        {activeTab === 4 && <DegreesTab memberId={memberId} navigation={navigation} />}
+        {activeTab === 5 && <MilitaryTab memberId={memberId} navigation={navigation} military={military} />}
+        {activeTab === 6 && <PositionsTab memberId={memberId} navigation={navigation} />}
+        {activeTab === 7 && <OtherTab form={form} set={set} />}
 
         <PrimaryButton
           title={saving ? 'Saving…' : 'Save My Record'}
@@ -180,9 +232,7 @@ export default function MemberFormScreen({ navigation }) {
   );
 }
 
-// ── Tabs ───────────────────────────────────────────────────────────────────────
-
-function BioTab({ form, set, regions }) {
+function BioTab({ form, set, regions, military, setMilitaryField }) {
   return (
     <>
       <SectionHeader title="Personal Information" />
@@ -199,6 +249,13 @@ function BioTab({ form, set, regions }) {
       <FormPicker label="Home Region" value={form.home_region} onValueChange={set('home_region')} items={regions} />
       <SectionHeader title="Membership" />
       <DateInput label="Date Joined" value={form.date_joined} onChangeText={set('date_joined')} hint="Date you joined the Commandery" />
+      <SectionHeader title="Uniformed Status" />
+      <FormSwitch
+        label="In Uniformed Rank?"
+        value={!!military.is_military}
+        onValueChange={setMilitaryField('is_military')}
+        hint="Turn this on only for members who belong to the uniformed rank."
+      />
     </>
   );
 }
@@ -312,22 +369,14 @@ function DegreesTab({ memberId, navigation }) {
       ) : (
         degrees.map((item) => (
           <View key={item.id} style={s.degreeSummaryCard}>
-            <Text style={s.degreeSummaryTitle}>
-              {item.degree_type || 'Degree'}
-            </Text>
-
+            <Text style={s.degreeSummaryTitle}>{item.degree_type || 'Degree'}</Text>
             <View style={s.degreeSummaryRow}>
               <Text style={s.degreeSummaryLabel}>Place:</Text>
-              <Text style={s.degreeSummaryValue}>
-                {item.degree_place || '—'}
-              </Text>
+              <Text style={s.degreeSummaryValue}>{item.degree_place || '—'}</Text>
             </View>
-
             <View style={s.degreeSummaryRow}>
               <Text style={s.degreeSummaryLabel}>Date:</Text>
-              <Text style={s.degreeSummaryValue}>
-                {item.degree_date || '—'}
-              </Text>
+              <Text style={s.degreeSummaryValue}>{item.degree_date || '—'}</Text>
             </View>
           </View>
         ))
@@ -343,12 +392,49 @@ function DegreesTab({ memberId, navigation }) {
   );
 }
 
-function MilitaryTab({ memberId, navigation }) {
-  if (!memberId) return <><SectionHeader title="Military Service" /><SaveFirstNote /></>;
+function MilitaryTab({ memberId, navigation, military }) {
+  if (!memberId) {
+    return (
+      <>
+        <SectionHeader title="Uniformed Rank" />
+        <SaveFirstNote />
+      </>
+    );
+  }
+
+  const enabled = !!military.is_military;
+
   return (
     <>
-      <SectionHeader title="Military Service" />
-      <SubformLink icon="🪖" label="Manage Military Details" onPress={() => navigation.navigate('Military', { memberId })} />
+      <SectionHeader title="Uniformed Rank" />
+
+      <View style={s.summaryEmptyCard}>
+        <Text style={s.summaryEmptyTitle}>Current Rank</Text>
+        <View style={s.degreeSummaryRow}>
+          <Text style={s.degreeSummaryLabel}>Rank:</Text>
+          <Text style={s.degreeSummaryValue}>{military.current_rank || '—'}</Text>
+        </View>
+        <View style={s.degreeSummaryRow}>
+          <Text style={s.degreeSummaryLabel}>Date:</Text>
+          <Text style={s.degreeSummaryValue}>{military.commission || '—'}</Text>
+        </View>
+      </View>
+
+      <SectionHeader title="Uniformed Rank Records" />
+      <TouchableOpacity
+        activeOpacity={enabled ? 0.85 : 1}
+        disabled={!enabled}
+        style={[s.subformCard, !enabled && s.subformCardDisabled]}
+        onPress={() => navigation.navigate('Military', { memberId })}
+      >
+        <Text style={[s.subformCardIcon, !enabled && s.subformCardIconDisabled]}>🪖</Text>
+        <View style={s.subformCardTextWrap}>
+          <Text style={[s.subformCardTitle, !enabled && s.subformCardTitleDisabled]}>Manage Uniformed Rank Records</Text>
+          <Text style={[s.subformCardSub, !enabled && s.subformCardSubDisabled]}>
+            {enabled ? 'Add commission history and update the current rank.' : 'Turn on “In Uniformed Rank?” in Bio to enable this section.'}
+          </Text>
+        </View>
+      </TouchableOpacity>
     </>
   );
 }
@@ -493,6 +579,46 @@ const s = StyleSheet.create({
     flex: 1,
     color: Colors.grey700,
     fontSize: Typography.sizes.sm,
+  },
+
+  subformCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    ...Shadows.card,
+  },
+  subformCardDisabled: {
+    backgroundColor: Colors.grey100,
+  },
+  subformCardIcon: {
+    fontSize: 24,
+    marginRight: Spacing.md,
+  },
+  subformCardIconDisabled: {
+    opacity: 0.45,
+  },
+  subformCardTextWrap: {
+    flex: 1,
+  },
+  subformCardTitle: {
+    color: Colors.navy,
+    fontSize: Typography.sizes.md,
+    fontWeight: '700',
+  },
+  subformCardTitleDisabled: {
+    color: Colors.grey400,
+  },
+  subformCardSub: {
+    color: Colors.grey400,
+    fontSize: Typography.sizes.sm,
+    marginTop: 2,
+    lineHeight: 20,
+  },
+  subformCardSubDisabled: {
+    color: Colors.grey300,
   },
 
   saveNote: {
