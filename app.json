@@ -13,7 +13,11 @@
       "bundleIdentifier": "com.yourorg.memberregistration"
     },
     "android": {
-      "package": "com.yourorg.memberregistration"
+      "package": "com.memberregistration.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#0A1628"
+      }
     },
     "extra": {
       "eas": {

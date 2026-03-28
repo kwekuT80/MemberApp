@@ -1,6 +1,6 @@
 // src/db/memberQueries.js
-// All data operations via Supabase — replaces local SQLite queries.
-// Each member record is linked to the logged-in user via user_id.
+// All data operations via Supabase.
+// FIXED: All subform saves now look up member_id automatically if not provided.
 
 import { supabase } from './supabase';
 
@@ -9,6 +9,19 @@ import { supabase } from './supabase';
 export async function getCurrentUser() {
   const { data: { user } } = await supabase.auth.getUser();
   return user;
+}
+
+// Helper — gets the current user's member record ID
+async function getMyMemberId() {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Not logged in');
+  const { data, error } = await supabase
+    .from('members')
+    .select('id')
+    .eq('user_id', user.id)
+    .single();
+  if (error || !data) throw new Error('Please save your main profile first.');
+  return data.id;
 }
 
 // ── Members ────────────────────────────────────────────────────────────────────
@@ -21,7 +34,7 @@ export async function getMyMemberRecord() {
     .select('*')
     .eq('user_id', user.id)
     .single();
-  if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+  if (error && error.code !== 'PGRST116') throw error;
   return data || null;
 }
 
@@ -63,7 +76,6 @@ export async function saveMember(form) {
   };
 
   if (form.id) {
-    // Update existing record
     const { data, error } = await supabase
       .from('members')
       .update(payload)
@@ -73,7 +85,6 @@ export async function saveMember(form) {
     if (error) throw error;
     return data;
   } else {
-    // Create new record
     const { data, error } = await supabase
       .from('members')
       .insert(payload)
@@ -97,20 +108,26 @@ export async function getChildren(memberId) {
 }
 
 export async function saveChild(item) {
+  const memberId = item.member_id || await getMyMemberId();
   if (item.id) {
-    const { error } = await supabase.from('children').update({
-      child_name:  item.child_name,
-      birth_date:  item.birth_date,
-      birth_place: item.birth_place,
-    }).eq('id', item.id);
+    const { error } = await supabase
+      .from('children')
+      .update({
+        child_name:  item.child_name  || null,
+        birth_date:  item.birth_date  || null,
+        birth_place: item.birth_place || null,
+      })
+      .eq('id', item.id);
     if (error) throw error;
   } else {
-    const { error } = await supabase.from('children').insert({
-      member_id:   item.member_id,
-      child_name:  item.child_name,
-      birth_date:  item.birth_date,
-      birth_place: item.birth_place,
-    });
+    const { error } = await supabase
+      .from('children')
+      .insert({
+        member_id:   memberId,
+        child_name:  item.child_name  || null,
+        birth_date:  item.birth_date  || null,
+        birth_place: item.birth_place || null,
+      });
     if (error) throw error;
   }
 }
@@ -133,20 +150,26 @@ export async function getPositions(memberId) {
 }
 
 export async function savePosition(item) {
+  const memberId = item.member_id || await getMyMemberId();
   if (item.id) {
-    const { error } = await supabase.from('positions').update({
-      position_title: item.position_title,
-      date_from:      item.date_from,
-      date_to:        item.date_to,
-    }).eq('id', item.id);
+    const { error } = await supabase
+      .from('positions')
+      .update({
+        position_title: item.position_title || null,
+        date_from:      item.date_from      || null,
+        date_to:        item.date_to        || null,
+      })
+      .eq('id', item.id);
     if (error) throw error;
   } else {
-    const { error } = await supabase.from('positions').insert({
-      member_id:      item.member_id,
-      position_title: item.position_title,
-      date_from:      item.date_from,
-      date_to:        item.date_to,
-    });
+    const { error } = await supabase
+      .from('positions')
+      .insert({
+        member_id:      memberId,
+        position_title: item.position_title || null,
+        date_from:      item.date_from      || null,
+        date_to:        item.date_to        || null,
+      });
     if (error) throw error;
   }
 }
@@ -169,22 +192,28 @@ export async function getEmergencyContacts(memberId) {
 }
 
 export async function saveEmergencyContact(item) {
+  const memberId = item.member_id || await getMyMemberId();
   if (item.id) {
-    const { error } = await supabase.from('emergency_contacts').update({
-      contact_name: item.contact_name,
-      relationship: item.relationship,
-      phone1:       item.phone1,
-      phone2:       item.phone2,
-    }).eq('id', item.id);
+    const { error } = await supabase
+      .from('emergency_contacts')
+      .update({
+        contact_name: item.contact_name || null,
+        relationship: item.relationship || null,
+        phone1:       item.phone1       || null,
+        phone2:       item.phone2       || null,
+      })
+      .eq('id', item.id);
     if (error) throw error;
   } else {
-    const { error } = await supabase.from('emergency_contacts').insert({
-      member_id:    item.member_id,
-      contact_name: item.contact_name,
-      relationship: item.relationship,
-      phone1:       item.phone1,
-      phone2:       item.phone2,
-    });
+    const { error } = await supabase
+      .from('emergency_contacts')
+      .insert({
+        member_id:    memberId,
+        contact_name: item.contact_name || null,
+        relationship: item.relationship || null,
+        phone1:       item.phone1       || null,
+        phone2:       item.phone2       || null,
+      });
     if (error) throw error;
   }
 }
@@ -207,19 +236,25 @@ export async function getMilitary(memberId) {
 }
 
 export async function saveMilitary(item) {
+  const memberId = item.member_id || await getMyMemberId();
   const payload = {
-    is_military:            item.is_military,
+    is_military:            item.is_military            || false,
     uniform_blessed_date:   item.uniform_blessed_date   || null,
     first_uniform_use_date: item.first_uniform_use_date || null,
     current_rank:           item.current_rank           || null,
     commission:             item.commission             || null,
   };
-  const existing = await getMilitary(item.member_id);
+  const existing = await getMilitary(memberId);
   if (existing.id) {
-    const { error } = await supabase.from('military').update(payload).eq('id', existing.id);
+    const { error } = await supabase
+      .from('military')
+      .update(payload)
+      .eq('id', existing.id);
     if (error) throw error;
   } else {
-    const { error } = await supabase.from('military').insert({ member_id: item.member_id, ...payload });
+    const { error } = await supabase
+      .from('military')
+      .insert({ member_id: memberId, ...payload });
     if (error) throw error;
   }
 }
@@ -237,20 +272,26 @@ export async function getDegrees(memberId) {
 }
 
 export async function saveDegree(item) {
+  const memberId = item.member_id || await getMyMemberId();
   if (item.id) {
-    const { error } = await supabase.from('degrees').update({
-      degree_type:  item.degree_type,
-      degree_date:  item.degree_date,
-      degree_place: item.degree_place,
-    }).eq('id', item.id);
+    const { error } = await supabase
+      .from('degrees')
+      .update({
+        degree_type:  item.degree_type  || null,
+        degree_date:  item.degree_date  || null,
+        degree_place: item.degree_place || null,
+      })
+      .eq('id', item.id);
     if (error) throw error;
   } else {
-    const { error } = await supabase.from('degrees').insert({
-      member_id:    item.member_id,
-      degree_type:  item.degree_type,
-      degree_date:  item.degree_date,
-      degree_place: item.degree_place,
-    });
+    const { error } = await supabase
+      .from('degrees')
+      .insert({
+        member_id:    memberId,
+        degree_type:  item.degree_type  || null,
+        degree_date:  item.degree_date  || null,
+        degree_place: item.degree_place || null,
+      });
     if (error) throw error;
   }
 }
@@ -273,6 +314,7 @@ export async function getSpouse(memberId) {
 }
 
 export async function saveSpouse(item) {
+  const memberId = item.member_id || await getMyMemberId();
   const payload = {
     spouse_name:         item.spouse_name         || null,
     spouse_dob:          item.spouse_dob          || null,
@@ -284,12 +326,17 @@ export async function saveSpouse(item) {
     auxiliary_number:    item.auxiliary_number    || null,
     spouse_notes:        item.spouse_notes        || null,
   };
-  const existing = await getSpouse(item.member_id);
+  const existing = await getSpouse(memberId);
   if (existing.id) {
-    const { error } = await supabase.from('spouse').update(payload).eq('id', existing.id);
+    const { error } = await supabase
+      .from('spouse')
+      .update(payload)
+      .eq('id', existing.id);
     if (error) throw error;
   } else {
-    const { error } = await supabase.from('spouse').insert({ member_id: item.member_id, ...payload });
+    const { error } = await supabase
+      .from('spouse')
+      .insert({ member_id: memberId, ...payload });
     if (error) throw error;
   }
 }

@@ -1,11 +1,11 @@
 // src/screens/SubformScreens.js
-// FIXED: Safe area handling, header visibility, and scroll padding throughout.
+// FIXED: All field names updated to match Supabase column names (lowercase with underscores)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Alert,
-  StyleSheet, SafeAreaView, ActivityIndicator, Platform,
-  StatusBar, KeyboardAvoidingView,
+  StyleSheet, ActivityIndicator, Platform, StatusBar,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {
   getChildren, saveChild, deleteChild,
@@ -22,7 +22,6 @@ import {
 } from '../components/FormComponents';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
 
-// Height of Android status bar — used to push headers down on Android
 const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 0;
 
 // ════════════════════════════════════════════════════════════════════
@@ -45,7 +44,7 @@ export function ChildrenScreen({ route, navigation }) {
 
   async function handleSave() {
     try {
-      await saveChild({ ...editing, MemberID: memberId });
+      await saveChild({ ...editing, member_id: memberId });
       setEditing(null);
       load();
     } catch (e) {
@@ -57,7 +56,7 @@ export function ChildrenScreen({ route, navigation }) {
     Alert.alert('Delete Child', 'Remove this record?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
-        await deleteChild(editing.ID);
+        await deleteChild(editing.id);
         setEditing(null);
         load();
       }},
@@ -67,14 +66,27 @@ export function ChildrenScreen({ route, navigation }) {
   if (editing !== null) {
     return (
       <SubformEditor
-        title={editing.ID ? 'Edit Child' : 'New Child'}
+        title={editing.id ? 'Edit Child' : 'New Child'}
         onBack={() => setEditing(null)}
         onSave={handleSave}
-        onDelete={editing.ID ? handleDelete : null}
+        onDelete={editing.id ? handleDelete : null}
       >
-        <FormInput label="Child Name" value={editing.ChildName} onChangeText={v => setEditing(e => ({ ...e, ChildName: v }))} required />
-        <DateInput label="Birth Date" value={editing.BirthDate} onChangeText={v => setEditing(e => ({ ...e, BirthDate: v }))} />
-        <FormInput label="Birth Place" value={editing.BirthPlace} onChangeText={v => setEditing(e => ({ ...e, BirthPlace: v }))} />
+        <FormInput
+          label="Child Name"
+          value={editing.child_name}
+          onChangeText={v => setEditing(e => ({ ...e, child_name: v }))}
+          required
+        />
+        <DateInput
+          label="Birth Date"
+          value={editing.birth_date}
+          onChangeText={v => setEditing(e => ({ ...e, birth_date: v }))}
+        />
+        <FormInput
+          label="Birth Place"
+          value={editing.birth_place}
+          onChangeText={v => setEditing(e => ({ ...e, birth_place: v }))}
+        />
       </SubformEditor>
     );
   }
@@ -84,16 +96,18 @@ export function ChildrenScreen({ route, navigation }) {
       title="Children"
       icon="👶"
       onBack={() => navigation.goBack()}
-      onAdd={() => setEditing({ ChildName: '', BirthDate: '', BirthPlace: '' })}
+      onAdd={() => setEditing({ child_name: '', birth_date: '', birth_place: '' })}
       loading={loading}
       emptyIcon="👶"
       emptyTitle="No children recorded"
-      emptyMessage="Tap '+ Add' to add a child's details."
+      emptyMessage="Tap '+ Add New' to add a child's details."
     >
       {items.map(item => (
-        <ListCard key={item.ID} onPress={() => setEditing({ ...item })}>
-          <Text style={s.itemTitle}>{item.ChildName || '(No Name)'}</Text>
-          <Text style={s.itemSub}>{[item.BirthDate, item.BirthPlace].filter(Boolean).join('  ·  ')}</Text>
+        <ListCard key={item.id} onPress={() => setEditing({ ...item })}>
+          <Text style={s.itemTitle}>{item.child_name || '(No Name)'}</Text>
+          <Text style={s.itemSub}>
+            {[item.birth_date, item.birth_place].filter(Boolean).join('  ·  ')}
+          </Text>
         </ListCard>
       ))}
     </SubformList>
@@ -120,7 +134,7 @@ export function PositionsScreen({ route, navigation }) {
 
   async function handleSave() {
     try {
-      await savePosition({ ...editing, MemberID: memberId });
+      await savePosition({ ...editing, member_id: memberId });
       setEditing(null);
       load();
     } catch (e) {
@@ -132,7 +146,7 @@ export function PositionsScreen({ route, navigation }) {
     Alert.alert('Delete Position', 'Remove this record?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
-        await deletePosition(editing.ID);
+        await deletePosition(editing.id);
         setEditing(null);
         load();
       }},
@@ -142,14 +156,27 @@ export function PositionsScreen({ route, navigation }) {
   if (editing !== null) {
     return (
       <SubformEditor
-        title={editing.ID ? 'Edit Position' : 'New Position'}
+        title={editing.id ? 'Edit Position' : 'New Position'}
         onBack={() => setEditing(null)}
         onSave={handleSave}
-        onDelete={editing.ID ? handleDelete : null}
+        onDelete={editing.id ? handleDelete : null}
       >
-        <FormInput label="Position Title" value={editing.PositionTitle} onChangeText={v => setEditing(e => ({ ...e, PositionTitle: v }))} required />
-        <DateInput label="From" value={editing.DateFrom} onChangeText={v => setEditing(e => ({ ...e, DateFrom: v }))} />
-        <DateInput label="To" value={editing.DateTo} onChangeText={v => setEditing(e => ({ ...e, DateTo: v }))} />
+        <FormInput
+          label="Position Title"
+          value={editing.position_title}
+          onChangeText={v => setEditing(e => ({ ...e, position_title: v }))}
+          required
+        />
+        <DateInput
+          label="From"
+          value={editing.date_from}
+          onChangeText={v => setEditing(e => ({ ...e, date_from: v }))}
+        />
+        <DateInput
+          label="To"
+          value={editing.date_to}
+          onChangeText={v => setEditing(e => ({ ...e, date_to: v }))}
+        />
       </SubformEditor>
     );
   }
@@ -159,16 +186,18 @@ export function PositionsScreen({ route, navigation }) {
       title="Positions"
       icon="📋"
       onBack={() => navigation.goBack()}
-      onAdd={() => setEditing({ PositionTitle: '', DateFrom: '', DateTo: '' })}
+      onAdd={() => setEditing({ position_title: '', date_from: '', date_to: '' })}
       loading={loading}
       emptyIcon="📋"
       emptyTitle="No positions recorded"
-      emptyMessage="Tap '+ Add' to record a position held."
+      emptyMessage="Tap '+ Add New' to record a position held."
     >
       {items.map(item => (
-        <ListCard key={item.ID} onPress={() => setEditing({ ...item })}>
-          <Text style={s.itemTitle}>{item.PositionTitle || '(No Title)'}</Text>
-          <Text style={s.itemSub}>{[item.DateFrom, item.DateTo].filter(Boolean).join(' – ')}</Text>
+        <ListCard key={item.id} onPress={() => setEditing({ ...item })}>
+          <Text style={s.itemTitle}>{item.position_title || '(No Title)'}</Text>
+          <Text style={s.itemSub}>
+            {[item.date_from, item.date_to].filter(Boolean).join(' – ')}
+          </Text>
         </ListCard>
       ))}
     </SubformList>
@@ -195,7 +224,7 @@ export function EmergencyContactsScreen({ route, navigation }) {
 
   async function handleSave() {
     try {
-      await saveEmergencyContact({ ...editing, MemberID: memberId });
+      await saveEmergencyContact({ ...editing, member_id: memberId });
       setEditing(null);
       load();
     } catch (e) {
@@ -207,7 +236,7 @@ export function EmergencyContactsScreen({ route, navigation }) {
     Alert.alert('Delete Contact', 'Remove this emergency contact?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
-        await deleteEmergencyContact(editing.ID);
+        await deleteEmergencyContact(editing.id);
         setEditing(null);
         load();
       }},
@@ -217,15 +246,34 @@ export function EmergencyContactsScreen({ route, navigation }) {
   if (editing !== null) {
     return (
       <SubformEditor
-        title={editing.ID ? 'Edit Contact' : 'New Contact'}
+        title={editing.id ? 'Edit Contact' : 'New Contact'}
         onBack={() => setEditing(null)}
         onSave={handleSave}
-        onDelete={editing.ID ? handleDelete : null}
+        onDelete={editing.id ? handleDelete : null}
       >
-        <FormInput label="Name" value={editing.ContactName} onChangeText={v => setEditing(e => ({ ...e, ContactName: v }))} required />
-        <FormInput label="Relationship" value={editing.Relationship} onChangeText={v => setEditing(e => ({ ...e, Relationship: v }))} />
-        <FormInput label="Phone 1" value={editing.Phone1} onChangeText={v => setEditing(e => ({ ...e, Phone1: v }))} keyboardType="phone-pad" />
-        <FormInput label="Phone 2" value={editing.Phone2} onChangeText={v => setEditing(e => ({ ...e, Phone2: v }))} keyboardType="phone-pad" />
+        <FormInput
+          label="Name"
+          value={editing.contact_name}
+          onChangeText={v => setEditing(e => ({ ...e, contact_name: v }))}
+          required
+        />
+        <FormInput
+          label="Relationship"
+          value={editing.relationship}
+          onChangeText={v => setEditing(e => ({ ...e, relationship: v }))}
+        />
+        <FormInput
+          label="Phone 1"
+          value={editing.phone1}
+          onChangeText={v => setEditing(e => ({ ...e, phone1: v }))}
+          keyboardType="phone-pad"
+        />
+        <FormInput
+          label="Phone 2"
+          value={editing.phone2}
+          onChangeText={v => setEditing(e => ({ ...e, phone2: v }))}
+          keyboardType="phone-pad"
+        />
       </SubformEditor>
     );
   }
@@ -235,18 +283,22 @@ export function EmergencyContactsScreen({ route, navigation }) {
       title="Emergency Contacts"
       icon="🚨"
       onBack={() => navigation.goBack()}
-      onAdd={() => setEditing({ ContactName: '', Relationship: '', Phone1: '', Phone2: '' })}
+      onAdd={() => setEditing({ contact_name: '', relationship: '', phone1: '', phone2: '' })}
       loading={loading}
       emptyIcon="🚨"
       emptyTitle="No emergency contacts"
-      emptyMessage="Tap '+ Add' to add an emergency contact."
+      emptyMessage="Tap '+ Add New' to add an emergency contact."
     >
       {items.map(item => (
-        <ListCard key={item.ID} onPress={() => setEditing({ ...item })}>
-          <Text style={s.itemTitle}>{item.ContactName || '(No Name)'}</Text>
+        <ListCard key={item.id} onPress={() => setEditing({ ...item })}>
+          <Text style={s.itemTitle}>{item.contact_name || '(No Name)'}</Text>
           <View style={s.itemRow}>
-            {item.Relationship ? <Text style={s.itemBadge}>{item.Relationship}</Text> : null}
-            {item.Phone1 ? <Text style={s.itemSub}>{item.Phone1}</Text> : null}
+            {item.relationship
+              ? <Text style={s.itemBadge}>{item.relationship}</Text>
+              : null}
+            {item.phone1
+              ? <Text style={s.itemSub}>{item.phone1}</Text>
+              : null}
           </View>
         </ListCard>
       ))}
@@ -260,7 +312,7 @@ export function EmergencyContactsScreen({ route, navigation }) {
 
 export function MilitaryScreen({ route, navigation }) {
   const { memberId } = route.params;
-  const [data, setData]       = useState({ MemberID: memberId, IsMilitary: 0 });
+  const [data, setData]       = useState({ member_id: memberId, is_military: false });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
 
@@ -277,7 +329,7 @@ export function MilitaryScreen({ route, navigation }) {
   async function handleSave() {
     setSaving(true);
     try {
-      await saveMilitary(data);
+      await saveMilitary({ ...data, member_id: memberId });
       Alert.alert('✓ Saved', 'Military details saved.');
     } catch (e) {
       Alert.alert('Error', e.message);
@@ -299,19 +351,34 @@ export function MilitaryScreen({ route, navigation }) {
         <ScrollView
           contentContainerStyle={s.content}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={true}
         >
           <SectionHeader title="Service Status" />
           <FormSwitch
             label="In the Military?"
-            value={!!data.IsMilitary}
-            onValueChange={v => setData(d => ({ ...d, IsMilitary: v ? 1 : 0 }))}
+            value={!!data.is_military}
+            onValueChange={v => setData(d => ({ ...d, is_military: v }))}
           />
           <SectionHeader title="Uniform & Commission" />
-          <DateInput label="Uniform Blessed Date"   value={data.UniformBlessedDate}  onChangeText={set('UniformBlessedDate')} />
-          <DateInput label="First Uniform Use Date" value={data.FirstUniformUseDate} onChangeText={set('FirstUniformUseDate')} />
-          <FormInput label="Current Rank"           value={data.CurrentRank}         onChangeText={set('CurrentRank')} />
-          <FormInput label="Date of Commission"     value={data.Commission}          onChangeText={set('Commission')} />
+          <DateInput
+            label="Uniform Blessed Date"
+            value={data.uniform_blessed_date}
+            onChangeText={set('uniform_blessed_date')}
+          />
+          <DateInput
+            label="First Uniform Use Date"
+            value={data.first_uniform_use_date}
+            onChangeText={set('first_uniform_use_date')}
+          />
+          <FormInput
+            label="Current Rank"
+            value={data.current_rank}
+            onChangeText={set('current_rank')}
+          />
+          <FormInput
+            label="Date of Commission"
+            value={data.commission}
+            onChangeText={set('commission')}
+          />
           <PrimaryButton
             title={saving ? 'Saving…' : 'Save Military Details'}
             icon="💾"
@@ -348,7 +415,7 @@ export function DegreesScreen({ route, navigation }) {
 
   async function handleSave() {
     try {
-      await saveDegree({ ...editing, MemberID: memberId });
+      await saveDegree({ ...editing, member_id: memberId });
       setEditing(null);
       load();
     } catch (e) {
@@ -360,7 +427,7 @@ export function DegreesScreen({ route, navigation }) {
     Alert.alert('Delete Degree', 'Remove this degree record?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
-        await deleteDegree(editing.ID);
+        await deleteDegree(editing.id);
         setEditing(null);
         load();
       }},
@@ -370,14 +437,28 @@ export function DegreesScreen({ route, navigation }) {
   if (editing !== null) {
     return (
       <SubformEditor
-        title={editing.ID ? 'Edit Degree' : 'New Degree'}
+        title={editing.id ? 'Edit Degree' : 'New Degree'}
         onBack={() => setEditing(null)}
         onSave={handleSave}
-        onDelete={editing.ID ? handleDelete : null}
+        onDelete={editing.id ? handleDelete : null}
       >
-        <FormPicker label="Degree Type" value={editing.DegreeType} onValueChange={v => setEditing(e => ({ ...e, DegreeType: v }))} items={degreeTypes} required />
-        <DateInput  label="Date"  value={editing.DegreeDate}  onChangeText={v => setEditing(e => ({ ...e, DegreeDate: v }))} />
-        <FormInput  label="Place" value={editing.DegreePlace} onChangeText={v => setEditing(e => ({ ...e, DegreePlace: v }))} />
+        <FormPicker
+          label="Degree Type"
+          value={editing.degree_type}
+          onValueChange={v => setEditing(e => ({ ...e, degree_type: v }))}
+          items={degreeTypes}
+          required
+        />
+        <DateInput
+          label="Date"
+          value={editing.degree_date}
+          onChangeText={v => setEditing(e => ({ ...e, degree_date: v }))}
+        />
+        <FormInput
+          label="Place"
+          value={editing.degree_place}
+          onChangeText={v => setEditing(e => ({ ...e, degree_place: v }))}
+        />
       </SubformEditor>
     );
   }
@@ -387,16 +468,18 @@ export function DegreesScreen({ route, navigation }) {
       title="Degree Records"
       icon="🎓"
       onBack={() => navigation.goBack()}
-      onAdd={() => setEditing({ DegreeType: '', DegreeDate: '', DegreePlace: '' })}
+      onAdd={() => setEditing({ degree_type: '', degree_date: '', degree_place: '' })}
       loading={loading}
       emptyIcon="🎓"
       emptyTitle="No degree records"
-      emptyMessage="Tap '+ Add' to record a degree."
+      emptyMessage="Tap '+ Add New' to record a degree."
     >
       {items.map(item => (
-        <ListCard key={item.ID} onPress={() => setEditing({ ...item })}>
-          <Text style={s.itemTitle}>{item.DegreeType || '(No Type)'}</Text>
-          <Text style={s.itemSub}>{[item.DegreeDate, item.DegreePlace].filter(Boolean).join('  ·  ')}</Text>
+        <ListCard key={item.id} onPress={() => setEditing({ ...item })}>
+          <Text style={s.itemTitle}>{item.degree_type || '(No Type)'}</Text>
+          <Text style={s.itemSub}>
+            {[item.degree_date, item.degree_place].filter(Boolean).join('  ·  ')}
+          </Text>
         </ListCard>
       ))}
     </SubformList>
@@ -409,7 +492,7 @@ export function DegreesScreen({ route, navigation }) {
 
 export function SpouseScreen({ route, navigation }) {
   const { memberId } = route.params;
-  const [data, setData]       = useState({ MemberID: memberId });
+  const [data, setData]       = useState({ member_id: memberId });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
 
@@ -426,7 +509,7 @@ export function SpouseScreen({ route, navigation }) {
   async function handleSave() {
     setSaving(true);
     try {
-      await saveSpouse(data);
+      await saveSpouse({ ...data, member_id: memberId });
       Alert.alert('✓ Saved', 'Spouse details saved.');
     } catch (e) {
       Alert.alert('Error', e.message);
@@ -448,25 +531,24 @@ export function SpouseScreen({ route, navigation }) {
         <ScrollView
           contentContainerStyle={s.content}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={true}
         >
           <SectionHeader title="Personal" />
-          <FormInput label="Name"          value={data.SpouseName}         onChangeText={set('SpouseName')} />
-          <DateInput label="Date of Birth" value={data.SpouseDOB}          onChangeText={set('SpouseDOB')} />
-          <FormInput label="Nationality"   value={data.SpouseNationality}  onChangeText={set('SpouseNationality')} />
-          <FormInput label="Denomination"  value={data.SpouseDenomination} onChangeText={set('SpouseDenomination')} />
+          <FormInput label="Name" value={data.spouse_name} onChangeText={set('spouse_name')} />
+          <DateInput label="Date of Birth" value={data.spouse_dob} onChangeText={set('spouse_dob')} />
+          <FormInput label="Nationality" value={data.spouse_nationality} onChangeText={set('spouse_nationality')} />
+          <FormInput label="Denomination" value={data.spouse_denomination} onChangeText={set('spouse_denomination')} />
           <SectionHeader title="Membership" />
           <FormSwitch
             label="Is Sister?"
-            value={!!data.SpouseIsSister}
-            onValueChange={v => setData(d => ({ ...d, SpouseIsSister: v ? 1 : 0 }))}
+            value={!!data.spouse_is_sister}
+            onValueChange={v => setData(d => ({ ...d, spouse_is_sister: v }))}
             hint="Is the spouse a member of the Auxiliary?"
           />
-          <FormInput label="Parish"           value={data.SpouseParish}    onChangeText={set('SpouseParish')} />
-          <FormInput label="Auxiliary Name"   value={data.AuxiliaryName}   onChangeText={set('AuxiliaryName')} />
-          <FormInput label="Auxiliary Number" value={data.AuxiliaryNumber} onChangeText={set('AuxiliaryNumber')} />
+          <FormInput label="Parish" value={data.spouse_parish} onChangeText={set('spouse_parish')} />
+          <FormInput label="Auxiliary Name" value={data.auxiliary_name} onChangeText={set('auxiliary_name')} />
+          <FormInput label="Auxiliary Number" value={data.auxiliary_number} onChangeText={set('auxiliary_number')} />
           <SectionHeader title="Notes" />
-          <FormInput label="Notes" value={data.SpouseNotes} onChangeText={set('SpouseNotes')} multiline />
+          <FormInput label="Notes" value={data.spouse_notes} onChangeText={set('spouse_notes')} multiline />
           <PrimaryButton
             title={saving ? 'Saving…' : 'Save Spouse Details'}
             icon="💾"
@@ -504,15 +586,18 @@ function SubformList({ title, icon, onBack, onAdd, loading, emptyIcon, emptyTitl
           keyboardShouldPersistTaps="handled"
         >
           {count === 0
-            ? <EmptyState icon={emptyIcon} title={emptyTitle} message={emptyMessage} actionLabel="+ Add" onAction={onAdd} />
+            ? <EmptyState
+                icon={emptyIcon}
+                title={emptyTitle}
+                message={emptyMessage}
+                actionLabel="+ Add"
+                onAction={onAdd}
+              />
             : children
           }
-          {/* Extra padding at the bottom so last card is never hidden */}
-          <View style={{ height: Spacing.xxl }} />
+          <View style={{ height: 100 }} />
         </ScrollView>
       )}
-
-      {/* Floating Add button — always visible at the bottom */}
       {!loading && (
         <TouchableOpacity style={s.fab} onPress={onAdd} activeOpacity={0.85}>
           <Text style={s.fabText}>＋ Add New</Text>
@@ -545,7 +630,6 @@ function SubformEditor({ title, onBack, onSave, onDelete, children }) {
         <ScrollView
           contentContainerStyle={s.content}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={true}
         >
           {children}
           <View style={s.editActions}>
@@ -566,7 +650,6 @@ function SubformEditor({ title, onBack, onSave, onDelete, children }) {
               />
             )}
           </View>
-          {/* Bottom padding so buttons are never hidden by keyboard */}
           <View style={{ height: Spacing.xxl }} />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -574,12 +657,9 @@ function SubformEditor({ title, onBack, onSave, onDelete, children }) {
   );
 }
 
-// ── Header — FIXED: accounts for Android status bar height ────────────────────
-
 function SubformHeader({ title, icon, onBack, rightAction }) {
   return (
     <View style={s.subHeader}>
-      {/* Back button — large hit area */}
       <TouchableOpacity
         onPress={onBack}
         style={s.backBtn}
@@ -587,12 +667,10 @@ function SubformHeader({ title, icon, onBack, rightAction }) {
       >
         <Text style={s.backText}>‹ Back</Text>
       </TouchableOpacity>
-
       <View style={s.subHeaderCenter}>
         {icon ? <Text style={s.subHeaderIcon}>{icon}  </Text> : null}
         <Text style={s.subHeaderTitle} numberOfLines={1}>{title}</Text>
       </View>
-
       {rightAction ? (
         <TouchableOpacity
           onPress={rightAction.onPress}
@@ -619,20 +697,16 @@ function LoadingView() {
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  // screenWrapper replaces SafeAreaView — handles status bar manually
-  // so the navy header sits flush under the status bar on all Android devices
   screenWrapper: {
     flex: 1,
     backgroundColor: Colors.offWhite,
     paddingTop: STATUS_BAR_HEIGHT,
   },
-
   loadingWrap:      { flex: 1, justifyContent: 'center', alignItems: 'center' },
   content:          { padding: Spacing.lg, paddingBottom: Spacing.xxl },
   listContent:      { padding: Spacing.md },
   listContentEmpty: { flexGrow: 1, justifyContent: 'center' },
 
-  // Header — taller on Android to give more room, especially for the back button
   subHeader: {
     backgroundColor: Colors.navy,
     flexDirection: 'row',
@@ -643,43 +717,22 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.navyLight,
   },
-  backBtn: {
-    minWidth: 70,
-    paddingVertical: 8,
-    paddingRight: Spacing.sm,
-  },
-  backText: {
-    color: Colors.gold,
-    fontSize: Typography.sizes.lg,   // larger than before — easier to see and tap
-    fontWeight: '700',
-  },
+  backBtn: { minWidth: 70, paddingVertical: 8, paddingRight: Spacing.sm },
+  backText: { color: Colors.gold, fontSize: Typography.sizes.lg, fontWeight: '700' },
   subHeaderCenter: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center',
   },
   subHeaderIcon:  { fontSize: 16 },
   subHeaderTitle: { color: Colors.white, fontSize: Typography.sizes.lg, fontWeight: '700' },
-  addBtn: {
-    minWidth: 70,
-    alignItems: 'flex-end',
-    paddingVertical: 8,
-    paddingLeft: Spacing.sm,
-  },
-  addBtnText: { color: Colors.gold, fontWeight: '700', fontSize: Typography.sizes.md },
+  addBtn:         { minWidth: 70, alignItems: 'flex-end', paddingVertical: 8 },
+  addBtnText:     { color: Colors.gold, fontWeight: '700', fontSize: Typography.sizes.md },
 
   saveBtn: { marginTop: Spacing.xl },
-
-  editActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: Spacing.xl,
-  },
+  editActions: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.xl },
   editSaveBtn:   { flex: 1 },
   editDeleteBtn: { marginLeft: Spacing.sm },
 
-  // Floating action button — always visible at the bottom of list screens
   fab: {
     position: 'absolute',
     bottom: Spacing.xl,
@@ -691,7 +744,11 @@ const s = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    ...Shadows.lifted,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 7,
   },
   fabText: {
     color: Colors.gold,
