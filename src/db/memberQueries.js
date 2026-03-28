@@ -442,4 +442,4 @@ export async function deleteUniformedRankRecord(id, memberId) {
   if (error) throw error;
 
   await syncCurrentUniformedRank(memberId);
-}ww
+}
