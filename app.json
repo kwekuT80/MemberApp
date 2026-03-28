@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Member Registration",
+    "slug": "member-registration-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#0A1628"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourorg.memberregistration"
+    },
+    "android": {
+      "package": "com.yourorg.memberregistration"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "899c9ca3-584e-4afd-b7b2-9f33aad36b34"
+      }
+    }
+  }
+}

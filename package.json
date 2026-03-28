@@ -1,0 +1,35 @@
+{
+  "name": "member-registration-app",
+  "version": "2.0.0",
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios"
+  },
+  "dependencies": {
+    "@expo/metro-config": "~54.0.14",
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-community/datetimepicker": "^8.4.4",
+    "@react-native-picker/picker": "^2.11.1",
+    "@react-navigation/native": "^6.1.9",
+    "@react-navigation/native-stack": "^6.9.17",
+    "@supabase/supabase-js": "^2.43.4",
+    "babel-plugin-module-resolver": "^5.0.3",
+    "browserify-zlib": "^0.2.0",
+    "expo": "~54.0.0",
+    "expo-status-bar": "~3.0.9",
+    "https-browserify": "^1.0.0",
+    "react": "^19.1.0",
+    "react-native": "^0.81.5",
+    "react-native-get-random-values": "~1.11.0",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-url-polyfill": "^2.0.0",
+    "readable-stream": "^4.7.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0"
+  },
+  "private": true
+}
