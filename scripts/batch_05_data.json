@@ -1,0 +1,393 @@
+[
+  {
+    "member_info": {
+      "title": "Capt.",
+      "first_name": "Julius",
+      "middle_names": "Saviour",
+      "surname": "Mensah",
+      "date_of_birth": "1970-01-16",
+      "place_of_birth": "Blekusu",
+      "nationality": "Ghanaian",
+      "home_town": "Blekusu",
+      "home_region": "Volta Region",
+      "residential_address": "N11 Adu Link 173 Glefe Dansoman",
+      "postal_address": "P.O. Box DS 907 Dansoman Estate",
+      "mobile": "0543878202",
+      "email": "juliussumensah@gmail.com",
+      "marital_status": "Married",
+      "spouse_name": "Gifty Hornu Mensah",
+      "employment_status": "Employed",
+      "occupation": "Driver",
+      "workplace": "GLIHS",
+      "date_joined": "1999-12-11",
+      "current_rank": "Captain"
+    },
+    "spouse_info": {
+      "name": "Gifty Hornu Mensah",
+      "nationality": "Ghanaian",
+      "denomination": "Catholic"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "1999-12-11", "place": "St. Margaret-Mary Comm." },
+      { "degree_type": "2nd & 3rd Degree", "date": "2003-07-12", "place": "St Thomas Aquinas Sch." },
+      { "degree_type": "4th Degree", "date": "2013-07-13", "place": "St Thomas Aquinas Sch." }
+    ],
+    "ceremonial": { "blessed_date": "2003-05-04", "first_uniform_use_date": "2003-05-10" },
+    "positions": [
+      { "title": "Messenger", "from": "2004-01-01", "to": "2005-12-31" },
+      { "title": "2nd Vice Commander", "from": "2006-01-01", "to": "2007-12-31" },
+      { "title": "1st Vice Commander", "from": "2008-01-01", "to": "2009-12-31" },
+      { "title": "Commander", "from": "2012-01-01", "to": "2015-12-31" },
+      { "title": "Trustee", "from": "2018-01-01", "to": "2019-12-31" },
+      { "title": "Grand Messenger", "from": "2015-01-01", "to": "2021-12-31" }
+    ],
+    "children": [
+      { "name": "Marie-Law Nuvor", "dob": "1993-03-26" },
+      { "name": "Rejoice Aboachie", "dob": "2003-11-15" }
+    ],
+    "emergency_contacts": [
+      { "name": "Gifty Hornu-Mensah", "phone": "0245960783" },
+      { "name": "Micheal Mensah", "phone": "0244440235" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Rexford",
+      "middle_names": "McKenzie",
+      "surname": "Skues",
+      "date_of_birth": "1978-11-24",
+      "place_of_birth": "Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Axini",
+      "home_region": "Western Reg",
+      "residential_address": "Kasoa-New Market, Police Quarters",
+      "postal_address": "% Box 1681 D.C Accra",
+      "phone": "0542724150",
+      "email": "rexskuesmckenzie@yahoo.com",
+      "marital_status": "Married",
+      "spouse_name": "Joana C. Edem Avornyoh",
+      "employment_status": "Employed",
+      "occupation": "Building Tech",
+      "workplace": "Non-Formal Edu. Div.",
+      "job_title": "In Post",
+      "date_joined": "2012-12-08"
+    },
+    "spouse_info": {
+      "name": "Joana C. Edem Avornyoh",
+      "nationality": "Ghanaian",
+      "denomination": "Christian"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2012-12-08", "place": "St. Margaret Mary Parish" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2020-10-17", "place": "Holy Family Cath-Church" }
+    ],
+    "positions": [
+      { "title": "1st Vice President (SMM)", "from": "2008-01-01", "to": "2010-12-31" }
+    ],
+    "children": [
+      { "name": "Annable McKenzie Skues", "dob": "2016-01-12" },
+      { "name": "Nathaniel Jojo McKenzie Skues", "dob": "2019-07-01" }
+    ],
+    "emergency_contacts": [
+      { "name": "Florence Rockson", "phone": "0543701346" },
+      { "name": "Joana C. Edem Avornyoh", "phone": "0208445174" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Johannes",
+      "surname": "Dabbie",
+      "date_of_birth": "1983-05-06",
+      "place_of_birth": "Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Cape Coast",
+      "home_region": "Central",
+      "residential_address": "Dansoman SSNIT Flat Block 10",
+      "mobile": "0241188736",
+      "email": "myjohannes7@gmail.com",
+      "marital_status": "Single",
+      "employment_status": "Unemployed",
+      "date_joined": "2014-12-13"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2014-12-13", "place": "St. Margaret Mary Parish" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2020-10-17", "place": "Holy Family Catholic Church" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "David",
+      "surname": "Bondorin",
+      "date_of_birth": "1962-03-21",
+      "place_of_birth": "Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Abor",
+      "home_region": "Volta Region",
+      "residential_address": "Hse No 56, Gbawe, Asatonye Numshe Street.",
+      "postal_address": "P.O. Box 12, Trade Fair Site, La - Accra",
+      "mobile": "0208112767",
+      "email": "davidsbondorin@gmail.com",
+      "marital_status": "Married",
+      "spouse_name": "Mrs Catherine Bondorin",
+      "employment_status": "Self-employed",
+      "occupation": "Legal Practitior",
+      "workplace": "Amanfoo Chambers",
+      "date_joined": "2005-01-01"
+    },
+    "spouse_info": {
+      "name": "Mrs Catherine Bondorin",
+      "nationality": "Ghanaian",
+      "denomination": "Catholic Christian",
+      "auxiliary_name": "421 Dansoman"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2005-01-01", "place": "St. Margaret Mary School" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2006-01-01", "place": "Holy Spirit Cathedral" },
+      { "degree_type": "4th Degree", "date": "2016-01-01", "place": "St Charles Lwanga Parish" },
+      { "degree_type": "Noble Degree", "date": "2017-01-01", "place": "Holy Spirit Cathedral" }
+    ],
+    "ceremonial": { "first_use_date": "2006-01-01" },
+    "positions": [
+      { "title": "Recording and Corresponding Secretary", "from": "2006-01-01", "to": "2008-12-31" },
+      { "title": "Trustee", "from": "2013-01-01", "to": "2015-12-31" },
+      { "title": "1st Vice President", "from": "2015-01-01", "to": "2017-12-31" },
+      { "title": "Worthy President", "from": "2018-01-01" }
+    ],
+    "children": [
+      { "name": "Dr. Joel Bondorin", "dob": "1987-01-01", "place": "Accra" },
+      { "name": "Dr. Sarah Bondorin", "dob": "1990-01-01", "place": "Accra" }
+    ],
+    "emergency_contacts": [
+      { "name": "Mrs Catherine Bondorin", "phone": "0208249987" },
+      { "name": "Dr Sarah Bondorin", "phone": "0203665201" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "B/K",
+      "first_name": "Jonathan",
+      "middle_names": "Affo-Kamrah",
+      "surname": "Cato",
+      "date_of_birth": "1976-08-03",
+      "place_of_birth": "Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Bonyere",
+      "home_region": "Western",
+      "residential_address": "A138/19 Attoh Close, Dansoman",
+      "postal_address": "P.O. Box CT 2957 Cantonment",
+      "phone": "0302311842",
+      "mobile": "0542372737",
+      "email": "jonathancato@yahoo.com",
+      "marital_status": "Widowed",
+      "spouse_name": "Charlotte-Alberta Cato",
+      "employment_status": "Banker",
+      "occupation": "Banker",
+      "workplace": "Dansoman",
+      "work_address": "A138/19 Attoh Close Dansoman",
+      "date_joined": "2014-03-08"
+    },
+    "spouse_info": {
+      "name": "Charlotte-Alberta Cato",
+      "nationality": "Ghanaian",
+      "denomination": "Catholic"
+    },
+    "children": [
+      { "name": "Kabenla Arku Cato", "dob": "2007-07-10", "place": "Kumasi" },
+      { "name": "Kabenla Affo-Kamrah Cato", "dob": "2012-05-01", "place": "Accra" },
+      { "name": "Kabenla Samore Cato", "dob": "2016-12-13", "place": "Accra" }
+    ],
+    "emergency_contacts": [
+      { "name": "Charlotte Cato", "phone": "0208137144" },
+      { "name": "Ernest Yerekuu", "phone": "0544330113" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Henry",
+      "middle_names": "Kpakpo",
+      "surname": "Adotey",
+      "date_of_birth": "1982-08-24",
+      "place_of_birth": "Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Osu",
+      "home_region": "Greater Accra",
+      "residential_address": "#265 Sowutuom - Accra",
+      "postal_address": "Box BC 196 Burma Camp - Accra",
+      "phone": "0244891524",
+      "email": "henryadotey98@yahoo.com",
+      "marital_status": "Married",
+      "spouse_name": "Josepha Fafa Adede Tay",
+      "employment_status": "Employed",
+      "occupation": "Tech. Engineer",
+      "workplace": "Ghana Highway Auth.",
+      "work_address": "Box 1914 Kumasi"
+    },
+    "spouse_info": {
+      "name": "Josepha Fafa Adede Tay",
+      "nationality": "Ghanaian",
+      "denomination": "Catholic"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2015-03-14", "place": "St. Margaret Mary #500" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2017-04-22", "place": "St. Thomas Aquinas School" },
+      { "degree_type": "4th Degree", "date": "2019-01-19", "place": "St. Thomas Aquinas School" }
+    ],
+    "ceremonial": { "blessed_date": "2017-04-26", "first_use_date": "2017-04-29" },
+    "positions": [ "Guard" ],
+    "children": [
+      { "name": "Gabriel Nii Adotey-Kwan", "dob": "2014-09-10", "place": "Accra" }
+    ],
+    "emergency_contacts": [
+      { "name": "Josepha Fafa Adede Tay", "phone": "0208912836" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "John",
+      "middle_names": "Kinsley",
+      "surname": "Prah",
+      "date_of_birth": "1940-04-15",
+      "place_of_birth": "Elmina",
+      "nationality": "Ghanaian",
+      "home_town": "Elmina",
+      "home_region": "Central",
+      "residential_address": "A 242/18 OR C89 Dansoman Estates",
+      "postal_address": "P.O. Box DS 2107 Dansoman Estates",
+      "phone": "020277514",
+      "marital_status": "Married",
+      "spouse_name": "Comfort Prah",
+      "employment_status": "Retired",
+      "date_joined": "1973-01-01"
+    },
+    "spouse_info": {
+      "name": "Comfort Prah",
+      "nationality": "Ghanaian",
+      "denomination": "Presbyterian"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "1973-05-27", "place": "Accra" },
+      { "degree_type": "2nd & 3rd Degree", "date": "1979-01-01", "place": "Accra" }
+    ],
+    "children": [
+      "Ignatus Knox Prah",
+      "Theophilus Knox Prah",
+      "Franks Prah",
+      "Anthony Prah"
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Solomon",
+      "surname": "Dotse",
+      "date_of_birth": "1951-11-09",
+      "place_of_birth": "Keta",
+      "nationality": "Ghanaian",
+      "home_town": "Keta",
+      "home_region": "Volta Region",
+      "postal_address": "P.O. Box AQ 171, Abokobi, Accra.",
+      "phone": "0208181655",
+      "email": "solomondotse10@gmail.com",
+      "marital_status": "Married",
+      "spouse_name": "Mary Dotse",
+      "employment_status": "Retired",
+      "occupation": "Administrator",
+      "workplace": "Ghana Water Company",
+      "job_title": "HR Manager",
+      "date_joined": "2006-06-06"
+    },
+    "spouse_info": {
+      "name": "Mary Dotse",
+      "nationality": "Ghanaian",
+      "denomination": "Catholic",
+      "auxiliary_name": "Commandery #421"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2006-06-06", "place": "St. Benedict School, Dansoman" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2013-01-13", "place": "St. Thomas Aquinas Sch" },
+      { "degree_type": "4th Degree", "date": "2015-10-18", "place": "Charles Lwanga Cath. Church" }
+    ],
+    "ceremonial": { "blessed_date": "2007-08-13", "first_use_date": "2007-08-29" },
+    "positions": [
+      { "title": "3rd Trustee", "from": "2012-01-01", "to": "2013-12-31" }
+    ],
+    "children": [
+      { "name": "Sofa Paschal Dotse", "dob": "1974-12-27", "place": "Accra" },
+      { "name": "Mary Abla Dotse", "dob": "1979-08-16", "place": "Mamponteng" },
+      { "name": "Stephen Dotse", "dob": "1982-03-02", "place": "Mamponteng" },
+      { "name": "Lambert Dotse", "dob": "1984-07-20", "place": "Mamponteng" },
+      { "name": "Diana Dotse", "dob": "1996-11-11", "place": "Accra" },
+      { "name": "Thelma Dotse", "dob": "1999-08-16", "place": "Accra" }
+    ],
+    "emergency_contacts": [
+      { "name": "Mary Dotse", "phone": "0244438328" },
+      { "name": "Elizabeth Dotse", "phone": "0203001492" }
+    ],
+    "current_rank": "Sir Knight"
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Peter",
+      "surname": "Maasodong",
+      "date_of_birth": "1956-09-25",
+      "place_of_birth": "Kumasi",
+      "nationality": "Ghanaian",
+      "home_town": "Nandom",
+      "home_region": "Upper West",
+      "residential_address": "New Legon/Animal Research, Adenta (GD 075-6476)",
+      "postal_address": "P.O. Box DT 114 Adenta, Accra",
+      "phone": "0203002201",
+      "email": "pmaasodong@yahoo.com",
+      "marital_status": "Married",
+      "spouse_name": "Gertrude Eunice Maasodong",
+      "employment_status": "Retired",
+      "date_joined": "1999-06-05"
+    },
+    "spouse_info": {
+      "name": "Gertrude Eunice Maasodong",
+      "nationality": "Ghanaian",
+      "denomination": "Catholic"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "1999-06-05", "place": "Commandery #500, Dansoman" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2020-10-17", "place": "Holy Family" }
+    ],
+    "positions": [
+      { "title": "Assistant Recording Secretary", "from": "2004-01-01", "to": "2005-12-31" }
+    ],
+    "children": [
+      { "name": "Amour Maasodong", "dob": "1984-02-27", "place": "Bolga" },
+      { "name": "Solange Maasodong", "dob": "1986-05-23", "place": "Bolga" },
+      { "name": "Audrey Maasodong", "dob": "1988-11-23", "place": "Bolga" },
+      { "name": "Adele Maasodong", "dob": "1991-05-11", "place": "Bolga" }
+    ],
+    "emergency_contacts": [
+      { "name": "Gertrude Eunice Maasodong", "phone": "0208200600" },
+      { "name": "Amour Maasodong", "phone": "0264714710" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "John",
+      "middle_names": "Eric",
+      "surname": "Coleman",
+      "date_of_birth": "1944-05-25",
+      "place_of_birth": "Mankessim",
+      "nationality": "Ghanaian",
+      "home_town": "Mankessim",
+      "home_region": "Central",
+      "residential_address": "Titus Glover Close, No. 5 Dansoman, Behind Datus School",
+      "postal_address": "P.O. Box 2241 Dansoman.",
+      "phone": "0203002230",
+      "marital_status": "Widowed",
+      "date_joined": "1997-01-01"
+    }
+  }
+]

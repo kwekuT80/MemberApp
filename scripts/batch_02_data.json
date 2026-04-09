@@ -1,0 +1,345 @@
+[
+  {
+    "member_info": {
+      "title": "Ambassador",
+      "first_name": "Sylvester",
+      "middle_names": "Jude Kpakpo",
+      "surname": "Parker-Allotey",
+      "date_of_birth": "1955-02-01",
+      "place_of_birth": "Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Accra",
+      "residential_address": "Pantang (Agbogba Ep Down)",
+      "postal_address": "P.O. Box TN 1317, Teshie-Nungua",
+      "mobile": "0242089952",
+      "email": "sparkerallotey19@gmail.com",
+      "marital_status": "Married",
+      "spouse_name": "Mrs. Alice Ama Parker-Allotey",
+      "employment_status": "Retired",
+      "occupation": "Rtd Diplomat",
+      "workplace": "Min of Foreign Affairs",
+      "current_rank": "Col.",
+      "commission_date": "2019-10-01"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "1978-01-01", "place": "Accra St. Joseph's School Adabraka" },
+      { "degree_type": "2nd & 3rd Degree", "date": "1979-01-01", "place": "Ho" },
+      { "degree_type": "4th Degree", "date": "2020-01-01", "place": "St. MM, Dansoman" },
+      { "degree_type": "Noble Degree", "date": "2000-01-01", "place": "Sacred Heart Cathedral, Ho" }
+    ],
+    "ceremonial": { "blessed_date": "2000-01-01", "first_use_date": null },
+    "positions": [
+      "3rd Trustee St. MM Com 500",
+      "Noble First Vice Grandmaster (May 2019)"
+    ],
+    "children": [
+      { "name": "Clarence Parker-Allotey", "dob": "1982-06-27", "place": "Nairobi, Kenya" },
+      { "name": "Claudette Parker-Allotey", "dob": "1984-04-19", "place": "Nairobi, Kenya" }
+    ],
+    "emergency_contacts": [
+      { "name": "Mrs. Alice Parker-Allotey", "phone": "0202999575" },
+      { "name": "Clarence Parker-Allotey", "phone": "0245025671" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Charles",
+      "middle_names": "Jude Asiedu",
+      "surname": "Asiedu",
+      "date_of_birth": "1981-11-28",
+      "place_of_birth": "Accra",
+      "region": "Greater Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Pepease - Kwahu",
+      "home_region": "Eastern",
+      "residential_address": "Gbawe - Bulemi (GS-0048-1903)",
+      "phone": "0503818097",
+      "mobile": "0242520818",
+      "email": "qwame.ntri@gmail.com",
+      "marital_status": "Married",
+      "spouse_name": "Bertha Josephine Asiedu",
+      "employment_status": "Self-employed",
+      "occupation": "Graphic Designer",
+      "workplace": "Dansoman - B. Opoku",
+      "date_joined": "2012-12-08"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2012-12-08", "place": "St. Margaret Mary Cath. Church, Dansoman" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2020-10-17", "place": "Holy Family Cath. Church, Mataheko" }
+    ],
+    "emergency_contacts": [
+      { "name": "Bertha Josephine Asiedu", "phone": "0246635486" },
+      { "name": "Martin Mireku Asiedu", "phone": "0246177614" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Obiri",
+      "middle_names": "Kwame",
+      "surname": "Savie",
+      "date_of_birth": "1981-06-20",
+      "place_of_birth": "Ho",
+      "region": "Volta",
+      "nationality": "Ghanaian",
+      "home_town": "Keta",
+      "home_region": "Volta",
+      "phone": "0277085764",
+      "email": "lordcriss@gmail.com",
+      "marital_status": "Single",
+      "employment_status": "Employed",
+      "occupation": "Sacristan",
+      "workplace": "St. Margaret-Mary",
+      "work_address": "Box 1681 AC"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2014-05-12", "place": "St. Margaret Mary" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2020-10-17", "place": "Holy Family" }
+    ],
+    "emergency_contacts": [
+      { "name": "George Savie", "phone": "0244621313" },
+      { "name": "Patricia Worbeah", "phone": "0245014435" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Allan",
+      "middle_names": "Kofi",
+      "surname": "Folivi",
+      "date_of_birth": "1981-05-29",
+      "place_of_birth": "Akatsi",
+      "region": "Volta",
+      "nationality": "Ghanaian",
+      "home_town": "Srogbe",
+      "home_region": "Volta",
+      "residential_address": "GA-5960-610 Dansoman-Otodjor",
+      "mobile": "0242679804",
+      "email": "allanfolivi@gmail.com",
+      "marital_status": "Married",
+      "spouse_name": "Mabel Sroda Ahiagba Foli",
+      "employment_status": "Employed",
+      "occupation": "Civic Educator",
+      "workplace": "NCCE, Gomoa Afransi",
+      "job_title": "Senior Civic Edu. Officer",
+      "work_address": "c/o P.O. Box 4, Gomoa Central District Assembly, Afransi",
+      "date_joined": "2018-05-12"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2018-05-12", "place": "SMM Dansoman SSNIT Accra" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2020-10-17", "place": "Holy Family Mataheko Accra" }
+    ],
+    "children": [
+      { "name": "Bernard Selasi Foli", "dob": "2011-08-20", "place": "Aflao" }
+    ],
+    "emergency_contacts": [
+      { "name": "Mabel S. Ahiagba Foli", "phone": "0242984650" },
+      { "name": "Foli Quaye", "phone": "0244614999" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Frederick",
+      "middle_names": "Kwame",
+      "surname": "Amoah",
+      "date_of_birth": "1989-07-22",
+      "place_of_birth": "Kumasi",
+      "region": "Ashanti",
+      "nationality": "Ghanaian",
+      "home_town": "Ejura",
+      "home_region": "Ashanti",
+      "residential_address": "H/No 66, Upper Weija, Accra",
+      "postal_address": "P.O. Box GP 742, Accra",
+      "mobile": "0543292838",
+      "email": "amoahfrederick@rocketmail.com",
+      "marital_status": "Single",
+      "employment_status": "Employed",
+      "occupation": "Chartered Accountant",
+      "workplace": "Graphite",
+      "work_address": "P.O. Box 742, Accra",
+      "date_joined": "2019-06-01"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2019-06-01", "place": "St Margaret Mary, Dansoman" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2020-10-17", "place": "Holy Family, Mataheko" }
+    ],
+    "emergency_contacts": [
+      { "name": "Francis Kyei", "phone": "0203529556" },
+      { "name": "Margaret L. Mensah", "phone": "0208126593" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "B/K",
+      "first_name": "Ernest",
+      "middle_names": "Kofi",
+      "surname": "Hagan",
+      "date_of_birth": "1989-06-02",
+      "place_of_birth": "Saltpond",
+      "region": "Central",
+      "nationality": "Ghanaian",
+      "home_town": "Moree",
+      "home_region": "Central",
+      "residential_address": "Dansoman SSNIT Flat",
+      "postal_address": "P.O. Box DS 1681, Dansoman",
+      "phone": "0302307854",
+      "mobile": "0207148145",
+      "email": "cophyhagan@gmail.com",
+      "marital_status": "Single",
+      "employment_status": "Self-employed",
+      "occupation": "Office Clerk",
+      "workplace": "St. Margaret Mary Parish",
+      "work_address": "P.O. Box DS 1681, Dansoman - Accra",
+      "date_joined": "2017-01-14"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2017-01-14", "place": "St. Margaret Mary" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2020-10-17", "place": "Holy Family Catholic Church" }
+    ],
+    "emergency_contacts": [
+      { "name": "Jennifer Hagan", "phone": "0546197023" },
+      { "name": "Gifty Hagan", "phone": "0572069119" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Gabriel",
+      "surname": "Odum-Mensah",
+      "date_of_birth": "1958-05-21",
+      "place_of_birth": "Cape Coast",
+      "region": "Central",
+      "nationality": "Ghanaian",
+      "home_town": "Cape Coast (Pedu)",
+      "home_region": "Central",
+      "residential_address": "Datub Teachers Quarters - Bubiashie",
+      "postal_address": "Box AN 5952, Accra - North",
+      "phone": "0208177472",
+      "email": "odomens@yahoo.co.uk",
+      "marital_status": "Married",
+      "spouse_name": "Sabrina Odum-Mensah",
+      "employment_status": "Employed",
+      "occupation": "Travel Consultant",
+      "workplace": "Journey Max",
+      "work_address": "P.O. Box AN 5952, Accra North"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2015-12-12", "place": "St Margaret - Mary - D'Man" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2020-10-17", "place": "Holy Family Parish - Mataheko" }
+    ],
+    "children": [
+      { "name": "Gerald Odum-Mensah", "dob": "1992-12-22", "place": "Accra" },
+      { "name": "Geraldine Belinda Odum-Mensah", "dob": "2005-03-05", "place": "Accra" }
+    ],
+    "emergency_contacts": [
+      { "name": "Sabrina Odum-Mensah", "phone": "0207061608" },
+      { "name": "Gerald Odum-Mensah", "phone": "0207813921" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Dominic",
+      "middle_names": "Adu",
+      "surname": "Appiah",
+      "date_of_birth": "1971-08-05",
+      "place_of_birth": "Sefwi-Asafo",
+      "region": "Western North",
+      "nationality": "Ghanaian",
+      "home_town": "Aburi-Akwapim",
+      "home_region": "Eastern",
+      "residential_address": "G-WO083-0838",
+      "postal_address": "Bank of Ghana, Box 2674, Accra",
+      "phone": "0208136965",
+      "mobile": "0242816961",
+      "email": "dominic.appiah@bog.gov.gh",
+      "marital_status": "Married",
+      "spouse_name": "Grace Adu-Appiah",
+      "employment_status": "Self-employed",
+      "occupation": "Petty-Trader",
+      "workplace": "Keep Fit, Dansoman"
+    },
+    "children": [
+      { "name": "George Kuuku Appiah", "dob": "1997-02-05" },
+      { "name": "Nana Yeboah Adu-Appiah", "dob": "2002-04-20" },
+      { "name": "Akosua Dufie Adu-Appiah", "dob": "2005-10-16" }
+    ],
+    "emergency_contacts": [
+      { "name": "Grace Adu-Appiah", "phone": "0247120404" },
+      { "name": "George K. Appiah", "phone": "0542946655" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Noble",
+      "first_name": "Thomas",
+      "middle_names": "Cortei",
+      "surname": "Clottey",
+      "date_of_birth": "1945-03-14",
+      "place_of_birth": "Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Asere",
+      "home_region": "Greater Accra",
+      "residential_address": "Gbawe-Djonman, Pole # A7/15",
+      "postal_address": "Box 3071, Accra",
+      "email": "corjclottey@yahoo.com",
+      "marital_status": "Married",
+      "spouse_name": "Mrs. Sophia Clottey",
+      "employment_status": "Retired",
+      "date_joined": "1992-05-02"
+    },
+    "degrees": [
+      { "degree_type": "Noble Degree", "place": "Accra" }
+    ],
+    "positions": [
+      { "title": "1st Vice President", "from": "2008-01-01", "to": "2011-12-31" },
+      { "title": "President", "from": "2012-01-01", "to": "2013-12-31" }
+    ],
+    "children": [
+      "Reuben Nii Kojo Clottey",
+      "Thomas Cortei Clottey",
+      "Ernestina Kordei Anziwa Clottey"
+    ],
+    "emergency_contacts": [
+      { "name": "Ernestina Clottey", "phone": "0208276214" },
+      { "name": "Thomas Clottey", "phone": "0208335951" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Emmanuel",
+      "surname": "De-Graft Amoah",
+      "date_of_birth": "1986-12-26",
+      "place_of_birth": "Dansoman",
+      "region": "Greater Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Ajumako Bisease",
+      "home_region": "Central Region",
+      "residential_address": "Hse No. A/55/15 Mascot Hotel, Exhibition",
+      "postal_address": "P.O. Box DS 986, Dansoman",
+      "phone": "0555586766",
+      "mobile": "0204280550",
+      "email": "edegraftamoah@yahoo.com",
+      "marital_status": "Single",
+      "employment_status": "Employed",
+      "occupation": "Teaching",
+      "workplace": "St. Theresa's School",
+      "job_title": "Teacher",
+      "date_joined": "2014-03-08"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2014-03-08", "place": "St. Margaret Mary Comm. #500" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2020-10-17", "place": "Holy Family Parish, Mataheko" }
+    ],
+    "positions": [
+      { "title": "Secretary", "from": "2018-01-01" }
+    ],
+    "emergency_contacts": [
+      { "name": "Eric De-Graft Amoah", "phone": "0277291596" },
+      { "name": "Daniel De-Graft Amoah", "phone": "0247789008" }
+    ]
+  }
+]

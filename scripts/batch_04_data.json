@@ -1,0 +1,314 @@
+[
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Julius",
+      "surname": "Yawson",
+      "date_of_birth": "1991-08-03",
+      "place_of_birth": "Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Senya-Beraku",
+      "home_region": "Central",
+      "residential_address": "A127/19, Attoh Close, Dansoman Estate - Accra",
+      "postal_address": "Box DS 1583, Dansoman Estates - Accra",
+      "phone": "0554486136",
+      "mobile": "0261919291",
+      "email": "juliusyawson@gmail.com",
+      "marital_status": "Single",
+      "employment_status": "Employed",
+      "occupation": "I.T Professional",
+      "workplace": "Techminds Ltd",
+      "job_title": "Software Developer",
+      "work_address": "Dansoman - Accra",
+      "date_joined": "2018-05-01"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2019-05-12", "place": "St. Bernadette" }
+    ],
+    "emergency_contacts": [
+      { "name": "Samuel Bob Yawson", "phone": "0244762328" },
+      { "name": "Henry Yawson", "phone": "0268492259" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Marshall",
+      "middle_names": "Kofi Mawuko",
+      "surname": "Adaletey-Dosu",
+      "date_of_birth": "1983-02-18",
+      "place_of_birth": "Dansoman - Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Atorkor",
+      "home_region": "Volta Region",
+      "residential_address": "A959/15 Dansoman-Sahara",
+      "postal_address": "P.O. BOX DS 2116 Dansoman",
+      "mobile": "0244218706",
+      "email": "marshalldosu@yahoo.com",
+      "marital_status": "Married",
+      "spouse_name": "Delphina Andoh",
+      "employment_status": "Employed",
+      "occupation": "Project Manager",
+      "workplace": "Societe Generale Ghana",
+      "date_joined": "1995-01-01"
+    },
+    "spouse_info": {
+      "name": "Delphina Andoh",
+      "nationality": "Ghanaian",
+      "denomination": "Catholic"
+    },
+    "ceremonial": {
+      "blessed_date": "2015-12-20",
+      "first_uniform_use_date": "2015-12-26"
+    },
+    "positions": [
+      "Corresponding & Rec. Secretary"
+    ],
+    "children": [
+      { "name": "Esine Nuna Afi Adaletey-Dosu", "dob": "2017-06-16" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Collins",
+      "middle_names": "Kwabesi",
+      "surname": "Boadi",
+      "date_of_birth": "1980-07-20",
+      "place_of_birth": "Sunyani",
+      "nationality": "Ghanaian",
+      "home_town": "Dua Yaw Nkwanta",
+      "home_region": "Brong Ahafo",
+      "residential_address": "Dansoman SSNIT Flat Block 17",
+      "postal_address": "P.O. Box 561 AC - Accra",
+      "phone": "0271598859",
+      "mobile": "0271598859",
+      "email": "collinsboadi31@gmail.com",
+      "marital_status": "Widowed",
+      "spouse_name": "Gladys Fedah",
+      "employment_status": "Self-employed",
+      "occupation": "Driver",
+      "workplace": "Inforworld Product Company",
+      "work_address": "P.O. Box of GP 17406 - Accra Ghana",
+      "date_joined": "2011-09-25"
+    },
+    "spouse_info": {
+      "name": "Gladys Fedah",
+      "nationality": "Ghanaian",
+      "denomination": "Christian"
+    },
+    "children": [
+      { "name": "Agella Boadi", "dob": "2008-06-03", "place": "37 Military hospital" },
+      { "name": "Stephen Adu Boadi", "dob": "2011-04-06", "place": "Accra" },
+      { "name": "Marina Niya Boadi", "place": "Accra" }
+    ],
+    "emergency_contacts": [
+      { "name": "Francis Ampereky", "phone": "0540820318" },
+      { "name": "Julius Laryea", "phone": "0548697490" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Francis",
+      "middle_names": "Papa Kojo Morgue",
+      "surname": "Dickens",
+      "nationality": "Ghanaian",
+      "home_town": "Sekondi Takoradi / Benso",
+      "home_region": "Western",
+      "residential_address": "Dansoman Control Nellis Down H/No 511/16",
+      "mobile": "0244822089",
+      "marital_status": "Single",
+      "employment_status": "Employed",
+      "occupation": "Chef",
+      "workplace": "Accra City Hotel",
+      "work_address": "P.O. Box 12720 Accra - North"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2007-06-01" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Victor",
+      "surname": "Amefu",
+      "date_of_birth": "1987-11-15",
+      "place_of_birth": "Afife",
+      "nationality": "Ghanaian",
+      "home_town": "Afonyaga",
+      "home_region": "Volta Region",
+      "phone": "0547888972",
+      "mobile": "0547888972",
+      "marital_status": "Single",
+      "employment_status": "Employed",
+      "occupation": "Auto-Electrician",
+      "workplace": "Rana Motors",
+      "job_title": "Deputy Supervisor",
+      "date_joined": "2016-06-11"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2016-06-11", "place": "St. Bernadette" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Michael",
+      "middle_names": "Selorm",
+      "surname": "Cudjoe",
+      "date_of_birth": "1986-03-06",
+      "place_of_birth": "Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Hohoe",
+      "home_region": "Volta",
+      "residential_address": "No M087, Salem Estates, Malejor Off the Dodowa Road",
+      "phone": "0244787099",
+      "mobile": "0244787099",
+      "email": "yaovi.cudjoe.1@gmail.com",
+      "marital_status": "Married",
+      "spouse_name": "Mawuena Akosua Cudjoe",
+      "employment_status": "Employed",
+      "occupation": "Banker",
+      "workplace": "Zenith Bank Ltd",
+      "job_title": "Spintex Branch",
+      "date_joined": "2005-07-09"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2005-07-09", "place": "Dansoman St. Margaret Mary" },
+      { "degree_type": "2nd & 3rd Degree", "place": "Adabraka Holy Spirit Cathedral" }
+    ],
+    "spouse_info": {
+      "name": "Mawuena Akosua Cudjoe",
+      "nationality": "Ghanaian",
+      "denomination": "Christian-Catholic"
+    },
+    "emergency_contacts": [
+      { "name": "Mawuena Akosua Cudjoe", "phone": "0244787099" },
+      { "name": "Nick Worlanyo Cudjoe", "phone": "0242886435" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Prosper",
+      "middle_names": "Kofi Sefa",
+      "surname": "Kpobi",
+      "date_of_birth": "1985-01-11",
+      "place_of_birth": "Fiope - Logonkor",
+      "nationality": "Ghanaian",
+      "home_town": "Logonkor",
+      "home_region": "Volta",
+      "residential_address": "Blk N11, Nurses Quarters, Korle Bu Teach. Hosp.",
+      "postal_address": "P.O. Box 77, Korlebu - Accra",
+      "phone": "0507214022",
+      "mobile": "0240920748",
+      "email": "prosnakpobi@gmail.com",
+      "marital_status": "Single",
+      "employment_status": "Employed",
+      "occupation": "Nursing",
+      "workplace": "Korle Bu Teach. Hosp.",
+      "job_title": "Senior Nursing Officer",
+      "date_joined": "2015-12-12"
+    },
+    "emergency_contacts": [
+      { "name": "Theresa Kpobi", "phone": "0241815760" },
+      { "name": "Seth Kpobi", "phone": "0243104492" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Michael",
+      "surname": "Afetorgbor",
+      "date_of_birth": "1978-05-05",
+      "place_of_birth": "Dansoman",
+      "nationality": "Ghanaian",
+      "home_town": "Achiavi",
+      "home_region": "Volta Region",
+      "residential_address": "A 492/18 Dansoman B.A. Opoku",
+      "phone": "0243638225",
+      "mobile": "0208136681",
+      "email": "michaelafetorgbor@gmail.com",
+      "marital_status": "Single",
+      "employment_status": "Self-employed",
+      "occupation": "Electronics Eng",
+      "workplace": "Emark Electronics Engeneering",
+      "job_title": "Manager - CEO",
+      "date_joined": "2016-06-11"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2016-06-11", "place": "Saint Bernadette School" }
+    ],
+    "emergency_contacts": [
+      { "name": "Alice Amekudi", "phone": "0277243867" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Lambert",
+      "middle_names": "Mensah",
+      "surname": "Dotse",
+      "date_of_birth": "1984-07-20",
+      "place_of_birth": "Mamponteng",
+      "nationality": "Ghanaian",
+      "home_town": "Keta",
+      "home_region": "Volta",
+      "residential_address": "Hse No. 222 Awoshie Last Stop",
+      "postal_address": "P.O. Box 1840 Accra",
+      "phone": "0209857550",
+      "mobile": "0243647038",
+      "email": "imlambee@gmail.com",
+      "marital_status": "Married",
+      "spouse_name": "Angelina Ayibonte",
+      "employment_status": "Employed",
+      "occupation": "Customer Care Asst",
+      "workplace": "Ghana Water Co. Ltd",
+      "work_address": "P.O. Box 1840 Accra",
+      "date_joined": "2019-10-12"
+    },
+    "spouse_info": {
+      "name": "Angelina Ayibonte",
+      "nationality": "Ghanaian",
+      "denomination": "Pentecostal"
+    },
+    "children": [
+      { "name": "Fedora Eyram Dotse", "dob": "2017-02-11", "place": "Accra" },
+      { "name": "Janelle Mary Aseye Dotse", "dob": "2019-07-16", "place": "Accra" }
+    ],
+    "emergency_contacts": [
+      { "name": "Stephen Dotse", "phone": "0243647038" },
+      { "name": "Angelina Ayibonte", "phone": "0554095689" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Erasmus",
+      "surname": "Quist-Doe",
+      "date_of_birth": "1970-02-04",
+      "place_of_birth": "Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Keta",
+      "home_region": "Volta",
+      "residential_address": "A116/17 Dansoman Estates",
+      "postal_address": "P.O. BOX AN 12119 Accra North",
+      "mobile": "0244682347",
+      "email": "erasmusquist@yahoo.co.uk",
+      "marital_status": "Single",
+      "employment_status": "Self-employed",
+      "date_joined": "2014-12-12"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2014-12-12", "place": "St. Margaret Mary Comm #500" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2018-10-20", "place": "St. Thomas Aquinas" }
+    ],
+    "positions": [
+      { "title": "Welfare Treasurer", "from": "2016-01-01" }
+    ],
+    "emergency_contacts": [
+      { "name": "Caleb Quist-Doe", "phone": "0202006544" }
+    ]
+  }
+]

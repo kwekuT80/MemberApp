@@ -1,0 +1,160 @@
+[
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Joseph",
+      "middle_names": "Nii Armah",
+      "surname": "Quaye",
+      "date_of_birth": "1979-10-11",
+      "place_of_birth": "Accra",
+      "region": "Greater Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Osu",
+      "residential_address": "No. 13 Frankopat St. Weija - Accra",
+      "phone": "0302854752",
+      "mobile": "0244741786",
+      "email": "jnaquaye@hotmail.co.uk",
+      "marital_status": "Married",
+      "spouse_name": "Marian Aba Quaye"
+    },
+    "degrees": [
+      { "degree_type": "2nd & 3rd Degree", "date": "2008-09-20", "place": "Kpehe - Accra" },
+      { "degree_type": "4th Degree", "date": "2020-01-11", "place": "St. Margaret Mary Parish - Dansoman" }
+    ],
+    "ceremonial": { "blessed_date": "2013-08-17", "first_use_date": "2013-08-31" }
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Oscar",
+      "middle_names": "Menga Bongne",
+      "surname": "Bongne",
+      "date_of_birth": "1946-11-03",
+      "place_of_birth": "Nandom",
+      "region": "Upper West",
+      "nationality": "Ghanaian",
+      "home_town": "Nandom",
+      "mobile": "0208149215",
+      "email": "osmebong@yahoo.com",
+      "marital_status": "Married",
+      "spouse_name": "Evelyn Bongne",
+      "employment_status": "Pensioner (Retired)",
+      "workplace": "Civil Service (Ministry of Finance)",
+      "date_joined": "1995-01-01",
+      "current_rank": "Captain",
+      "commission_date": "2004-01-01"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "1987-02-21", "place": "Social Advance Institute" },
+      { "degree_type": "2nd & 3rd Degree", "date": "1995-01-28", "place": "Thomas Aquinas" },
+      { "degree_type": "Noble Degree", "date": "2004-11-20", "place": "Cathedral, Accra" }
+    ],
+    "ceremonial": { "blessed_date": null, "first_use_date": null },
+    "positions": [
+      { "title": "Treasurer", "from": "1995-01-01", "to": "1997-12-31" },
+      { "title": "2nd Vice President", "from": "1997-01-01", "to": "2001-12-31" },
+      { "title": "1st Vice President", "from": "2001-01-01", "to": "2004-12-31" },
+      { "title": "President", "from": "2004-01-01", "to": "2006-12-31" }
+    ],
+    "children": [
+      { "name": "Fred Bongne", "dob": "1973-07-13", "place": "Tepa" },
+      { "name": "Gordon Bongne", "dob": "1979-07-15", "place": "Accra" }
+    ],
+    "emergency_contacts": [
+      { "name": "Fred Bongne", "phone": "0244303164" },
+      { "name": "Godwin Bongne", "phone": "0207108775" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Randolf",
+      "surname": "Adu-Gyamfi",
+      "date_of_birth": "1986-10-21",
+      "place_of_birth": "Wiamase",
+      "region": "Ashanti",
+      "nationality": "Ghanaian",
+      "home_town": "Wiamase",
+      "mobile": "0243551627",
+      "email": "generaladudorp@gmail.com",
+      "marital_status": "Married",
+      "spouse_name": "Irene Adu-Gyamfi",
+      "employment_status": "Employed",
+      "occupation": "Marketer",
+      "workplace": "Interface Ltd",
+      "date_joined": "2014-12-17"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2014-12-13", "place": "St. Margaret Mary Cath. Church" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2020-10-17", "place": "Holy Family Catholic Church" }
+    ],
+    "emergency_contacts": [
+      { "name": "Irene Adu-Gyamfi", "phone": "0245090853" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Charles",
+      "surname": "Fedah",
+      "date_of_birth": "1991-05-29",
+      "place_of_birth": "Akwatia",
+      "region": "Eastern",
+      "nationality": "Ghanaian",
+      "home_town": "Dzodze",
+      "mobile": "0242261861",
+      "email": "jabarifedah@gmail.com",
+      "marital_status": "Single",
+      "employment_status": "Employed",
+      "occupation": "Banking Officer",
+      "workplace": "GT Bank (GH) Ltd",
+      "date_joined": "2019-06-01"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2019-06-01", "place": "St. Margaret Mary, Dansoman" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2020-10-18", "place": "Holy Family Cath-CH" }
+    ],
+    "emergency_contacts": [
+      { "name": "George Fedah", "phone": "0541245121" },
+      { "name": "Albert Fedah", "phone": "050185715" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Albert",
+      "middle_names": "Kweku",
+      "surname": "Antwi Amoah",
+      "date_of_birth": "1985-05-01",
+      "place_of_birth": "Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Saltpond",
+      "mobile": "0557291777",
+      "email": "albertantwiamoah@gmail.com",
+      "marital_status": "Married",
+      "spouse_name": "Bridget Araba Antwi Amoah",
+      "employment_status": "Employed",
+      "occupation": "Accountant",
+      "workplace": "Accra Wesley Girls High School (SHS)",
+      "job_title": "Head of Accounts Dept",
+      "date_joined": "2010-09-11",
+      "current_rank": "Captain"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2010-09-11", "place": "St. Margaret Mary Comm #500, Dansoman" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2013-01-19", "place": "St. Thomas Aquinas Cath. Church" },
+      { "degree_type": "4th Degree", "date": "2014-10-18", "place": "St. Charles Lwanga Parish, Abeka" }
+    ],
+    "ceremonial": { "blessed_date": "2011-02-04", "first_use_date": null },
+    "positions": [
+      "Cadet President", "Messenger", "Cadet Organizer", "2nd Vice Commander", "1st Vice Commander", "Commander"
+    ],
+    "children": [
+      { "name": "Arabella Nana Aba Antwi Amoah", "dob": "2018-01-06", "place": "Accra" },
+      { "name": "Nana Kweku Antwi Amoah", "dob": "2020-09-09", "place": "Accra" }
+    ],
+    "emergency_contacts": [
+      { "name": "Bridget A. Antwi Amoah", "phone": "0247407575" }
+    ]
+  }
+]

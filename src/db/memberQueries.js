@@ -54,12 +54,22 @@ export async function getMyMemberRecord() {
   return data || null;
 }
 
+export async function getMemberRecord(id) {
+  const { data, error } = await supabase
+    .from('members')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (error && error.code !== 'PGRST116') throw error;
+  return data || null;
+}
+
 export async function saveMember(form) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Not logged in');
 
   const payload = {
-    user_id:             user.id,
+    user_id:             form.user_id || user.id,
     title:               form.title               || null,
     surname:             form.surname             || null,
     first_name:          form.first_name          || null,

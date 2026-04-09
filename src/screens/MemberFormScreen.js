@@ -9,8 +9,10 @@ import {
   Platform, StatusBar,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   getMyMemberRecord,
+  getMemberRecord,
   saveMember,
   getRegions,
   getDegrees,
@@ -24,7 +26,7 @@ import {
 } from '../components/FormComponents';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
 
-const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 0;
+// const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 0;
 
 const EMPTY_MILITARY = {
   is_military: false,
@@ -32,6 +34,15 @@ const EMPTY_MILITARY = {
   first_uniform_use_date: '',
   current_rank: '',
   commission: '',
+};
+
+const INITIAL_FORM_STATE = {
+  title: '', surname: '', first_name: '', other_names: '',
+  date_of_birth: '', birth_town: '', birth_region: '', nationality: '',
+  home_town: '', home_region: '', residential_address: '', postal_address: '',
+  phone: '', mobile: '', email: '', fathers_name: '', mothers_name: '',
+  marital_status: '', emp_status: '', occupation: '', workplace: '',
+  job_status: '', work_address: '', uniform_positions: '', date_joined: ''
 };
 
 const TABS = [
@@ -49,12 +60,12 @@ const TITLES     = ['Bro.', 'Sir', 'Rev.', 'Dr.', 'Prof.', 'N/B'];
 const MARITAL    = ['Married', 'Single', 'Widowed', 'Religious', 'Separated'];
 const EMP_STATUS = ['Employed', 'Self-employed', 'Unemployed', 'Student', 'Other'];
 
-export default function MemberFormScreen({ navigation }) {
+export default function MemberFormScreen({ route, navigation }) {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
   const [regions, setRegions]     = useState([]);
-  const [form, setForm]           = useState({});
+  const [form, setForm]           = useState(INITIAL_FORM_STATE);
   const [military, setMilitary]   = useState(EMPTY_MILITARY);
   const [dirty, setDirty]         = useState(false);
 
@@ -74,10 +85,37 @@ export default function MemberFormScreen({ navigation }) {
   useEffect(() => {
     (async () => {
       try {
-        const [record, rgns] = await Promise.all([getMyMemberRecord(), getRegions()]);
+        // Read strictly: null means 'create', undefined means 'self', else 'edit target'
+        const targetId = route.params?.memberId;
+        const rgns = await getRegions();
+
+        let record = null;
+        if (targetId === null) {
+          // Explicit null from FAB bypassing queries
+        } else if (targetId !== undefined) {
+          record = await getMemberRecord(targetId);
+        } else {
+          record = await getMyMemberRecord();
+        }
+
         if (record) {
-          setForm(record);
+          // Sanitize: replace all null values with '' to prevent React 'Objects are not valid' errors
+          const sanitized = Object.fromEntries(
+            Object.entries(record).map(([k, v]) => [k, v === null ? '' : v])
+          );
+          setForm(sanitized);
           await loadMilitarySummary(record.id);
+        } else if (targetId === null) {
+          // Explicitly clear all nested fields to empty strings for controlled inputs
+          setForm({
+            title: '', surname: '', first_name: '', other_names: '',
+            date_of_birth: '', birth_town: '', birth_region: '', nationality: '',
+            home_town: '', home_region: '', residential_address: '', postal_address: '',
+            phone: '', mobile: '', email: '', fathers_name: '', mothers_name: '',
+            marital_status: '', emp_status: '', occupation: '', workplace: '',
+            job_status: '', work_address: '', uniform_positions: '', date_joined: ''
+          });
+          setMilitary(EMPTY_MILITARY);
         }
         setRegions(rgns);
       } catch (e) {
@@ -90,8 +128,21 @@ export default function MemberFormScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      if (form.id) loadMilitarySummary(form.id);
-    }, [form.id, loadMilitarySummary])
+      // Re-load data if we have an ID
+      if (form.id) {
+        loadMilitarySummary(form.id);
+      }
+
+      // If the 'Plus' button explicitly passed null memberId, reset the entire form to blank once.
+      if (route.params?.memberId === null) {
+        console.log('Resetting form for new member entry...');
+        setForm(INITIAL_FORM_STATE);
+        setMilitary(EMPTY_MILITARY);
+        setDirty(false);
+        // Clear the param so it doesn't trigger again on every sub-screen return
+        navigation.setParams({ memberId: undefined });
+      }
+    }, [form.id, loadMilitarySummary, route.params?.memberId, navigation])
   );
 
   function set(field) {
@@ -116,16 +167,23 @@ export default function MemberFormScreen({ navigation }) {
     setSaving(true);
     try {
       const saved = await saveMember(form);
+
+      // Sanitize: replace all null values with '' to prevent React 'Objects are not valid' errors on re-render
+      const sanitized = Object.fromEntries(
+        Object.entries(saved).map(([k, v]) => [k, v === null ? '' : v])
+      );
+
       await saveMilitary({
-        member_id: saved.id,
+        member_id: sanitized.id,
         is_military: !!military.is_military,
         uniform_blessed_date: military.uniform_blessed_date || null,
         first_uniform_use_date: military.first_uniform_use_date || null,
         current_rank: military.current_rank || null,
         commission: military.commission || null,
       });
-      setForm(saved);
-      await loadMilitarySummary(saved.id);
+
+      setForm(sanitized);
+      await loadMilitarySummary(sanitized.id);
       setDirty(false);
       Alert.alert('✓ Saved', 'Your member record has been saved.');
     } catch (e) {
@@ -157,12 +215,19 @@ export default function MemberFormScreen({ navigation }) {
   const displayName = [form.title, form.first_name, form.surname].filter(Boolean).join(' ');
 
   return (
-    <View style={s.screenWrapper}>
+    <SafeAreaView style={s.screenWrapper} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.navy} />
 
       <View style={s.header}>
+        {navigation.canGoBack() && (
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
+            <Text style={s.backIcon}>‹</Text>
+          </TouchableOpacity>
+        )}
         <View style={s.headerLeft}>
-          <Text style={s.headerEyebrow}>My Profile</Text>
+          <Text style={s.headerEyebrow}>
+            {route.params?.memberId !== undefined ? 'Member Profile' : 'My Profile'}
+          </Text>
           <Text style={s.headerName} numberOfLines={1}>
             {displayName || 'Complete your profile'}
           </Text>
@@ -220,15 +285,15 @@ export default function MemberFormScreen({ navigation }) {
         {activeTab === 7 && <OtherTab form={form} set={set} />}
 
         <PrimaryButton
-          title={saving ? 'Saving…' : 'Save My Record'}
+          title={saving ? 'Saving…' : (memberId ? 'Update Member Information' : 'Register New Member')}
           onPress={handleSave}
           disabled={saving}
           icon="💾"
           style={s.saveBtn}
         />
-        <View style={{ height: Spacing.xxl }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -281,18 +346,79 @@ function ContactTab({ form, set, memberId, navigation }) {
 }
 
 function FamilyTab({ form, set, memberId, navigation }) {
+  const [spouse, setSpouse]     = useState(null);
+  const [children, setChildren] = useState([]);
+  const [loading, setLoading]   = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      async function loadFamily() {
+        if (!memberId) return;
+        setLoading(true);
+        try {
+          const { getSpouse, getChildren } = require('../db/memberQueries');
+          const [s, c] = await Promise.all([getSpouse(memberId), getChildren(memberId)]);
+          setSpouse(s);
+          setChildren(c);
+        } catch (e) {
+          console.warn('Family load failed', e);
+        } finally {
+          setLoading(false);
+        }
+      }
+      loadFamily();
+    }, [memberId])
+  );
+
   return (
     <>
       <SectionHeader title="Parents" />
       <FormInput label="Father's Name" value={form.fathers_name} onChangeText={set('fathers_name')} />
       <FormInput label="Mother's Name" value={form.mothers_name} onChangeText={set('mothers_name')} />
+      
       <SectionHeader title="Marital Status" />
       <FormPicker label="Marital Status" value={form.marital_status} onValueChange={set('marital_status')} items={MARITAL} />
+
       {memberId ? (
         <>
-          <SectionHeader title="Spouse" />
+          <SectionHeader title="Spouse Details" />
+          {spouse?.spouse_name ? (
+            <View style={s.degreeSummaryCard}>
+              <Text style={s.degreeSummaryTitle}>{spouse.spouse_name}</Text>
+              <View style={s.degreeSummaryRow}>
+                <Text style={s.degreeSummaryLabel}>Religion:</Text>
+                <Text style={s.degreeSummaryValue}>{spouse.spouse_denomination || '—'}</Text>
+              </View>
+              {spouse.auxiliary_number && (
+                <View style={s.degreeSummaryRow}>
+                  <Text style={s.degreeSummaryLabel}>Auxiliary:</Text>
+                  <Text style={s.degreeSummaryValue}>#{spouse.auxiliary_number} ({spouse.auxiliary_name || 'SMM'})</Text>
+                </View>
+              )}
+            </View>
+          ) : (
+            <View style={s.summaryEmptyCard}>
+              <Text style={s.summaryEmptyText}>No spouse details recorded.</Text>
+            </View>
+          )}
           <SubformLink icon="💍" label="Manage Spouse Details" onPress={() => navigation.navigate('Spouse', { memberId })} />
+
           <SectionHeader title="Children" />
+          {children.length > 0 ? (
+            children.map(c => (
+              <View key={c.id} style={s.degreeSummaryCard}>
+                <Text style={s.degreeSummaryTitle}>{c.child_name}</Text>
+                <View style={s.degreeSummaryRow}>
+                  <Text style={s.degreeSummaryLabel}>Born:</Text>
+                  <Text style={s.degreeSummaryValue}>{c.birth_date || '—'} {c.birth_place ? `at ${c.birth_place}` : ''}</Text>
+                </View>
+              </View>
+            ))
+          ) : (
+            <View style={s.summaryEmptyCard}>
+              <Text style={s.summaryEmptyText}>No children recorded.</Text>
+            </View>
+          )}
           <SubformLink icon="👶" label="Manage Children" onPress={() => navigation.navigate('Children', { memberId })} />
         </>
       ) : <SaveFirstNote />}
@@ -317,28 +443,34 @@ function DegreesTab({ memberId, navigation }) {
   const [degrees, setDegrees] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    let active = true;
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
 
-    async function loadDegreeSummary() {
-      if (!memberId) return;
-      setLoading(true);
-      try {
-        const data = await getDegrees(memberId);
-        if (active) setDegrees(data || []);
-      } catch (e) {
-        Alert.alert('Error', e.message);
-      } finally {
-        if (active) setLoading(false);
+      async function loadDegreeSummary() {
+        if (!memberId) return;
+        setLoading(true);
+        try {
+          const data = await getDegrees(memberId);
+          if (active) setDegrees(data || []);
+        } catch (e) {
+          console.warn('Degree fetch failed:', e.message);
+          if (e.message?.includes('refresh_token_not_found') || e.message?.includes('Refresh Token: Refresh Token Not Found')) {
+            console.log('Session expired, signing out...');
+            supabase.auth.signOut();
+          }
+        } finally {
+          if (active) setLoading(false);
+        }
       }
-    }
 
-    loadDegreeSummary();
+      loadDegreeSummary();
 
-    return () => {
-      active = false;
-    };
-  }, [memberId]);
+      return () => {
+        active = false;
+      };
+    }, [memberId])
+  );
 
   if (!memberId) {
     return (
@@ -440,10 +572,55 @@ function MilitaryTab({ memberId, navigation, military }) {
 }
 
 function PositionsTab({ memberId, navigation }) {
+  const [positions, setPositions] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      async function loadPositions() {
+        if (!memberId) return;
+        setLoading(true);
+        try {
+          const { getPositions } = require('../db/memberQueries');
+          const data = await getPositions(memberId);
+          setPositions(data || []);
+        } catch (e) {
+          console.warn('Positions load failed', e);
+        } finally {
+          setLoading(false);
+        }
+      }
+      loadPositions();
+    }, [memberId])
+  );
+
   if (!memberId) return <><SectionHeader title="Positions Held" /><SaveFirstNote /></>;
+  
   return (
     <>
-      <SectionHeader title="Positions Held" />
+      <SectionHeader title="Leadership Journey" />
+      {positions.length > 0 ? (
+        positions.map((p, index) => (
+          <View key={p.id} style={s.degreeSummaryCard}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={s.degreeSummaryTitle}>{p.position_title}</Text>
+              {index === 0 && <View style={s.positionBadge}><Text style={s.positionBadgeText}>Latest</Text></View>}
+            </View>
+            <View style={s.degreeSummaryRow}>
+              <Text style={s.degreeSummaryLabel}>Period:</Text>
+              <Text style={s.degreeSummaryValue}>
+                {p.date_from || '—'} to {p.date_to || 'Present'}
+              </Text>
+            </View>
+          </View>
+        ))
+      ) : (
+        <View style={s.summaryEmptyCard}>
+          <Text style={s.summaryEmptyText}>No leadership positions recorded.</Text>
+        </View>
+      )}
+      
+      <SectionHeader title="Manage Records" />
       <SubformLink icon="📋" label="Manage Positions" onPress={() => navigation.navigate('Positions', { memberId })} />
     </>
   );
@@ -468,7 +645,7 @@ function SaveFirstNote() {
 }
 
 const s = StyleSheet.create({
-  screenWrapper: { flex: 1, backgroundColor: Colors.offWhite, paddingTop: STATUS_BAR_HEIGHT },
+  screenWrapper: { flex: 1, backgroundColor: Colors.offWhite },
   loadingWrap:   { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.offWhite },
   loadingText:   { marginTop: Spacing.md, color: Colors.grey400 },
 
@@ -482,10 +659,13 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.navyLight,
   },
-  headerLeft:    { flex: 1 },
+  headerLeft:    { flex: 1, marginLeft: Spacing.xs },
   headerEyebrow: { color: Colors.gold, fontSize: Typography.sizes.xs, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase' },
   headerName:    { color: Colors.white, fontSize: Typography.sizes.lg, fontWeight: '700', marginTop: 2 },
   headerRight:   { flexDirection: 'row', alignItems: 'center' },
+
+  backBtn:  { paddingRight: Spacing.md, paddingLeft: Spacing.xs, paddingVertical: 4 },
+  backIcon: { color: Colors.gold, fontSize: 34, fontWeight: '300', lineHeight: 34 },
 
   saveChip: {
     backgroundColor: Colors.gold,
@@ -580,7 +760,20 @@ const s = StyleSheet.create({
     color: Colors.grey700,
     fontSize: Typography.sizes.sm,
   },
-
+  positionBadge: {
+    backgroundColor: Colors.goldFaint,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 0.5,
+    borderColor: Colors.goldPale,
+  },
+  positionBadgeText: {
+    fontSize: 10,
+    color: '#856404',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
   subformCard: {
     backgroundColor: Colors.white,
     borderRadius: Radii.md,

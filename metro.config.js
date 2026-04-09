@@ -31,4 +31,10 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return context.resolveRequest(context, moduleName, platform);
 };
 
+// Exclude the android and .gradle directories from being watched to prevent ENOENT errors
+config.watcher.blockList = [
+  /android\/.*/,
+  /node_modules\/.*\/node_modules\/react-native\/.*/,
+];
+
 module.exports = config;

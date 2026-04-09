@@ -1,0 +1,379 @@
+[
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Patrick",
+      "surname": "Quansah",
+      "date_of_birth": "1977-11-26",
+      "place_of_birth": "Dansoman-Accra",
+      "region": "Greater Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Elmina / Saltpond",
+      "home_region": "Central",
+      "residential_address": "West McCarthy - Tettegu, Accra",
+      "postal_address": "P.O. Box M 45, Accra",
+      "phone": "0208554069",
+      "mobile": "0247146524",
+      "email": "patgee2@gmail.com",
+      "marital_status": "Married",
+      "spouse_name": "Sister Christina Quansah",
+      "employment_status": "Employed",
+      "occupation": "Transport Officer",
+      "workplace": "G.E.S",
+      "job_title": "Transport Officer",
+      "work_address": "P.O. Box M 45, Accra - Headquarters",
+      "date_joined": "2006-06-10"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2006-06-10", "place": "Accra" }
+    ],
+    "positions": [
+      { "title": "Secretary", "from": "1994-01-01", "to": "1996-12-31" },
+      { "title": "1st Vice President", "from": "1999-01-01", "to": "2001-12-31" }
+    ],
+    "children": [
+      { "name": "Iresha N.A. Quansah", "dob": "2013-11-01", "place": "Accra" },
+      { "name": "Lily N.A. Quansah", "dob": "2016-01-04", "place": "Accra" }
+    ],
+    "emergency_contacts": [
+      { "name": "Joseph N.A. Quaye", "phone": "0244741786" },
+      { "name": "Christina O. Quansah", "phone": "0542403186" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Peter",
+      "middle_names": "Kwame",
+      "surname": "Awuni",
+      "date_of_birth": "1975-06-21",
+      "place_of_birth": "Donkorkrom-Kwahu",
+      "nationality": "Ghanaian",
+      "home_town": "Zebila",
+      "home_region": "U.E.R",
+      "residential_address": "Dansoman SSNIT Flat, Blk 17, First Floor Rom 3.",
+      "postal_address": "P.O. Box DS 1681, Dansoman - Accra",
+      "phone": "0243924258",
+      "mobile": "0209252363",
+      "email": "awuni_peter75@yahoo.com",
+      "marital_status": "Married",
+      "spouse_name": "Rosaline Atongo",
+      "employment_status": "Retired",
+      "occupation": "Tutor",
+      "workplace": "Korle-Bu",
+      "work_address": "BRQS. Box MP 1920, Mamprobi-Accra",
+      "date_joined": "2009-09-21"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2009-09-21", "place": "Dansoman - St. Margaret-Mary" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2014-01-01", "place": "St John Fisher & Thomas More - Accra" }
+    ],
+    "positions": [
+      { "title": "Financial Sec.", "from": "2012-01-01", "to": "2016-12-31" },
+      { "title": "Cadet Organizer", "from": "2016-01-01" }
+    ],
+    "children": [
+      { "name": "Nelson Awuni", "dob": "2014-09-12" },
+      { "name": "Rohi Awuni", "dob": "2018-05-14" }
+    ],
+    "emergency_contacts": [
+      { "name": "Rosaline Atongo", "phone": "0249852440" },
+      { "name": "Benedicta Awuni", "phone": "0547234440" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "B/K",
+      "first_name": "Lawrence",
+      "middle_names": "Kermah",
+      "surname": "Bonzoe",
+      "date_of_birth": "1942-03-06",
+      "place_of_birth": "Sanzule",
+      "nationality": "Ghanaian",
+      "home_town": "Sanzule",
+      "home_region": "Western",
+      "residential_address": "D. 27, 4th Street, McCarthy Hill - Accra",
+      "postal_address": "8236, Accra North",
+      "phone": "0208137147",
+      "mobile": "0208137147",
+      "email": "lbonzoe@yahoo.co.uk",
+      "marital_status": "Married",
+      "spouse_name": "Joyce Bonzoe",
+      "employment_status": "Retired",
+      "occupation": "Chartered Accountant",
+      "workplace": "Retiree",
+      "date_joined": "2006-06-10"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2006-06-10", "place": "Accra" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2006-06-10", "place": "Accra" }
+    ],
+    "ceremonial": { "blessed_date": "2007-01-01" },
+    "children": [
+      { "name": "Francis Siah Bonzoe", "dob": "1981-12-13", "place": "Accra" }
+    ],
+    "emergency_contacts": [
+      { "name": "Francis Bonzoe", "phone": "0266577463" },
+      { "name": "Joyce Bonzoe", "phone": "0266577463" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Joseph",
+      "surname": "Okyere-Hayford",
+      "date_of_birth": "1985-06-09",
+      "place_of_birth": "Cape Coast",
+      "nationality": "Ghanaian",
+      "home_town": "Nyanfeku Akroful",
+      "home_region": "Central",
+      "residential_address": "Block 1 Room 2 SSNIT Flat Dansoman",
+      "postal_address": "P.O. Box CT 9746 Cantonments Accra",
+      "mobile": "0208717581",
+      "email": "paahin@yahoo.com",
+      "marital_status": "Married",
+      "spouse_name": "Love Yaa Okyere-Hayford",
+      "employment_status": "Employed",
+      "occupation": "Banking",
+      "workplace": "unicredit Ghana Ltd",
+      "work_address": "Kokomlemle Accra",
+      "date_joined": "2015-01-10"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2015-01-10", "place": "St. Margaret Mary Com. 500" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2016-10-29", "place": "St. Margaret Mary Com. 500" }
+    ],
+    "ceremonial": { "blessed_date": "2016-09-01" },
+    "positions": [
+      { "title": "Financial Secretary", "from": "2016-01-01", "to": "2017-12-31" },
+      { "title": "Financial Secretary", "from": "2018-01-01", "to": "2019-12-31" }
+    ],
+    "children": [
+      { "name": "Paakow Okyere-Hayford", "dob": "2017-11-30", "place": "Tema" }
+    ],
+    "emergency_contacts": [
+      { "name": "Love Yaa Okyere-Hayford", "phone": "0247580252" },
+      { "name": "Nicholas Hanson", "phone": "0244116947" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "George",
+      "middle_names": "Nii Mlorh",
+      "surname": "Ashia",
+      "date_of_birth": "1957-11-09",
+      "place_of_birth": "Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Krokorshe",
+      "home_region": "Greater Accra",
+      "residential_address": "House No. GB 444 CP - New Gbawe - Accra",
+      "postal_address": "P.O. Box DS 856, Dansoman - Accra",
+      "phone": "330765",
+      "mobile": "0244259009",
+      "email": "georgeashia@yahoo.com",
+      "marital_status": "Married",
+      "spouse_name": "Mrs. Margaret Ashia",
+      "employment_status": "Retired",
+      "occupation": "Mapping Officer",
+      "workplace": "Forestry Commission",
+      "job_title": "Senior Manager",
+      "work_address": "P.O. Box GP 527, Accra",
+      "date_joined": "2002-12-05"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2002-12-05", "place": "St. Margaret Mary Commandery Dansoman" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2006-09-16", "place": "OLAM Community 1 Tema" },
+      { "degree_type": "4th Degree", "date": "2013-04-20", "place": "St. Thomas Aquinas - Cantonment" },
+      { "degree_type": "Noble Degree", "date": "2017-09-02", "place": "Holy Spirit Cathedral - Accra" }
+    ],
+    "ceremonial": { "blessed_date": "2003-06-14" },
+    "positions": [
+      "Cadet Organizer",
+      "3rd Trustee",
+      "2nd Trustee",
+      "1st Trustee"
+    ],
+    "children": [
+      { "name": "Edith Aba Femua Ashia", "dob": "1987-09-03", "place": "Accra" },
+      { "name": "Edwin Nii Ashia", "dob": "1989-06-08", "place": "Accra" },
+      { "name": "Eric Kofi Arday Ashia", "dob": "1992-08-21", "place": "Accra" },
+      { "name": "Eunice Maa Korkoi Ashia", "dob": "1996-01-22", "place": "Accra" }
+    ],
+    "emergency_contacts": [
+      { "name": "Mrs. Margaret Ashia", "phone": "0244668896" },
+      { "name": "Edwin Nii Ashia", "phone": "0209333339" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Dr.",
+      "first_name": "Anthony",
+      "middle_names": "Sunday",
+      "surname": "Sackor",
+      "date_of_birth": "1960-03-25",
+      "place_of_birth": "Liberia",
+      "nationality": "Liberian",
+      "home_town": "Grand Cess",
+      "home_region": "Grand Kru",
+      "residential_address": "Gomoa-Buduburam, Central Region-Ghana",
+      "postal_address": "P.O. Box 10 Bereku, Central Region-Ghana",
+      "mobile": "0249251143",
+      "marital_status": "Married",
+      "spouse_name": "Mrs. Doris M.F. Sackor",
+      "employment_status": "Student",
+      "date_joined": "2010-09-11"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2010-09-11", "place": "Dansoman" },
+      { "degree_type": "2nd & 3rd Degree", "date": "2016-05-07", "place": "St. Charles, Abeka" }
+    ],
+    "ceremonial": { "blessed_date": "2017-08-23" },
+    "children": [
+      { "name": "Sunday, Augustine Sackor", "dob": "1993-11-09", "place": "Liberia" },
+      { "name": "Rogers, Alphonso", "dob": "1996-09-20", "place": "Liberia" },
+      { "name": "Rogers, Dauda Freeman", "dob": "1992-01-02", "place": "Liberia" }
+    ],
+    "emergency_contacts": [
+      { "name": "Sis. Doris M.F. Sackor", "phone": "0244357876" },
+      { "name": "Sunday, Augustine Sackor", "phone": "0558779194" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Noble",
+      "first_name": "Francis",
+      "middle_names": "Kwashie",
+      "surname": "Ahiafor",
+      "date_of_birth": "1952-09-07",
+      "place_of_birth": "Atiavi",
+      "nationality": "Ghanaian",
+      "home_town": "Atiavi",
+      "home_region": "Volta",
+      "residential_address": "Power City Street Down New Dahwenya",
+      "postal_address": "P.O. Box CT 10162 Cantonments Accra",
+      "phone": "0208193630",
+      "mobile": "024231518",
+      "email": "dodoe707@yahoo.com",
+      "marital_status": "Widowed",
+      "employment_status": "Retired",
+      "date_joined": "2006-05-01"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "1988-07-16", "place": "Hohoe" },
+      { "degree_type": "2nd & 3rd Degree", "date": "1989-01-01", "place": "Ho" },
+      { "degree_type": "Noble Degree", "date": "2013-10-05", "place": "Kumasi" }
+    ],
+    "positions": [
+      { "title": "Recording/Corr. Secretary", "from": "1989-01-01", "to": "1990-12-31" },
+      { "title": "Recording/Corr. Secretary", "from": "2007-01-01", "to": "2008-12-31" },
+      { "title": "President", "from": "2016-01-01", "to": "2018-01-31" }
+    ],
+    "children": [
+      { "name": "Charlotte Lily Ahiafor", "dob": "1974-12-26" },
+      { "name": "Ellen Aku Ahiafor", "dob": "1978-10-18" },
+      { "name": "Bright Kwaku Ahiafor", "dob": "1981-10-07" }
+    ],
+    "emergency_contacts": [
+      { "name": "Charlotte L. Ahiafor", "phone": "0244738351" },
+      { "name": "Bright Ahiafor", "phone": "0243260489" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Jones",
+      "middle_names": "Kow-Yartel Celigivity",
+      "surname": "Annan",
+      "date_of_birth": "1993-04-21",
+      "place_of_birth": "Korle-Bu",
+      "region": "Greater-Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Elmina",
+      "home_region": "Central",
+      "residential_address": "A1/141 14th Western Lane",
+      "postal_address": "P.O. Box DS 331, Dansoman Sahara Down",
+      "phone": "0205875647",
+      "mobile": "0545023338",
+      "email": "jonespk492@gmail.com",
+      "marital_status": "Single",
+      "employment_status": "Employed",
+      "occupation": "Assistant HR Officer",
+      "workplace": "Bollore Transport & Logistics"
+    },
+    "degrees": [
+      { "degree_type": "2nd & 3rd Degree", "date": "2020-10-17", "place": "Holy Family" }
+    ],
+    "ceremonial": { "blessed_date": "2020-10-17" },
+    "emergency_contacts": [
+      { "name": "Barbara Dzikunu", "phone": "0505262911" },
+      { "name": "Veritas Araba Tuyee Annan", "phone": "0247848054" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Theophilus",
+      "middle_names": "Knox",
+      "surname": "Prah",
+      "date_of_birth": "1979-08-19",
+      "place_of_birth": "Accra",
+      "nationality": "Ghanaian",
+      "home_town": "Elmina (CR)",
+      "home_region": "Greater Accra",
+      "residential_address": "Zodiac A242/18 CV C89",
+      "postal_address": "P.O. Box DS 2107, Dansoman Estate",
+      "phone": "0244648457",
+      "mobile": "0242117117",
+      "email": "knoxprah@gmail.com",
+      "marital_status": "Single",
+      "employment_status": "Self-employed",
+      "occupation": "Screen Printer",
+      "workplace": "Dansoman",
+      "job_title": "C.E.O",
+      "work_address": "DS 2107 Dansoman Estate",
+      "date_joined": "2000-10-13"
+    },
+    "degrees": [
+      { "degree_type": "1st Degree", "date": "2000-10-13", "place": "Dansoman St. Margaret-Mary #500" }
+    ],
+    "positions": [
+      "2nd Vice Commander",
+      { "title": "1st Vice Commander", "from": "2014-01-01", "to": "2015-12-31" },
+      { "title": "Commander", "from": "2016-01-01", "to": "2017-12-31" },
+      { "title": "District Inspector 3rd", "from": "2017-01-01", "to": "2019-12-31" },
+      { "title": "2nd Vice President", "from": "2018-01-01", "to": "2019-12-31" }
+    ],
+    "children": [
+      { "name": "Hilary Nana Adwoa Prah", "dob": "2006-02-20", "place": "Dansoman" }
+    ]
+  },
+  {
+    "member_info": {
+      "title": "Mr.",
+      "first_name": "Paul",
+      "middle_names": "Korsi",
+      "surname": "Amati",
+      "date_of_birth": "1944-02-06",
+      "place_of_birth": "Dodi-Papase",
+      "nationality": "Ghana / USA",
+      "home_town": "Dodi-Papase",
+      "home_region": "Oti",
+      "residential_address": "#4 Mimosa St.",
+      "postal_address": "Box DS 1049, Dansoman",
+      "mobile": "0544155530",
+      "email": "amatipaul@gmail.com",
+      "marital_status": "Widowed"
+    },
+    "degrees": [
+      { "degree_type": "Noble Degree", "date": "2015-01-01", "place": "Kumasi" }
+    ],
+    "positions": [
+      "Worthy President"
+    ],
+    "emergency_contacts": [
+      { "name": "Marvis Nkrumah", "phone": "0245163147" },
+      { "name": "Francis Nkrumah", "phone": "0249551107" }
+    ]
+  }
+]
