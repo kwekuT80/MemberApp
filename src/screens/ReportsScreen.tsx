@@ -15,7 +15,7 @@ import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
 
 export default function ReportsScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
-  const [reportType, setReportType] = useState(null); // 'master', 'leadership', 'family', 'final'
+  const [reportType, setReportType] = useState(null); // 'master', 'leadership', 'family', 'final', 'suspended', 'dismissed'
   const [reportData, setReportData] = useState([]);
 
   async function generateMasterRoll() {
@@ -85,6 +85,23 @@ export default function ReportsScreen({ navigation }) {
     setLoading(false);
   }
 
+  async function generateStatusReport(status) {
+    setLoading(true);
+    setReportType(status.toLowerCase());
+    const { data, error } = await supabase
+      .from('members')
+      .select('surname, first_name, other_names, title, occupation, phone, residential_address, status')
+      .eq('status', status)
+      .order('surname', { ascending: true });
+
+    if (error) {
+      Alert.alert('Error', `Could not generate ${status} report.`);
+    } else {
+      setReportData(data || []);
+    }
+    setLoading(false);
+  }
+
   const handleShare = async () => {
     let content = `OFFICIAL COMMANDERY REPORT: ${reportType?.toUpperCase()}\n\n`;
     
@@ -100,6 +117,10 @@ export default function ReportsScreen({ navigation }) {
     } else if (reportType === 'final') {
       reportData.forEach(m => {
         content += `${m.title} ${m.first_name} ${m.surname} | RIP: ${m.date_of_death || '---'} | Burial: ${m.burial_date || '---'} at ${m.burial_place || '---'}\n`;
+      });
+    } else if (reportType === 'suspended' || reportType === 'dismissed') {
+      reportData.forEach(m => {
+        content += `${m.surname}, ${m.first_name} | STATUS: ${reportType.toUpperCase()} | Phone: ${m.phone || '---'}\n`;
       });
     }
 
@@ -119,31 +140,45 @@ export default function ReportsScreen({ navigation }) {
         <Text style={styles.title}>Reporting Hub</Text>
       </View>
 
-      <View style={styles.optionsGrid}>
-        <ReportOption 
-          title="Master Roll" 
-          icon="📋" 
-          active={reportType === 'master'} 
-          onPress={generateMasterRoll} 
-        />
-        <ReportOption 
-          title="Leadership" 
-          icon="🎖️" 
-          active={reportType === 'leadership'} 
-          onPress={generateLeadershipReport} 
-        />
-        <ReportOption 
-          title="Family/Welfare" 
-          icon="👨‍👩‍👧" 
-          active={reportType === 'family'} 
-          onPress={generateFamilyReport} 
-        />
-        <ReportOption 
-          title="Final Roll" 
-          icon="🕯️" 
-          active={reportType === 'final'} 
-          onPress={generateFinalRoll} 
-        />
+      <View style={styles.optionsWrap}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.optionsScroll}>
+          <ReportOption 
+            title="Master Roll" 
+            icon="📋" 
+            active={reportType === 'master'} 
+            onPress={generateMasterRoll} 
+          />
+          <ReportOption 
+            title="Leadership" 
+            icon="🎖️" 
+            active={reportType === 'leadership'} 
+            onPress={generateLeadershipReport} 
+          />
+          <ReportOption 
+            title="Status: Suspended" 
+            icon="⛔" 
+            active={reportType === 'suspended'} 
+            onPress={() => generateStatusReport('Suspended')} 
+          />
+          <ReportOption 
+            title="Status: Dismissed" 
+            icon="🚫" 
+            active={reportType === 'dismissed'} 
+            onPress={() => generateStatusReport('Dismissed')} 
+          />
+          <ReportOption 
+            title="Family/Welfare" 
+            icon="👨‍👩‍👧" 
+            active={reportType === 'family'} 
+            onPress={generateFamilyReport} 
+          />
+          <ReportOption 
+            title="Final Roll" 
+            icon="🕯️" 
+            active={reportType === 'final'} 
+            onPress={generateFinalRoll} 
+          />
+        </ScrollView>
       </View>
 
       <View style={styles.previewContainer}>
@@ -192,6 +227,15 @@ export default function ReportsScreen({ navigation }) {
                 <Text style={styles.memberSub}>Place: {m.burial_place || '---'}</Text>
               </View>
             ))}
+            {(reportType === 'suspended' || reportType === 'dismissed') && reportData.map((m, i) => (
+              <View key={i} style={styles.reportRow}>
+                <Text style={styles.memberMain}>{m.surname}, {m.first_name}</Text>
+                <Text style={[styles.memberSub, { color: reportType === 'suspended' ? Colors.gold : Colors.danger, fontWeight: '700' }]}>
+                  {reportType.toUpperCase()}
+                </Text>
+                <Text style={styles.memberSub}>{m.occupation || 'N/A'} • {m.phone || '---'}</Text>
+              </View>
+            ))}
           </ScrollView>
         ) : (
           <View style={styles.emptyState}>
@@ -226,20 +270,22 @@ const styles = StyleSheet.create({
   backIcon: { color: Colors.gold, fontSize: 32, fontWeight: '300' },
   title: { color: Colors.white, fontSize: 22, fontWeight: '800' },
   
-  optionsGrid: {
-    flexDirection: 'row',
+  optionsWrap: {
+    paddingBottom: Spacing.md,
+  },
+  optionsScroll: {
     paddingHorizontal: Spacing.lg,
-    justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
+    flexDirection: 'row',
   },
   optionCard: {
-    width: '23.5%',
+    width: 100,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: Radii.md,
     padding: Spacing.md,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'transparent',
+    marginRight: 10,
   },
   optionCardActive: {
     borderColor: Colors.gold,
