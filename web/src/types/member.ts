@@ -1,0 +1,34 @@
+export interface Member {
+  id?: string;
+  user_id?: string | null;
+  title?: string | null;
+  surname?: string | null;
+  first_name?: string | null;
+  other_names?: string | null;
+  date_of_birth?: string | null;
+  birth_town?: string | null;
+  birth_region?: string | null;
+  nationality?: string | null;
+  home_town?: string | null;
+  home_region?: string | null;
+  residential_address?: string | null;
+  postal_address?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+  email?: string | null;
+  fathers_name?: string | null;
+  mothers_name?: string | null;
+  marital_status?: string | null;
+  emp_status?: string | null;
+  occupation?: string | null;
+  workplace?: string | null;
+  job_status?: string | null;
+  work_address?: string | null;
+  uniform_positions?: string | null;
+  degree1_place?: string | null;
+  degree23_place?: string | null;
+  degree4_place?: string | null;
+  degree_noble_place?: string | null;
+  date_joined?: string | null;
+  created_at?: string | null;
+}

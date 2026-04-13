@@ -1,0 +1,8 @@
+import Link from 'next/link';
+import RegistrarShell from '@/components/layout/RegistrarShell';
+import MemberSummaryCard from '@/components/members/MemberSummaryCard';
+import RegistrarMemberActions from '@/components/members/RegistrarMemberActions';
+import { requireRegistrar } from '@/lib/auth/requireRegistrar';
+import { getMemberById } from '@/services/memberService';
+import EmptyState from '@/components/shared/EmptyState';
+export default async function RegistrarMemberDetailPage({ params }: { params: Promise<{ id: string }> }) { await requireRegistrar(); const { id } = await params; const member = await getMemberById(id); return <RegistrarShell title='Member Detail' subtitle='View and manage the selected member across all sections.'><div style={{ display:'grid', gap:18 }}><div style={{ display:'flex', gap:12, flexWrap:'wrap' }}><Link href='/registrar/members' style={{ textDecoration:'none', color:'#10233f', fontWeight:700 }}>Back to members</Link>{member?.id ? <Link href={`/registrar/members/${member.id}/edit`} style={{ textDecoration:'none', color:'#10233f', fontWeight:700 }}>Edit main record</Link> : null}</div>{member ? <><MemberSummaryCard member={member} editHref={`/registrar/members/${id}/edit`} showOwner /><RegistrarMemberActions memberId={member.id!} /></> : <EmptyState message='This member record could not be loaded.' />}</div></RegistrarShell>; }

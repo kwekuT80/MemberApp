@@ -15,7 +15,7 @@ import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
 
 export default function ReportsScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
-  const [reportType, setReportType] = useState(null); // 'master', 'leadership', 'family', 'ranks'
+  const [reportType, setReportType] = useState(null); // 'master', 'leadership', 'family', 'final'
   const [reportData, setReportData] = useState([]);
 
   async function generateMasterRoll() {
@@ -23,11 +23,29 @@ export default function ReportsScreen({ navigation }) {
     setReportType('master');
     const { data, error } = await supabase
       .from('members')
-      .select('surname, first_name, other_names, title, occupation, phone, residential_address')
+      .select('surname, first_name, other_names, title, occupation, phone, residential_address, status')
+      .eq('status', 'Active') // Only show active brothers in the Master Roll
       .order('surname', { ascending: true });
 
     if (error) {
       Alert.alert('Error', 'Could not generate report data.');
+    } else {
+      setReportData(data || []);
+    }
+    setLoading(false);
+  }
+
+  async function generateFinalRoll() {
+    setLoading(true);
+    setReportType('final');
+    const { data, error } = await supabase
+      .from('members')
+      .select('surname, first_name, title, date_of_death, burial_date, burial_place')
+      .eq('status', 'Deceased')
+      .order('date_of_death', { ascending: false });
+
+    if (error) {
+      Alert.alert('Error', 'Could not generate Final Roll data.');
     } else {
       setReportData(data || []);
     }
@@ -79,6 +97,10 @@ export default function ReportsScreen({ navigation }) {
         content += `${m.first_name} ${m.surname}:\n`;
         m.positions.forEach(p => content += ` - ${p.position_title} (${p.date_from} to ${p.date_to || 'Present'})\n`);
       });
+    } else if (reportType === 'final') {
+      reportData.forEach(m => {
+        content += `${m.title} ${m.first_name} ${m.surname} | RIP: ${m.date_of_death || '---'} | Burial: ${m.burial_date || '---'} at ${m.burial_place || '---'}\n`;
+      });
     }
 
     try {
@@ -115,6 +137,12 @@ export default function ReportsScreen({ navigation }) {
           icon="👨‍👩‍👧" 
           active={reportType === 'family'} 
           onPress={generateFamilyReport} 
+        />
+        <ReportOption 
+          title="Final Roll" 
+          icon="🕯️" 
+          active={reportType === 'final'} 
+          onPress={generateFinalRoll} 
         />
       </View>
 
@@ -154,6 +182,14 @@ export default function ReportsScreen({ navigation }) {
                 <Text style={styles.memberSub}>
                   Status: {m.marital_status || 'Unknown'} • Child Count: {m.children?.[0]?.count || 0}
                 </Text>
+              </View>
+            ))}
+            {reportType === 'final' && reportData.map((m, i) => (
+              <View key={i} style={styles.reportRow}>
+                <Text style={styles.memberMain}>{m.title} {m.first_name} {m.surname}</Text>
+                <Text style={[styles.memberSub, { color: '#111827', fontWeight: '800' }]}>🕯️ Rest in Peace</Text>
+                <Text style={styles.memberSub}>Died: {m.date_of_death || '---'} • Burial: {m.burial_date || '---'}</Text>
+                <Text style={styles.memberSub}>Place: {m.burial_place || '---'}</Text>
               </View>
             ))}
           </ScrollView>
@@ -197,7 +233,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   optionCard: {
-    width: '31%',
+    width: '23.5%',
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: Radii.md,
     padding: Spacing.md,

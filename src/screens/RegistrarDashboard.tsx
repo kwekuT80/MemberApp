@@ -106,6 +106,22 @@ export default function RegistrarDashboard({ navigation }) {
           </View>
           
           <View style={styles.detailsRow}>
+            {item.status && item.status !== 'Active' && (
+              <View style={[
+                styles.statusBadge, 
+                item.status === 'Deceased' && styles.statusDeceased,
+                item.status === 'Sacked' && styles.statusSacked,
+                item.status === 'Suspended' && styles.statusSuspended,
+                item.status === 'Transfer-Out' && styles.statusOut,
+              ]}>
+                <Text style={[
+                  styles.statusBadgeText,
+                  item.status === 'Deceased' && styles.statusDeceasedText
+                ]}>
+                  {item.status === 'Deceased' ? '🕯️ RIP' : item.status}
+                </Text>
+              </View>
+            )}
             {latestPosition ? (
               <View style={styles.positionBadge}>
                 <Text style={styles.positionBadgeText}>{latestPosition}</Text>
@@ -456,5 +472,25 @@ const styles = StyleSheet.create({
     color: Colors.navy,
     fontWeight: '400',
     marginTop: -2,
-  }
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginRight: Spacing.sm,
+    backgroundColor: '#E5E7EB',
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#344054',
+    textTransform: 'uppercase',
+  },
+  statusDeceased: { backgroundColor: '#111827' },
+  statusDeceasedText: { color: '#F3F4F6' },
+  statusSacked: { backgroundColor: '#FEE2E2' },
+  statusSackedText: { color: '#991B1B' },
+  statusSuspended: { backgroundColor: '#FEF3C7' },
+  statusSuspendedText: { color: '#92400E' },
+  statusOut: { backgroundColor: '#DBEAFE' },
 });

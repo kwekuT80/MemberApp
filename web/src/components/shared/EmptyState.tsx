@@ -1,0 +1,1 @@
+export default function EmptyState({ message }: { message: string }) { return <div style={{ background:'#fff', padding:20, borderRadius:16, color:'#53657d', boxShadow:'0 8px 24px rgba(16,35,63,0.08)' }}>{message}</div>; }

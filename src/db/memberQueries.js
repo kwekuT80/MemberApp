@@ -99,6 +99,15 @@ export async function saveMember(form) {
     degree4_place:       form.degree4_place       || null,
     degree_noble_place:  form.degree_noble_place  || null,
     date_joined:         form.date_joined         || null,
+    // [NEW] Lifecycle & Status
+    status:              form.status              || 'Active',
+    is_deceased:         !!form.is_deceased,
+    date_of_death:       form.date_of_death       || null,
+    burial_date:         form.burial_date         || null,
+    burial_place:        form.burial_place        || null,
+    transfer_from:       form.transfer_from       || null,
+    transfer_to:         form.transfer_to         || null,
+    transfer_date:       form.transfer_date       || null,
   };
 
   if (form.id) {

@@ -1,0 +1,2 @@
+import { createClient } from '@/lib/supabase/server'; import { DegreeRecord } from '@/types/degree';
+export async function getDegreesByMemberId(memberId: string): Promise<DegreeRecord[]> { const supabase = await createClient(); const { data, error } = await supabase.from('degrees').select('*').eq('member_id', memberId).order('degree_date', { ascending: false }); if (error) throw error; return (data || []) as DegreeRecord[]; }

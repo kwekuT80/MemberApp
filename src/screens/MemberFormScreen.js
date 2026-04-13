@@ -42,7 +42,9 @@ const INITIAL_FORM_STATE = {
   home_town: '', home_region: '', residential_address: '', postal_address: '',
   phone: '', mobile: '', email: '', fathers_name: '', mothers_name: '',
   marital_status: '', emp_status: '', occupation: '', workplace: '',
-  job_status: '', work_address: '', uniform_positions: '', date_joined: ''
+  job_status: '', work_address: '', uniform_positions: '', date_joined: '',
+  status: 'Active', is_deceased: false, date_of_death: '', burial_date: '', burial_place: '',
+  transfer_from: '', transfer_to: '', transfer_date: ''
 };
 
 const TABS = [
@@ -53,12 +55,13 @@ const TABS = [
   { key: 'degrees',    label: 'Degrees',    icon: '🎓' },
   { key: 'military',   label: 'Military',   icon: '🪖' },
   { key: 'positions',  label: 'Positions',  icon: '📋' },
-  { key: 'other',      label: 'Other',      icon: '📝' },
+  { key: 'lifecycle',  label: 'Lifecycle',  icon: '🧬' },
 ];
 
 const TITLES     = ['Bro.', 'Sir', 'Rev.', 'Dr.', 'Prof.', 'N/B'];
 const MARITAL    = ['Married', 'Single', 'Widowed', 'Religious', 'Separated'];
 const EMP_STATUS = ['Employed', 'Self-employed', 'Unemployed', 'Student', 'Other'];
+const STATUSES   = ['Active', 'Suspended', 'Sacked', 'Transfer-In', 'Transfer-Out', 'Deceased'];
 
 export default function MemberFormScreen({ route, navigation }) {
   const [activeTab, setActiveTab] = useState(0);
@@ -282,7 +285,7 @@ export default function MemberFormScreen({ route, navigation }) {
         {activeTab === 4 && <DegreesTab memberId={memberId} navigation={navigation} />}
         {activeTab === 5 && <MilitaryTab memberId={memberId} navigation={navigation} military={military} />}
         {activeTab === 6 && <PositionsTab memberId={memberId} navigation={navigation} />}
-        {activeTab === 7 && <OtherTab form={form} set={set} />}
+        {activeTab === 7 && <LifecycleTab form={form} set={set} />}
 
         <PrimaryButton
           title={saving ? 'Saving…' : (memberId ? 'Update Member Information' : 'Register New Member')}
@@ -626,11 +629,37 @@ function PositionsTab({ memberId, navigation }) {
   );
 }
 
-function OtherTab({ form, set }) {
+function LifecycleTab({ form, set }) {
   return (
     <>
-      <SectionHeader title="Other Details" />
-      <FormInput label="Uniform, Cadet & Commandery Positions" value={form.uniform_positions} onChangeText={set('uniform_positions')} multiline />
+      <SectionHeader title="Membership Status" />
+      <FormPicker 
+        label="Status" 
+        value={form.status} 
+        onValueChange={(v) => {
+          set('status')(v);
+          if (v === 'Deceased') set('is_deceased')(true);
+          else set('is_deceased')(false);
+        }} 
+        items={STATUSES} 
+      />
+
+      {form.status === 'Deceased' && (
+        <>
+          <SectionHeader title="Funeral & Burial Details" />
+          <DateInput label="Date of Death" value={form.date_of_death} onChangeText={set('date_of_death')} />
+          <DateInput label="Burial Date" value={form.burial_date} onChangeText={set('burial_date')} />
+          <FormInput label="Burial Place / Cemetery" value={form.burial_place} onChangeText={set('burial_place')} />
+        </>
+      )}
+
+      <SectionHeader title="Commandery Transfers" />
+      <FormInput label="From Previous Commandery" value={form.transfer_from} onChangeText={set('transfer_from')} />
+      <FormInput label="To New Commandery" value={form.transfer_to} onChangeText={set('transfer_to')} />
+      <DateInput label="Transfer Date" value={form.transfer_date} onChangeText={set('transfer_date')} />
+
+      <SectionHeader title="Historical Notes" />
+      <FormInput label="Other Positions & Notes" value={form.uniform_positions} onChangeText={set('uniform_positions')} multiline />
     </>
   );
 }
