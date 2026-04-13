@@ -83,13 +83,6 @@ export async function linkMemberRecord(email, userId, phone, firstName, surname)
   }
 }
 
-  if (error) {
-    console.warn('Auto-linking failed:', error.message);
-  } else if (data && data.length > 0) {
-    console.log(`Successfully linked ${data.length} records for user ${userId}`);
-  }
-}
-
 function toPgDate(value) {
   if (!value) return null;
 
