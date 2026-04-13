@@ -6,6 +6,8 @@ import {
   View, Text, TextInput, TouchableOpacity, Switch,
   StyleSheet, Platform, Modal,
 } from 'react-native';
+// @ts-ignore - createElement is only available on web
+import { createElement } from 'react-native-web';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors, Spacing, Radii, Typography, Shadows } from '../styles/theme';
@@ -107,29 +109,23 @@ export function DateInput({ label, value, onChangeText, required, hint, error })
 
   return (
     <FieldRow label={label} required={required} hint={hint} error={error}>
-      {/* Web: Hidden HTML input that we trigger manually */}
-      {Platform.OS === 'web' && (
-        <input
-          type="date"
-          ref={(input) => {
-            // Store ref to trigger click or handle changes
-            if (input) {
-              input.style.position = 'absolute';
-              input.style.opacity = '0';
-              input.style.width = '1px';
-              input.style.height = '1px';
-              input.style.pointerEvents = 'none';
-            }
-          }}
-          id={`date-picker-${label?.replace(/\s/g, '-')}`}
-          value={parseDate(value).toISOString().split('T')[0]}
-          onChange={(e) => {
-            const [y, m, d] = e.target.value.split('-');
-            onChangeText(`${d}/${m}/${y}`);
-          }}
-          style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
-        />
-      )}
+      {/* Web: Hidden HTML input that we trigger manually using the safe createElement bridge */}
+      {Platform.OS === 'web' && createElement('input', {
+        type: 'date',
+        id: `date-picker-${label?.replace(/\s/g, '-')}`,
+        value: parseDate(value).toISOString().split('T')[0],
+        onChange: (e) => {
+          const [y, m, d] = e.target.value.split('-');
+          onChangeText(`${d}/${m}/${y}`);
+        },
+        style: {
+          position: 'absolute',
+          opacity: 0,
+          width: 0,
+          height: 0,
+          pointerEvents: 'none',
+        },
+      })}
 
       {/* Tappable field that opens the picker */}
       <TouchableOpacity
