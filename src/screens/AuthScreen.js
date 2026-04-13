@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
 import { supabase } from '../db/supabase';
+import { linkMemberRecordByEmail } from '../db/memberQueries';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
 
 export default function AuthScreen() {
@@ -28,8 +29,13 @@ export default function AuthScreen() {
   async function handleLogin() {
     if (!email || !password) { setError('Please enter your email and password.'); return; }
     setLoading(true); clearState();
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    if (error) setError(error.message);
+    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (error) {
+      setError(error.message);
+    } else if (data?.user) {
+      // Attempt to link a pre-existing member record if it's not already linked
+      await linkMemberRecordByEmail(data.user.email, data.user.id);
+    }
     setLoading(false);
   }
 
@@ -38,10 +44,14 @@ export default function AuthScreen() {
     if (password !== confirm) { setError('Passwords do not match.'); return; }
     if (password.length < 6)  { setError('Password must be at least 6 characters.'); return; }
     setLoading(true); clearState();
-    const { error } = await supabase.auth.signUp({ email: email.trim(), password });
+    const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
     if (error) {
       setError(error.message);
     } else {
+      if (data?.user) {
+        // Link the record immediately upon registration if email matches
+        await linkMemberRecordByEmail(data.user.email, data.user.id);
+      }
       setMessage('Account created! You can now log in.');
       setMode('login');
     }

@@ -11,6 +11,28 @@ export async function getCurrentUser() {
   return user;
 }
 
+/**
+ * Links an orphaned member record (one without a user_id) to a new user
+ * by matching their email address.
+ */
+export async function linkMemberRecordByEmail(email, userId) {
+  if (!email || !userId) return;
+
+  // Try to find a member record with this email that hasn't been claimed yet
+  const { data, error } = await supabase
+    .from('members')
+    .update({ user_id: userId })
+    .eq('email', email)
+    .is('user_id', null) // Only claim if it hasn't been claimed by someone else
+    .select();
+
+  if (error) {
+    console.warn('Auto-linking failed:', error.message);
+  } else if (data && data.length > 0) {
+    console.log(`Successfully linked ${data.length} records for ${email}`);
+  }
+}
+
 function toPgDate(value) {
   if (!value) return null;
 
