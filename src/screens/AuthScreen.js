@@ -51,20 +51,11 @@ export default function AuthScreen() {
     
     setLoading(true); clearState();
 
-    // STEP 1: Check if the user is on the Masterlist (members table)
-    // We check email, phone, OR the name they just typed!
-    const { supabase } = require('../db/supabase');
-    const { data: nameCheck } = await supabase
-      .from('members')
-      .select('id')
-      .is('user_id', null)
-      .eq('first_name', firstName.trim())
-      .eq('surname', surname.trim());
-
-    const authorized = (nameCheck && nameCheck.length > 0) || await isUserAuthorized(email.trim(), phone.trim());
+    // STEP 1: Strictly Prioritized check: Email > Phone > Name
+    const authorized = await isUserAuthorized(email.trim(), phone.trim(), firstName.trim(), surname.trim());
     
     if (!authorized) {
-      setError('Your name, email, or phone was not found on the authorized registrar list. Please contact your Registrar.');
+      setError('No record found matching your Email, Phone, or Name on the masterlist. Please contact your Registrar.');
       setLoading(false);
       return;
     }
@@ -75,7 +66,7 @@ export default function AuthScreen() {
       setError(error.message);
     } else {
       if (data?.user) {
-        // STEP 3: Transfer ownership of the record using all identifiers
+        // STEP 3: Prioritized Data Linking
         await linkMemberRecord(data.user.email, data.user.id, phone.trim(), firstName.trim(), surname.trim());
       }
       setMessage('Account created! Your member profile has been linked and you can now log in.');

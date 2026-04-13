@@ -15,60 +15,73 @@ export async function getCurrentUser() {
  * GATEKEEPER SERVICE: Checks if an email or phone number exists in the 
  * pre-populated masterlist (members table) to prevent unauthorized registrations.
  */
-export async function isUserAuthorized(email, phone) {
-  if (!email && !phone) return false;
-
-  let query = supabase.from('members').select('id, first_name, surname').is('user_id', null);
-
-  if (email && phone) {
-    query = query.or(`email.eq.${email},phone.eq.${phone},mobile.eq.${phone}`);
-  } else if (email) {
-    query = query.eq('email', email);
-  } else if (phone) {
-    query = query.or(`phone.eq.${phone},mobile.eq.${phone}`);
+/**
+ * GATEKEEPER SERVICE: Strictly prioritized authorization check.
+ * Priority: 1. Email, 2. Phone, 3. Name
+ */
+export async function isUserAuthorized(email, phone, firstName, surname) {
+  // 1. Primary: Email Match
+  if (email) {
+    const { data: eMatch } = await supabase.from('members').select('id').is('user_id', null).eq('email', email);
+    if (eMatch && eMatch.length > 0) return true;
   }
 
-  const { data, error } = await query;
+  // 2. Secondary: Phone Match
+  if (phone) {
+    const { data: pMatch } = await supabase.from('members').select('id').is('user_id', null)
+      .or(`phone.eq.${phone},mobile.eq.${phone}`);
+    if (pMatch && pMatch.length > 0) return true;
+  }
 
-  // Fallback: If no email/phone match found, try matching by name provided in the session/form
-  // (This assumes the user provided their name during the auth process or we check the form)
-  if (!error && (!data || data.length === 0)) {
-    // If the registrar hasn't implemented name-gathering in signup yet, this is a placeholder
-    // for future flexibility.
+  // 3. Fallback: Name Match
+  if (firstName && surname) {
+    const { data: nMatch } = await supabase.from('members').select('id').is('user_id', null)
+      .eq('first_name', firstName).eq('surname', surname);
+    if (nMatch && nMatch.length > 0) return true;
   }
-  
-  if (error) {
-    console.warn('Authorization check failed:', error.message);
-    return false;
-  }
-  
-  return data && data.length > 0;
+
+  return false;
 }
 
 /**
- * Enhanced Linker: Matches by Email, Phone, OR Full Name
+ * Priority Linker: Matches by Email, then Phone, then Name.
  */
 export async function linkMemberRecord(email, userId, phone, firstName, surname) {
   if (!userId) return;
 
-  let filters = [];
-  if (email) filters.push(`email.eq.${email}`);
-  if (phone) filters.push(`phone.eq.${phone},mobile.eq.${phone}`);
-  
-  // Name Matching (Fuzzy/Exact backup)
-  if (firstName && surname) {
-    filters.push(`and(first_name.eq.${firstName},surname.eq.${surname})`);
+  // Function to perform the actual update
+  const claim = async (column, value, fallbackMode = false) => {
+    let query = supabase.from('members').update({ user_id: userId }).is('user_id', null);
+    
+    if (fallbackMode === 'phone') {
+      query = query.or(`phone.eq.${value},mobile.eq.${value}`);
+    } else if (fallbackMode === 'name') {
+      query = query.eq('first_name', firstName).eq('surname', surname);
+    } else {
+      query = query.eq(column, value);
+    }
+
+    const { data, error } = await query.select();
+    return { data, error };
+  };
+
+  // 1. Try Email
+  if (email) {
+    const { data } = await claim('email', email);
+    if (data && data.length > 0) return; // Linked!
   }
 
-  const filterStr = filters.join(',');
-  if (!filterStr) return;
+  // 2. Try Phone
+  if (phone) {
+    const { data } = await claim(null, phone, 'phone');
+    if (data && data.length > 0) return; // Linked!
+  }
 
-  const { data, error } = await supabase
-    .from('members')
-    .update({ user_id: userId })
-    .or(filterStr)
-    .is('user_id', null)
-    .select();
+  // 3. Try Name
+  if (firstName && surname) {
+    await claim(null, null, 'name');
+  }
+}
 
   if (error) {
     console.warn('Auto-linking failed:', error.message);
