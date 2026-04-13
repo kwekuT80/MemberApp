@@ -16,6 +16,8 @@ export default function AuthScreen() {
   const [mode, setMode]         = useState('login'); // 'login' | 'register' | 'forgot'
   const [email, setEmail]       = useState('');
   const [phone, setPhone]       = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [surname, setSurname]   = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm]   = useState('');
   const [loading, setLoading]   = useState(false);
@@ -41,16 +43,28 @@ export default function AuthScreen() {
   }
 
   async function handleRegister() {
-    if (!email || !password || !confirm) { setError('Please fill in all fields.'); return; }
+    if (mode === 'register' && (!email || !password || !confirm || !firstName || !surname)) { 
+      setError('Please fill in all fields, including your name.'); return; 
+    }
     if (password !== confirm) { setError('Passwords do not match.'); return; }
     if (password.length < 6)  { setError('Password must be at least 6 characters.'); return; }
     
     setLoading(true); clearState();
 
     // STEP 1: Check if the user is on the Masterlist (members table)
-    const authorized = await isUserAuthorized(email.trim(), phone.trim());
+    // We check email, phone, OR the name they just typed!
+    const { supabase } = require('../db/supabase');
+    const { data: nameCheck } = await supabase
+      .from('members')
+      .select('id')
+      .is('user_id', null)
+      .eq('first_name', firstName.trim())
+      .eq('surname', surname.trim());
+
+    const authorized = (nameCheck && nameCheck.length > 0) || await isUserAuthorized(email.trim(), phone.trim());
+    
     if (!authorized) {
-      setError('You are not currently on the authorized registrar list. Please contact your Commandery Registrar to be added first.');
+      setError('Your name, email, or phone was not found on the authorized registrar list. Please contact your Registrar.');
       setLoading(false);
       return;
     }
@@ -61,8 +75,8 @@ export default function AuthScreen() {
       setError(error.message);
     } else {
       if (data?.user) {
-        // STEP 3: Transfer ownership of the record
-        await linkMemberRecord(data.user.email, data.user.id, phone.trim());
+        // STEP 3: Transfer ownership of the record using all identifiers
+        await linkMemberRecord(data.user.email, data.user.id, phone.trim(), firstName.trim(), surname.trim());
       }
       setMessage('Account created! Your member profile has been linked and you can now log in.');
       setMode('login');
@@ -129,6 +143,32 @@ export default function AuthScreen() {
               autoCapitalize="none"
               autoCorrect={false}
             />
+
+            {/* Name Fields (Registration Only) */}
+            {mode === 'register' && (
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.label}>First Name</Text>
+                  <TextInput
+                    style={s.input}
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    placeholder="John"
+                    autoCapitalize="words"
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.label}>Surname</Text>
+                  <TextInput
+                    style={s.input}
+                    value={surname}
+                    onChangeText={setSurname}
+                    placeholder="Doe"
+                    autoCapitalize="words"
+                  />
+                </View>
+              </View>
+            )}
 
             {/* Phone (Only for Registration) */}
             {mode === 'register' && (

@@ -18,17 +18,25 @@ export async function getCurrentUser() {
 export async function isUserAuthorized(email, phone) {
   if (!email && !phone) return false;
 
-  let query = supabase.from('members').select('id').is('user_id', null);
+  let query = supabase.from('members').select('id, first_name, surname').is('user_id', null);
 
   if (email && phone) {
     query = query.or(`email.eq.${email},phone.eq.${phone},mobile.eq.${phone}`);
   } else if (email) {
     query = query.eq('email', email);
-  } else {
+  } else if (phone) {
     query = query.or(`phone.eq.${phone},mobile.eq.${phone}`);
   }
 
   const { data, error } = await query;
+
+  // Fallback: If no email/phone match found, try matching by name provided in the session/form
+  // (This assumes the user provided their name during the auth process or we check the form)
+  if (!error && (!data || data.length === 0)) {
+    // If the registrar hasn't implemented name-gathering in signup yet, this is a placeholder
+    // for future flexibility.
+  }
+  
   if (error) {
     console.warn('Authorization check failed:', error.message);
     return false;
@@ -38,20 +46,21 @@ export async function isUserAuthorized(email, phone) {
 }
 
 /**
- * Links an orphaned member record to a new user by matching 
- * their email address OR their phone number.
+ * Enhanced Linker: Matches by Email, Phone, OR Full Name
  */
-export async function linkMemberRecord(email, userId, phone) {
+export async function linkMemberRecord(email, userId, phone, firstName, surname) {
   if (!userId) return;
 
-  // Build a query to find matching records that are currently un-owned
-  let filterStr = '';
-  if (email) filterStr += `email.eq.${email}`;
-  if (phone) {
-    if (filterStr) filterStr += ',';
-    filterStr += `phone.eq.${phone},mobile.eq.${phone}`;
+  let filters = [];
+  if (email) filters.push(`email.eq.${email}`);
+  if (phone) filters.push(`phone.eq.${phone},mobile.eq.${phone}`);
+  
+  // Name Matching (Fuzzy/Exact backup)
+  if (firstName && surname) {
+    filters.push(`and(first_name.eq.${firstName},surname.eq.${surname})`);
   }
 
+  const filterStr = filters.join(',');
   if (!filterStr) return;
 
   const { data, error } = await supabase
