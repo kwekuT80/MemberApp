@@ -109,90 +109,86 @@ export function DateInput({ label, value, onChangeText, required, hint, error })
 
   return (
     <FieldRow label={label} required={required} hint={hint} error={error}>
-      {/* Web: Hidden HTML input that we trigger manually using the safe createElement bridge */}
-      {Platform.OS === 'web' && createElement('input', {
-        type: 'date',
-        id: `date-picker-${label?.replace(/\s/g, '-')}`,
-        value: parseDate(value).toISOString().split('T')[0],
-        onChange: (e) => {
-          const [y, m, d] = e.target.value.split('-');
-          onChangeText(`${d}/${m}/${y}`);
-        },
-        style: {
-          position: 'absolute',
-          opacity: 0,
-          width: 0,
-          height: 0,
-          pointerEvents: 'none',
-        },
-      })}
+      {/* WEB VERSION: A real HTML5 date input styled to match the app */}
+      {Platform.OS === 'web' ? (
+        <View style={[styles.dateWrapper, error && styles.inputError]}>
+          <input
+            type="date"
+            value={value ? parseDate(value).toISOString().split('T')[0] : ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (!val) {
+                onChangeText('');
+                return;
+              }
+              const [y, m, d] = val.split('-');
+              onChangeText(`${d}/${m}/${y}`);
+            }}
+            style={{
+              padding: '0px',
+              border: 'none',
+              background: 'transparent',
+              fontSize: '16px', // Typography.sizes.md
+              color: value ? '#3D3830' : '#C4BEB4', // Colors.grey700 : Colors.grey300
+              width: '100%',
+              outline: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          />
+          <Text style={styles._webDateIcon}>📅</Text>
+        </View>
+      ) : (
+        /* MOBILE VERSION: Tappable field that opens the picker */
+        <>
+          <TouchableOpacity
+            style={[styles.dateWrapper, error && styles.inputError]}
+            onPress={() => setShow(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.dateText, !value && styles.datePlaceholder]}>
+              {value || 'DD/MM/YYYY'}
+            </Text>
+            <Text style={styles.dateIcon}>📅</Text>
+          </TouchableOpacity>
 
-      {/* Tappable field that opens the picker */}
-      <TouchableOpacity
-        style={[styles.dateWrapper, error && styles.inputError]}
-        onPress={() => {
-          if (Platform.OS === 'web') {
-            // On web, we trigger the hidden input
-            document.getElementById(`date-picker-${label?.replace(/\s/g, '-')}`)?.showPicker?.();
-            // Fallback for older browsers
-            document.getElementById(`date-picker-${label?.replace(/\s/g, '-')}`)?.click();
-          } else {
-            setShow(true);
-          }
-        }}
-        activeOpacity={0.8}
-      >
-        <Text style={[styles.dateText, !value && styles.datePlaceholder]}>
-          {value || 'DD/MM/YYYY'}
-        </Text>
-        <Text style={styles.dateIcon}>📅</Text>
-      </TouchableOpacity>
+          {/* Android: inline picker */}
+          {Platform.OS === 'android' && show && (
+            <DateTimePicker
+              value={currentDate}
+              mode="date"
+              display="default"
+              onChange={handleChange}
+              maximumDate={new Date(2100, 11, 31)}
+              minimumDate={new Date(1900, 0, 1)}
+            />
+          )}
 
-      {/* Android: inline picker shown conditionally */}
-      {Platform.OS === 'android' && show && (
-        <DateTimePicker
-          value={currentDate}
-          mode="date"
-          display="default"
-          onChange={handleChange}
-          maximumDate={new Date(2100, 11, 31)}
-          minimumDate={new Date(1900, 0, 1)}
-        />
-      )}
-
-      {/* iOS: picker inside a modal with a Done button */}
-      {Platform.OS === 'ios' && (
-        <Modal
-          visible={show}
-          transparent
-          animationType="slide"
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{label || 'Select Date'}</Text>
-                <TouchableOpacity
-                  onPress={(e) => {
-                    e.preventDefault();
-                    setShow(false);
-                  }}
-                  style={styles.modalDoneBtn}
-                >
-                  <Text style={styles.modalDoneText}>Done</Text>
-                </TouchableOpacity>
+          {/* iOS: modal picker */}
+          {Platform.OS === 'ios' && (
+            <Modal visible={show} transparent animationType="slide">
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>{label || 'Select Date'}</Text>
+                    <TouchableOpacity onPress={() => setShow(false)} style={styles.modalDoneBtn}>
+                      <Text style={styles.modalDoneText}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <DateTimePicker
+                    value={currentDate}
+                    mode="date"
+                    display="spinner"
+                    onChange={handleChange}
+                    maximumDate={new Date(2100, 11, 31)}
+                    minimumDate={new Date(1900, 0, 1)}
+                    style={styles.iosPicker}
+                  />
+                </View>
               </View>
-              <DateTimePicker
-                value={currentDate}
-                mode="date"
-                display="spinner"
-                onChange={handleChange}
-                maximumDate={new Date(2100, 11, 31)}
-                minimumDate={new Date(1900, 0, 1)}
-                style={styles.iosPicker}
-              />
-            </View>
-          </View>
-        </Modal>
+            </Modal>
+          )}
+        </>
       )}
     </FieldRow>
   );
@@ -447,6 +443,7 @@ const styles = StyleSheet.create({
   dateText:        { fontSize: Typography.sizes.md, color: Colors.grey700, flex: 1 },
   datePlaceholder: { color: Colors.grey300 },
   dateIcon:        { fontSize: 18, marginLeft: Spacing.sm },
+  _webDateIcon:    { fontSize: 18, marginLeft: -30, pointerEvents: 'none', zIndex: -1 },
 
   // iOS modal
   modalOverlay: {
