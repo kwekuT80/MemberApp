@@ -12,24 +12,59 @@ export async function getCurrentUser() {
 }
 
 /**
- * Links an orphaned member record (one without a user_id) to a new user
- * by matching their email address.
+ * GATEKEEPER SERVICE: Checks if an email or phone number exists in the 
+ * pre-populated masterlist (members table) to prevent unauthorized registrations.
  */
-export async function linkMemberRecordByEmail(email, userId) {
-  if (!email || !userId) return;
+export async function isUserAuthorized(email, phone) {
+  if (!email && !phone) return false;
 
-  // Try to find a member record with this email that hasn't been claimed yet
+  let query = supabase.from('members').select('id').is('user_id', null);
+
+  if (email && phone) {
+    query = query.or(`email.eq.${email},phone.eq.${phone},mobile.eq.${phone}`);
+  } else if (email) {
+    query = query.eq('email', email);
+  } else {
+    query = query.or(`phone.eq.${phone},mobile.eq.${phone}`);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.warn('Authorization check failed:', error.message);
+    return false;
+  }
+  
+  return data && data.length > 0;
+}
+
+/**
+ * Links an orphaned member record to a new user by matching 
+ * their email address OR their phone number.
+ */
+export async function linkMemberRecord(email, userId, phone) {
+  if (!userId) return;
+
+  // Build a query to find matching records that are currently un-owned
+  let filterStr = '';
+  if (email) filterStr += `email.eq.${email}`;
+  if (phone) {
+    if (filterStr) filterStr += ',';
+    filterStr += `phone.eq.${phone},mobile.eq.${phone}`;
+  }
+
+  if (!filterStr) return;
+
   const { data, error } = await supabase
     .from('members')
     .update({ user_id: userId })
-    .eq('email', email)
-    .is('user_id', null) // Only claim if it hasn't been claimed by someone else
+    .or(filterStr)
+    .is('user_id', null)
     .select();
 
   if (error) {
     console.warn('Auto-linking failed:', error.message);
   } else if (data && data.length > 0) {
-    console.log(`Successfully linked ${data.length} records for ${email}`);
+    console.log(`Successfully linked ${data.length} records for user ${userId}`);
   }
 }
 

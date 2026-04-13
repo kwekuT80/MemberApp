@@ -9,12 +9,13 @@ import {
   KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
 import { supabase } from '../db/supabase';
-import { linkMemberRecordByEmail } from '../db/memberQueries';
+import { linkMemberRecord, isUserAuthorized } from '../db/memberQueries';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
 
 export default function AuthScreen() {
   const [mode, setMode]         = useState('login'); // 'login' | 'register' | 'forgot'
   const [email, setEmail]       = useState('');
+  const [phone, setPhone]       = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm]   = useState('');
   const [loading, setLoading]   = useState(false);
@@ -33,8 +34,8 @@ export default function AuthScreen() {
     if (error) {
       setError(error.message);
     } else if (data?.user) {
-      // Attempt to link a pre-existing member record if it's not already linked
-      await linkMemberRecordByEmail(data.user.email, data.user.id);
+      // Re-scan for records (in case new data was added since last login)
+      await linkMemberRecord(data.user.email, data.user.id, phone);
     }
     setLoading(false);
   }
@@ -43,16 +44,27 @@ export default function AuthScreen() {
     if (!email || !password || !confirm) { setError('Please fill in all fields.'); return; }
     if (password !== confirm) { setError('Passwords do not match.'); return; }
     if (password.length < 6)  { setError('Password must be at least 6 characters.'); return; }
+    
     setLoading(true); clearState();
+
+    // STEP 1: Check if the user is on the Masterlist (members table)
+    const authorized = await isUserAuthorized(email.trim(), phone.trim());
+    if (!authorized) {
+      setError('You are not currently on the authorized registrar list. Please contact your Commandery Registrar to be added first.');
+      setLoading(false);
+      return;
+    }
+
+    // STEP 2: Proceed with Supabase Auth registration
     const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
     if (error) {
       setError(error.message);
     } else {
       if (data?.user) {
-        // Link the record immediately upon registration if email matches
-        await linkMemberRecordByEmail(data.user.email, data.user.id);
+        // STEP 3: Transfer ownership of the record
+        await linkMemberRecord(data.user.email, data.user.id, phone.trim());
       }
-      setMessage('Account created! You can now log in.');
+      setMessage('Account created! Your member profile has been linked and you can now log in.');
       setMode('login');
     }
     setLoading(false);
@@ -117,6 +129,21 @@ export default function AuthScreen() {
               autoCapitalize="none"
               autoCorrect={false}
             />
+
+            {/* Phone (Only for Registration) */}
+            {mode === 'register' && (
+              <>
+                <Text style={s.label}>Mobile / Phone Number</Text>
+                <TextInput
+                  style={s.input}
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="024 123 4567"
+                  placeholderTextColor={Colors.grey300}
+                  keyboardType="phone-pad"
+                />
+              </>
+            )}
 
             {/* Password */}
             {mode !== 'forgot' && (
