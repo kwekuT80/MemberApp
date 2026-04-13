@@ -14,9 +14,9 @@ import { Colors, Spacing, Radii, Typography, Shadows } from '../styles/theme';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-// Convert a DD/MM/YYYY string to a JS Date (returns today if invalid)
+// Convert a DD/MM/YYYY string to a JS Date (returns null if invalid or missing)
 function parseDate(str) {
-  if (!str) return new Date();
+  if (!str || typeof str !== 'string' || str.trim() === '') return null;
   const parts = str.split('/');
   if (parts.length === 3) {
     const d = new Date(
@@ -26,7 +26,7 @@ function parseDate(str) {
     );
     if (!isNaN(d.getTime())) return d;
   }
-  return new Date();
+  return null;
 }
 
 // Format a JS Date to DD/MM/YYYY
@@ -105,7 +105,7 @@ export function DateInput({ label, value, onChangeText, required, hint, error })
     }
   }
 
-  const currentDate = parseDate(value);
+  const currentDate = parseDate(value) || new Date();
 
   return (
     <FieldRow label={label} required={required} hint={hint} error={error}>
@@ -114,7 +114,7 @@ export function DateInput({ label, value, onChangeText, required, hint, error })
         <View style={[styles.dateWrapper, error && styles.inputError]}>
           <input
             type="date"
-            value={value ? parseDate(value).toISOString().split('T')[0] : ''}
+            value={parseDate(value) ? parseDate(value).toISOString().split('T')[0] : ''}
             onChange={(e) => {
               const val = e.target.value;
               if (!val) {
