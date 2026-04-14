@@ -88,24 +88,25 @@ export default function MembershipCardScreen({ route, navigation }) {
             </View>
           </View>
 
-            <View style={s.qrStub}>
-              <View style={s.qrBox}>
-                <Image 
-                  source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=KSJI:MEMBER:${member.id}` }} 
-                  style={{ width: '100%', height: '100%' }} 
-                  resizeMode="contain"
-                />
+            <View style={s.cardFooter}>
+              <View style={s.qrStub}>
+                <View style={s.qrBox}>
+                  <Image 
+                    source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=KSJI:MEMBER:${member.id}` }} 
+                    style={{ width: '100%', height: '100%' }} 
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text style={s.qrText}>SCAN TO VERIFY</Text>
               </View>
-              <Text style={s.qrText}>SCAN TO VERIFY</Text>
+              
+              <View style={s.meta}>
+                <Text style={s.metaLabel}>ID NUMBER</Text>
+                <Text style={s.metaValue}>KSJI-{member.id?.slice(0,8).toUpperCase()}</Text>
+                <Text style={[s.metaLabel, { marginTop: 8 }]}>JOINED</Text>
+                <Text style={s.metaValue}>{member.date_joined || '---'}</Text>
+              </View>
             </View>
-            
-            <View style={s.meta}>
-              <Text style={s.metaLabel}>ID NUMBER</Text>
-              <Text style={s.metaValue}>KSJI-{member.id?.slice(0,8).toUpperCase()}</Text>
-              <Text style={[s.metaLabel, { marginTop: 8 }]}>JOINED</Text>
-              <Text style={s.metaValue}>{member.date_joined || '---'}</Text>
-            </View>
-          </View>
           
           {/* Gold Overlay Accents */}
           <View style={s.goldCorner} />
