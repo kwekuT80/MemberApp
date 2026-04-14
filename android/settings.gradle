@@ -1,0 +1,24 @@
+pluginManagement {
+    def reactNativeGradlePlugin = new File(rootDir, "../node_modules/@react-native/gradle-plugin")
+    includeBuild(reactNativeGradlePlugin)
+
+    def expoAutolinking = new File(rootDir, "../node_modules/expo-modules-autolinking/android")
+    includeBuild(expoAutolinking)
+}
+
+plugins {
+    id("com.facebook.react.settings")
+    id("expo-autolinking-settings")
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
+}
+
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+    ex.autolinkLibrariesFromCommand()
+}
+
+rootProject.name = 'Member Registration'
+
+include ':app'
+
+apply from: new File(rootDir, "../node_modules/expo/scripts/autolinking.gradle")
+useExpoModules()
