@@ -1,5 +1,5 @@
 // src/styles/theme.js
-// Design tokens — deep navy / warm gold palette for a formal membership register.
+// Design tokens — deep navy / warm gold palette with Glassmorphism support.
 
 export const Colors = {
   // Core brand
@@ -13,6 +13,19 @@ export const Colors = {
   goldLight:    '#DDB96A',
   goldPale:     '#F5EDD2',
   goldFaint:    '#FBF7ED',
+
+  // Glassmorphism (New)
+  glassWhite:   'rgba(255, 255, 255, 0.08)',
+  glassDark:    'rgba(0, 0, 0, 0.2)',
+  glassBorder:  'rgba(255, 255, 255, 0.12)',
+  glassGold:    'rgba(201, 168, 76, 0.12)',
+
+  // Analytics Colors (New)
+  chartBlue:    '#3B82F6',
+  chartGreen:   '#10B981',
+  chartGold:    '#F59E0B',
+  chartPurple:  '#8B5CF6',
+  chartRose:    '#F43F5E',
 
   // Surfaces
   white:        '#FFFFFF',
@@ -103,6 +116,13 @@ export const Shadows = {
     shadowOpacity: 0.09,
     shadowRadius: 6,
     elevation: 3,
+  },
+  glass: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 10,
   },
   lifted: {
     shadowColor: '#0A1628',

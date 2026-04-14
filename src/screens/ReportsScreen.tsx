@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../db/supabase';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
 
 export default function ReportsScreen({ navigation }) {
@@ -139,6 +141,64 @@ export default function ReportsScreen({ navigation }) {
     }
   };
 
+  const handleExportPDF = async () => {
+    let html = `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #0A1628; }
+            h1 { color: #C9A84C; border-bottom: 2px solid #C9A84C; padding-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background-color: #0A1628; color: white; padding: 12px; text-align: left; font-size: 12px; }
+            td { padding: 10px; border-bottom: 1px solid #E8E4DC; font-size: 11px; }
+            .footer { margin-top: 50px; font-size: 10px; color: #A09891; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <h1>Official Commandery Report: ${reportType?.toUpperCase()}</h1>
+          <p>Generated on ${new Date().toLocaleDateString()}</p>
+          <table>
+            <thead>
+    `;
+
+    if (reportType === 'master') {
+      html += `<tr><th>NAME</th><th>OCCUPATION</th><th>PHONE</th><th>STATUS</th></tr></thead><tbody>`;
+      reportData.forEach(m => {
+        html += `<tr><td>${m.surname}, ${m.first_name}</td><td>${m.occupation || 'N/A'}</td><td>${m.phone || '---'}</td><td>${m.status}</td></tr>`;
+      });
+    } else if (reportType === 'final') {
+      html += `<tr><th>NAME</th><th>DIED</th><th>BURIAL</th><th>PLACE</th></tr></thead><tbody>`;
+      reportData.forEach(m => {
+        html += `<tr><td>${m.title} ${m.first_name} ${m.surname}</td><td>${m.date_of_death || '---'}</td><td>${m.burial_date || '---'}</td><td>${m.burial_place || '---'}</td></tr>`;
+      });
+    } else if (reportType === 'leadership') {
+      html += `<tr><th>OFFICER</th><th>POSITIONS</th></tr></thead><tbody>`;
+      reportData.forEach(m => {
+        const posts = m.positions.map(p => `${p.position_title} (${p.date_from})`).join('<br/>');
+        html += `<tr><td>${m.first_name} ${m.surname}</td><td>${posts}</td></tr>`;
+      });
+    } else {
+      html += `<tr><th>NAME</th><th>STATUS</th><th>CONTACT</th></tr></thead><tbody>`;
+      reportData.forEach(m => {
+        html += `<tr><td>${m.surname}, ${m.first_name}</td><td>${reportType?.toUpperCase()}</td><td>${m.phone || '---'}</td></tr>`;
+      });
+    }
+
+    html += `</tbody></table><div class="footer">KSJI Registrar Suite - Digital Record Repository</div></body></html>`;
+
+    try {
+      if (Platform.OS === 'web') {
+        const { uri } = await Print.printToFileAsync({ html });
+        window.open(uri, '_blank');
+      } else {
+        const { uri } = await Print.printToFileAsync({ html });
+        await Sharing.shareAsync(uri);
+      }
+    } catch (e) {
+      Alert.alert('PDF Error', 'Could not generate the PDF document.');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
@@ -193,9 +253,14 @@ export default function ReportsScreen({ navigation }) {
         <View style={styles.previewHeader}>
           <Text style={styles.previewTitle}>Report Preview</Text>
           {reportData.length > 0 && (
-            <TouchableOpacity style={styles.exportBtn} onPress={handleShare}>
-              <Text style={styles.exportBtnText}>Share/Export</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row' }}>
+              <TouchableOpacity style={[styles.exportBtn, { backgroundColor: Colors.white, marginRight: 8 }]} onPress={handleExportPDF}>
+                <Text style={[styles.exportBtnText, { color: Colors.navy }]}>📄 PDF</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.exportBtn} onPress={handleShare}>
+                <Text style={styles.exportBtnText}>Share</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
 

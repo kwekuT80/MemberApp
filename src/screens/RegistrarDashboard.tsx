@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../db/supabase';
+import { getDashboardInsights, getBirthdayReminders } from '../db/memberQueries';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
 
 export default function RegistrarDashboard({ navigation }) {
@@ -23,13 +24,21 @@ export default function RegistrarDashboard({ navigation }) {
   const [rankFilter, setRankFilter] = useState('All');
   const [profFilter, setProfFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
+  
+  // New State for Upgrades
+  const [activeTab, setActiveTab] = useState('list'); // 'list' or 'insights'
+  const [insights, setInsights] = useState(null);
+  const [birthdays, setBirthdays] = useState([]);
 
   useEffect(() => {
     // Refresh members list when the screen comes into focus
     const unsubscribe = navigation.addListener('focus', () => {
+    const unsubscribe = navigation.addListener('focus', () => {
       fetchMembers();
+      loadUpgrades();
     });
-    fetchMembers(); // Initial fetch
+    fetchMembers();
+    loadUpgrades();
     
     return unsubscribe;
   }, [navigation]);
@@ -48,6 +57,19 @@ export default function RegistrarDashboard({ navigation }) {
       setMembers(data || []);
     }
     setLoading(false);
+  }
+
+  async function loadUpgrades() {
+    try {
+      const [ins, bdays] = await Promise.all([
+        getDashboardInsights(),
+        getBirthdayReminders(),
+      ]);
+      setInsights(ins);
+      setBirthdays(bdays);
+    } catch (e) {
+      console.warn('Upgrades load failed:', e.message);
+    }
   }
 
   const filteredMembers = members.filter(item => {
@@ -221,9 +243,43 @@ export default function RegistrarDashboard({ navigation }) {
           </View>
         )}
       </View>
+
+      {/* TABS SELECTOR */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity 
+          style={[styles.tabItem, activeTab === 'list' && styles.tabItemActive]}
+          onPress={() => setActiveTab('list')}
+        >
+          <Text style={[styles.tabText, activeTab === 'list' && styles.tabTextActive]}>Member List</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabItem, activeTab === 'insights' && styles.tabItemActive]}
+          onPress={() => setActiveTab('insights')}
+        >
+          <Text style={[styles.tabText, activeTab === 'insights' && styles.tabTextActive]}>Commandery Insights</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* BIRTHDAY BANNER */}
+      {birthdays.length > 0 && (
+        <View style={styles.birthdayContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {birthdays.map((b, i) => (
+              <View key={i} style={styles.birthdayCard}>
+                <Text style={styles.birthdayIcon}>🎂</Text>
+                <Text style={styles.birthdayText}>
+                  Birthday Today: <Text style={styles.birthdayName}>{b.title} {b.first_name} {b.surname}</Text>
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
       
       {loading ? (
         <ActivityIndicator size="large" color={Colors.gold} style={styles.loader} />
+      ) : activeTab === 'insights' ? (
+        <InsightsView insights={insights} />
       ) : filteredMembers && filteredMembers.length > 0 ? (
         <FlatList
           data={filteredMembers}
@@ -250,6 +306,63 @@ export default function RegistrarDashboard({ navigation }) {
         <Text style={styles.fabIcon}>+</Text>
       </TouchableOpacity>
     </SafeAreaView>
+  );
+}
+
+function InsightsView({ insights }) {
+  if (!insights) return (
+    <View style={styles.insightsEmpty}>
+      <Text style={styles.insightsEmptyText}>Calculating Commandery Insights...</Text>
+    </View>
+  );
+
+  return (
+    <ScrollView style={styles.insightsScroll} contentContainerStyle={styles.insightsContent}>
+      <Text style={styles.sectionHeader}>Commandery Health</Text>
+      <View style={styles.statGrid}>
+        <InsightCard title="Total Brothers" value={insights.totalMembers} icon="👥" color={Colors.chartBlue} />
+        <InsightCard title="Active" value={insights.statusDistribution['Active'] || 0} icon="✅" color={Colors.chartGreen} />
+      </View>
+
+      <Text style={styles.sectionHeader}>Status Breakdown</Text>
+      <View style={styles.glassList}>
+        {Object.entries(insights.statusDistribution).map(([label, count]) => (
+          <View key={label} style={styles.progressRow}>
+            <View style={styles.progressLabelRow}>
+              <Text style={styles.progressLabel}>{label}</Text>
+              <Text style={styles.progressValue}>{count}</Text>
+            </View>
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, { width: `${(count / insights.totalMembers) * 100}%`, backgroundColor: label === 'Active' ? Colors.chartGreen : Colors.chartRose }]} />
+            </View>
+          </View>
+        ))}
+      </View>
+
+      <Text style={styles.sectionHeader}>Major Professions</Text>
+      <View style={styles.profGrid}>
+        {Object.entries(insights.professionGrowth).sort((a,b) => b[1] - a[1]).slice(0, 4).map(([prof, count]) => (
+          <View key={prof} style={styles.profCard}>
+            <Text style={styles.profCount}>{count}</Text>
+            <Text style={styles.profName} numberOfLines={1}>{prof}</Text>
+          </View>
+        ))}
+      </View>
+      
+      <View style={{ height: 100 }} />
+    </ScrollView>
+  );
+}
+
+function InsightCard({ title, value, icon, color }) {
+  return (
+    <View style={[styles.insightCard, { borderLeftColor: color }]}>
+      <Text style={styles.insightIcon}>{icon}</Text>
+      <View>
+        <Text style={styles.insightValue}>{value}</Text>
+        <Text style={styles.insightTitle}>{title}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -507,4 +620,97 @@ const styles = StyleSheet.create({
   statusSuspended: { backgroundColor: '#FEF3C7' },
   statusSuspendedText: { color: '#92400E' },
   statusOut: { backgroundColor: '#DBEAFE' },
+
+  // UPGRADE STYLES
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: Colors.navy,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
+  },
+  tabItem: {
+    marginRight: Spacing.lg,
+    paddingBottom: 8,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+  },
+  tabItemActive: {
+    borderBottomColor: Colors.gold,
+  },
+  tabText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontWeight: '700',
+    fontSize: 13,
+    textTransform: 'uppercase',
+  },
+  tabTextActive: {
+    color: Colors.white,
+  },
+
+  birthdayContainer: {
+    backgroundColor: Colors.navy,
+    paddingBottom: Spacing.md,
+  },
+  birthdayCard: {
+    backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: Radii.pill,
+    marginLeft: Spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+  },
+  birthdayIcon: { fontSize: 16, marginRight: 8 },
+  birthdayText: { color: Colors.goldPale, fontSize: 12 },
+  birthdayName: { fontWeight: '800', color: Colors.gold },
+
+  insightsScroll: { flex: 1, backgroundColor: '#F4F6F8' },
+  insightsContent: { padding: Spacing.lg },
+  sectionHeader: { fontSize: 13, fontWeight: '800', color: Colors.grey400, textTransform: 'uppercase', marginBottom: 12, marginTop: 10 },
+  statGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.lg },
+  insightCard: {
+    flex: 0.48,
+    backgroundColor: Colors.white,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderLeftWidth: 4,
+    ...Shadows.card,
+  },
+  insightIcon: { fontSize: 24, marginRight: 12 },
+  insightValue: { fontSize: 20, fontWeight: '800', color: Colors.navy },
+  insightTitle: { fontSize: 11, color: Colors.grey400, fontWeight: '600' },
+
+  glassList: {
+    backgroundColor: Colors.white,
+    borderRadius: Radii.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    ...Shadows.card,
+  },
+  progressRow: { marginBottom: 16 },
+  progressLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  progressLabel: { fontSize: 12, fontWeight: '700', color: Colors.navy },
+  progressValue: { fontSize: 12, fontWeight: '800', color: Colors.grey400 },
+  progressBarBg: { height: 6, backgroundColor: '#F3F4F6', borderRadius: 3, overflow: 'hidden' },
+  progressBarFill: { height: '100%', borderRadius: 3 },
+
+  profGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  profCard: {
+    width: '48%',
+    backgroundColor: Colors.white,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    marginBottom: 12,
+    alignItems: 'center',
+    ...Shadows.card,
+  },
+  profCount: { fontSize: 24, fontWeight: '800', color: Colors.gold, marginBottom: 2 },
+  profName: { fontSize: 12, color: Colors.navy, fontWeight: '700' },
+
+  insightsEmpty: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F4F6F8' },
+  insightsEmptyText: { color: Colors.grey400, fontSize: 14, fontWeight: '600' },
 });

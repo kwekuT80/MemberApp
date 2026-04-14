@@ -180,6 +180,7 @@ export async function saveMember(form) {
     transfer_from:       form.transfer_from       || null,
     transfer_to:         form.transfer_to         || null,
     transfer_date:       form.transfer_date       || null,
+    photo_url:           form.photo_url           || null,
   };
 
   if (form.id) {
@@ -549,4 +550,71 @@ export async function deleteUniformedRankRecord(id, memberId) {
   if (error) throw error;
 
   await syncCurrentUniformedRank(memberId);
+}
+// ── Analytics & Insights ────────────────────────────────────────────────────────
+/**
+ * Aggregates membership data for dashboard charts.
+ */
+export async function getDashboardInsights() {
+  const { data: members, error } = await supabase
+    .from('members')
+    .select('status, occupation, date_joined');
+  
+  if (error) throw error;
+
+  const insights = {
+    statusDistribution: {},
+    professionGrowth: {},
+    yearlyJoins: {},
+    totalMembers: members.length,
+  };
+
+  members.forEach(m => {
+    // 1. Status
+    const s = m.status || 'Active';
+    insights.statusDistribution[s] = (insights.statusDistribution[s] || 0) + 1;
+
+    // 2. Yearly Growth
+    if (m.date_joined) {
+      const year = m.date_joined.split('-')[0] || m.date_joined.split('/')[2];
+      if (year && year.length === 4) {
+        insights.yearlyJoins[year] = (insights.yearlyJoins[year] || 0) + 1;
+      }
+    }
+
+    // 3. Professions
+    const prof = m.occupation || 'Other';
+    insights.professionGrowth[prof] = (insights.professionGrowth[prof] || 0) + 1;
+  });
+
+  return insights;
+}
+
+/**
+ * Finds members whose birthday matches the current date.
+ */
+export async function getBirthdayReminders() {
+  const now = new Date();
+  const todayMonth = String(now.getMonth() + 1).padStart(2, '0');
+  const todayDay = String(now.getDate()).padStart(2, '0');
+  const matchString = `-${todayMonth}-${todayDay}`; // Matches YYYY-MM-DD
+
+  // Note: For better scalability, you'd use a Postgres function, 
+  // but this is efficient for reasonable member lists.
+  const { data, error } = await supabase
+    .from('members')
+    .select('first_name, surname, title, date_of_birth')
+    .not('date_of_birth', 'is', null);
+
+  if (error) throw error;
+
+  return data.filter(m => {
+    const dob = m.date_of_birth;
+    if (dob.includes('-')) {
+      return dob.endsWith(matchString);
+    }
+    // Handle DD/MM/YYYY
+    const parts = dob.split('/');
+    return parts[0] === todayDay && parts[1] === todayMonth;
+  });
 }

@@ -19,6 +19,8 @@ import {
   DegreesScreen,
   SpouseScreen,
 } from '../screens/SubformScreens';
+import SpouseScreen          from '../screens/SpouseScreen'; // wait, it's in SubformScreens
+import MembershipCardScreen  from '../screens/MembershipCardScreen';
 import ReportsScreen        from '../screens/ReportsScreen';
 import { Colors } from '../styles/theme';
 
@@ -136,6 +138,7 @@ export default function AppNavigator() {
               <Stack.Screen name="Military"          component={MilitaryScreen} />
               <Stack.Screen name="Degrees"           component={DegreesScreen} />
               <Stack.Screen name="Spouse"            component={SpouseScreen} />
+              <Stack.Screen name="MembershipCard"   component={MembershipCardScreen} />
             </>
           )}
         </Stack.Navigator>

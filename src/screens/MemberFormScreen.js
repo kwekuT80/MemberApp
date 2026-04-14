@@ -243,6 +243,14 @@ export default function MemberFormScreen({ route, navigation }) {
           </Text>
         </View>
         <View style={s.headerRight}>
+          {memberId && (
+            <TouchableOpacity 
+              style={[s.saveChip, { backgroundColor: 'rgba(212, 175, 55, 0.15)', marginRight: 8, borderColor: Colors.gold, borderWidth: 1 }]} 
+              onPress={() => navigation.navigate('MembershipCard', { memberId })}
+            >
+              <Text style={[s.saveChipText, { color: Colors.gold }]}>🪪 ID</Text>
+            </TouchableOpacity>
+          )}
           {dirty && (
             <TouchableOpacity style={s.saveChip} onPress={handleSave} disabled={saving}>
               {saving
@@ -315,6 +323,13 @@ function BioTab({ form, set, regions, military, setMilitaryField }) {
       <FormInput label="Surname" value={form.surname} onChangeText={set('surname')} required />
       <FormInput label="First Name" value={form.first_name} onChangeText={set('first_name')} required />
       <FormInput label="Other Name(s)" value={form.other_names} onChangeText={set('other_names')} />
+      <FormInput 
+        label="Profile Photo URL" 
+        value={form.photo_url} 
+        onChangeText={set('photo_url')} 
+        placeholder="https://link-to-photo.jpg" 
+        hint="Paste a link to the member's photo for the ID card."
+      />
       <DateInput label="Date of Birth" value={form.date_of_birth} onChangeText={set('date_of_birth')} />
       <SectionHeader title="Origin" />
       <FormInput label="Place of Birth (Town)" value={form.birth_town} onChangeText={set('birth_town')} />
