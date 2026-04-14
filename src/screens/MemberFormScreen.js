@@ -88,13 +88,12 @@ export default function MemberFormScreen({ route, navigation }) {
   useEffect(() => {
     (async () => {
       try {
-        // Read strictly: null means 'create', undefined means 'self', else 'edit target'
         const targetId = route.params?.memberId;
         const rgns = await getRegions();
 
         let record = null;
         if (targetId === null) {
-          // Explicit null from FAB bypassing queries
+          // New member
         } else if (targetId !== undefined) {
           record = await getMemberRecord(targetId);
         } else {
@@ -102,22 +101,13 @@ export default function MemberFormScreen({ route, navigation }) {
         }
 
         if (record) {
-          // Sanitize: replace all null values with '' to prevent React 'Objects are not valid' errors
           const sanitized = Object.fromEntries(
             Object.entries(record).map(([k, v]) => [k, v === null ? '' : v])
           );
           setForm(sanitized);
           await loadMilitarySummary(record.id);
         } else if (targetId === null) {
-          // Explicitly clear all nested fields to empty strings for controlled inputs
-          setForm({
-            title: '', surname: '', first_name: '', other_names: '',
-            date_of_birth: '', birth_town: '', birth_region: '', nationality: '',
-            home_town: '', home_region: '', residential_address: '', postal_address: '',
-            phone: '', mobile: '', email: '', fathers_name: '', mothers_name: '',
-            marital_status: '', emp_status: '', occupation: '', workplace: '',
-            job_status: '', work_address: '', uniform_positions: '', date_joined: ''
-          });
+          setForm(INITIAL_FORM_STATE);
           setMilitary(EMPTY_MILITARY);
         }
         setRegions(rgns);
@@ -127,22 +117,17 @@ export default function MemberFormScreen({ route, navigation }) {
         setLoading(false);
       }
     })();
-  }, [loadMilitarySummary]);
+  }, [loadMilitarySummary, route.params?.memberId]);
 
   useFocusEffect(
     useCallback(() => {
-      // Re-load data if we have an ID
       if (form.id) {
         loadMilitarySummary(form.id);
       }
-
-      // If the 'Plus' button explicitly passed null memberId, reset the entire form to blank once.
       if (route.params?.memberId === null) {
-        console.log('Resetting form for new member entry...');
         setForm(INITIAL_FORM_STATE);
         setMilitary(EMPTY_MILITARY);
         setDirty(false);
-        // Clear the param so it doesn't trigger again on every sub-screen return
         navigation.setParams({ memberId: undefined });
       }
     }, [form.id, loadMilitarySummary, route.params?.memberId, navigation])
@@ -170,12 +155,9 @@ export default function MemberFormScreen({ route, navigation }) {
     setSaving(true);
     try {
       const saved = await saveMember(form);
-
-      // Sanitize: replace all null values with '' to prevent React 'Objects are not valid' errors on re-render
       const sanitized = Object.fromEntries(
         Object.entries(saved).map(([k, v]) => [k, v === null ? '' : v])
       );
-
       await saveMilitary({
         member_id: sanitized.id,
         is_military: !!military.is_military,
@@ -184,7 +166,6 @@ export default function MemberFormScreen({ route, navigation }) {
         current_rank: military.current_rank || null,
         commission: military.commission || null,
       });
-
       setForm(sanitized);
       await loadMilitarySummary(sanitized.id);
       setDirty(false);
@@ -196,10 +177,10 @@ export default function MemberFormScreen({ route, navigation }) {
     }
   }
 
+  async function handleSignOut() {
     const logout = async () => {
       await supabase.auth.signOut();
     };
-
     if (Platform.OS === 'web') {
       if (window.confirm('Are you sure you want to sign out?')) {
         logout();
@@ -227,7 +208,6 @@ export default function MemberFormScreen({ route, navigation }) {
   return (
     <SafeAreaView style={s.screenWrapper} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.navy} />
-
       <View style={s.header}>
         {navigation.canGoBack() && (
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
@@ -288,11 +268,7 @@ export default function MemberFormScreen({ route, navigation }) {
         })}
       </ScrollView>
 
-      <ScrollView
-        style={s.body}
-        contentContainerStyle={s.bodyContent}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView style={s.body} contentContainerStyle={s.bodyContent} keyboardShouldPersistTaps="handled">
         {activeTab === 0 && <BioTab form={form} set={set} regions={regions} military={military} setMilitaryField={setMilitaryField} />}
         {activeTab === 1 && <ContactTab form={form} set={set} memberId={memberId} navigation={navigation} />}
         {activeTab === 2 && <FamilyTab form={form} set={set} memberId={memberId} navigation={navigation} />}
