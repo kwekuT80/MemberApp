@@ -309,7 +309,7 @@ export default function RegistrarDashboard({ navigation }) {
   );
 }
 
-function InsightsView({ insights }) {
+function InsightsView({ insights }: { insights: any }) {
   if (!insights) return (
     <View style={styles.insightsEmpty}>
       <Text style={styles.insightsEmptyText}>Calculating Commandery Insights...</Text>
@@ -354,7 +354,7 @@ function InsightsView({ insights }) {
   );
 }
 
-function InsightCard({ title, value, icon, color }) {
+function InsightCard({ title, value, icon, color }: any) {
   return (
     <View style={[styles.insightCard, { borderLeftColor: color }]}>
       <Text style={styles.insightIcon}>{icon}</Text>
