@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Alert,
-  StyleSheet, ActivityIndicator,
+  StyleSheet, ActivityIndicator, Image,
   Platform, StatusBar,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -18,7 +18,9 @@ import {
   getDegrees,
   getMilitary,
   saveMilitary,
+  uploadPhoto,
 } from '../db/memberQueries';
+import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../db/supabase';
 import {
   FormInput, DateInput, FormPicker, FormSwitch,
@@ -297,13 +299,69 @@ function BioTab({ form, set, regions, military, setMilitaryField }) {
       <FormInput label="Surname" value={form.surname} onChangeText={set('surname')} required />
       <FormInput label="First Name" value={form.first_name} onChangeText={set('first_name')} required />
       <FormInput label="Other Name(s)" value={form.other_names} onChangeText={set('other_names')} />
-      <FormInput 
-        label="Profile Photo URL" 
-        value={form.photo_url} 
-        onChangeText={set('photo_url')} 
-        placeholder="https://link-to-photo.jpg" 
-        hint="Paste a link to the member's photo for the ID card."
-      />
+      <SectionHeader title="Profile Portrait" />
+      <View style={s.photoContainer}>
+        <View style={s.photoFrame}>
+          {form.photo_url ? (
+            <Image 
+              source={{ uri: form.photo_url }} 
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
+          ) : (
+            <Text style={s.photoPlaceholder}>👤</Text>
+          )}
+        </View>
+        <View style={s.photoActions}>
+          <TouchableOpacity 
+            style={s.photoBtn} 
+            onPress={async () => {
+              const res = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.7,
+              });
+              if (!res.canceled) {
+                try {
+                  const url = await uploadPhoto(res.assets[0].uri);
+                  set('photo_url')(url);
+                } catch (e) {
+                  Alert.alert('Upload Failed', e.message);
+                }
+              }
+            }}
+          >
+            <Text style={s.photoBtnText}>📸 Take Photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[s.photoBtn, { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.gold }]}
+            onPress={async () => {
+              const res = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.7,
+              });
+              if (!res.canceled) {
+                try {
+                  const url = await uploadPhoto(res.assets[0].uri);
+                  set('photo_url')(url);
+                } catch (e) {
+                  Alert.alert('Upload Failed', e.message);
+                }
+              }
+            }}
+          >
+            <Text style={[s.photoBtnText, { color: Colors.navy }]}>📂 Upload Portrait</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      {form.photo_url ? (
+        <TouchableOpacity onPress={() => set('photo_url')('')}>
+          <Text style={{ color: Colors.danger, fontSize: 12, textAlign: 'center', marginTop: 8 }}>Remove Photo</Text>
+        </TouchableOpacity>
+      ) : null}
       <DateInput label="Date of Birth" value={form.date_of_birth} onChangeText={set('date_of_birth')} />
       <SectionHeader title="Origin" />
       <FormInput label="Place of Birth (Town)" value={form.birth_town} onChangeText={set('birth_town')} />
@@ -847,4 +905,47 @@ const s = StyleSheet.create({
   },
   saveNoteIcon: { fontSize: 18, marginRight: Spacing.sm },
   saveNoteText: { flex: 1, color: Colors.grey600, fontSize: Typography.sizes.sm, lineHeight: 20 },
+
+  // Photo
+  photoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    ...Shadows.subtle,
+    marginTop: Spacing.sm,
+  },
+  photoFrame: {
+    width: 100,
+    height: 100,
+    borderRadius: Radii.md,
+    backgroundColor: Colors.offWhite,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  photoPlaceholder: {
+    fontSize: 40,
+    opacity: 0.3,
+  },
+  photoActions: {
+    flex: 1,
+    marginLeft: Spacing.lg,
+  },
+  photoBtn: {
+    backgroundColor: Colors.gold,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  photoBtnText: {
+    color: Colors.navy,
+    fontSize: 12,
+    fontWeight: '700',
+  },
 });

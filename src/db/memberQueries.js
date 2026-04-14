@@ -4,6 +4,44 @@
 
 import { supabase } from './supabase';
 
+/**
+ * PHOTO SERVICE: Uploads member portraits to Supabase Storage.
+ */
+export async function uploadPhoto(uri) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Not logged in');
+
+  // We use a unique name for each upload to avoid caching issues
+  const fileName = `portraits/${user.id}-${Date.now()}.jpg`;
+
+  try {
+    // 1. Fetch file as blob (Universal approach for Web/Mobile)
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    // 2. Upload to Storage
+    // NOTE: Make sure a bucket named 'member-portraits' exists in Supabase.
+    const { data, error } = await supabase.storage
+      .from('member-portraits')
+      .upload(fileName, blob, {
+        contentType: 'image/jpeg',
+        upsert: true
+      });
+
+    if (error) throw error;
+
+    // 3. Return the Public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('member-portraits')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
+  } catch (e) {
+    console.error('Photo Upload Failed:', e);
+    throw new Error('Failed to save photo. Please check your connection.');
+  }
+}
+
 // ── Auth helpers ───────────────────────────────────────────────────────────────
 
 export async function getCurrentUser() {
