@@ -33,7 +33,6 @@ export default function RegistrarDashboard({ navigation }) {
   useEffect(() => {
     // Refresh members list when the screen comes into focus
     const unsubscribe = navigation.addListener('focus', () => {
-    const unsubscribe = navigation.addListener('focus', () => {
       fetchMembers();
       loadUpgrades();
     });
