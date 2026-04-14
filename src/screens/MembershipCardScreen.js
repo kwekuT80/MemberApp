@@ -131,6 +131,7 @@ export default function MembershipCardScreen({ route, navigation }) {
           {/* Gold Overlay Accents */}
           <View style={s.goldCorner} />
         </View>
+        </View>
 
         <Text style={s.hint}>This card is an official digital record for use within the Commandery.</Text>
       </ScrollView>
