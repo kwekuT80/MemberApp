@@ -21,6 +21,8 @@
     "browserify-zlib": "^0.2.0",
     "expo": "~51.0.31",
     "expo-status-bar": "~1.12.1",
+    "expo-print": "~13.0.1",
+    "expo-sharing": "~11.10.1",
     "https-browserify": "^1.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",

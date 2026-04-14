@@ -144,7 +144,7 @@ export default function RegistrarDashboard({ navigation }) {
               <View style={[
                 styles.statusBadge, 
                 item.status === 'Deceased' && styles.statusDeceased,
-                (item.status === 'Sacked' || item.status === 'Dismissed') && styles.statusSacked,
+                item.status === 'Dismissed' && styles.statusSacked,
                 item.status === 'Suspended' && styles.statusSuspended,
                 item.status === 'Transfer-Out' && styles.statusOut,
               ]}>
@@ -153,7 +153,7 @@ export default function RegistrarDashboard({ navigation }) {
                   item.status === 'Deceased' && styles.statusDeceasedText
                 ]}>
                   {item.status === 'Deceased' ? '🕯️ RIP' : 
-                   (item.status === 'Sacked' || item.status === 'Dismissed') ? 'DISMISSED' : 
+                   item.status === 'Dismissed' ? 'DISMISSED' : 
                    item.status.toUpperCase()}
                 </Text>
               </View>

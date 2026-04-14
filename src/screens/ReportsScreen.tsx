@@ -97,7 +97,7 @@ export default function ReportsScreen({ navigation }) {
     
     if (status === 'Dismissed') {
       // Search for both terms during transition
-      query = query.or('status.eq.Dismissed,status.eq.Sacked');
+      query = query.eq('status', 'Dismissed');
     } else {
       query = query.eq('status', status);
     }
