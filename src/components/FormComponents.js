@@ -114,7 +114,15 @@ export function DateInput({ label, value, onChangeText, required, hint, error })
         <View style={[styles.dateWrapper, error && styles.inputError]}>
           <input
             type="date"
-            value={parseDate(value) ? parseDate(value).toISOString().split('T')[0] : ''}
+            value={(function() {
+              if (!value) return '';
+              const parts = value.split('/');
+              if (parts.length === 3) {
+                const [d, m, y] = parts;
+                return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+              }
+              return '';
+            })()}
             onChange={(e) => {
               const val = e.target.value;
               if (!val) {
@@ -128,8 +136,8 @@ export function DateInput({ label, value, onChangeText, required, hint, error })
               padding: '0px',
               border: 'none',
               background: 'transparent',
-              fontSize: '16px', // Typography.sizes.md
-              color: value ? '#3D3830' : '#C4BEB4', // Colors.grey700 : Colors.grey300
+              fontSize: '16px',
+              color: value ? '#3D3830' : '#C4BEB4',
               width: '100%',
               outline: 'none',
               cursor: 'pointer',

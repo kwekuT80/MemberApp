@@ -84,16 +84,35 @@ export async function linkMemberRecord(email, userId, phone, firstName, surname)
 }
 
 function toPgDate(value) {
-  if (!value) return null;
+  if (!value || value.trim() === '') return null;
 
   // Already in YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
 
   // Convert DD/MM/YYYY -> YYYY-MM-DD
-  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (match) {
     const [, dd, mm, yyyy] = match;
-    return `${yyyy}-${mm}-${dd}`;
+    return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  }
+
+  return value;
+}
+
+/**
+ * Converts YYYY-MM-DD -> DD/MM/YYYY for the UI
+ */
+export function fromPgDate(value) {
+  if (!value) return '';
+  
+  // If it's already DD/MM/YYYY, return it
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return value;
+
+  // Convert YYYY-MM-DD -> DD/MM/YYYY
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [, yyyy, mm, dd] = match;
+    return `${dd}/${mm}/${yyyy}`;
   }
 
   return value;
@@ -114,6 +133,18 @@ async function getMyMemberId() {
 
 // ── Members ────────────────────────────────────────────────────────────────────
 
+function cleanMemberDates(m) {
+  if (!m) return m;
+  return {
+    ...m,
+    date_of_birth: fromPgDate(m.date_of_birth),
+    date_joined:   fromPgDate(m.date_joined),
+    date_of_death: fromPgDate(m.date_of_death),
+    burial_date:   fromPgDate(m.burial_date),
+    transfer_date: fromPgDate(m.transfer_date),
+  };
+}
+
 export async function getMyMemberRecord() {
   const user = await getCurrentUser();
   if (!user) return null;
@@ -123,7 +154,7 @@ export async function getMyMemberRecord() {
     .eq('user_id', user.id)
     .single();
   if (error && error.code !== 'PGRST116') throw error;
-  return data || null;
+  return cleanMemberDates(data);
 }
 
 export async function getMemberRecord(id) {
@@ -133,7 +164,7 @@ export async function getMemberRecord(id) {
     .eq('id', id)
     .single();
   if (error && error.code !== 'PGRST116') throw error;
-  return data || null;
+  return cleanMemberDates(data);
 }
 
 export async function saveMember(form) {
@@ -146,7 +177,7 @@ export async function saveMember(form) {
     surname:             form.surname             || null,
     first_name:          form.first_name          || null,
     other_names:         form.other_names         || null,
-    date_of_birth:       form.date_of_birth       || null,
+    date_of_birth:       toPgDate(form.date_of_birth),
     birth_town:          form.birth_town          || null,
     birth_region:        form.birth_region        || null,
     nationality:         form.nationality         || null,
@@ -170,16 +201,16 @@ export async function saveMember(form) {
     degree23_place:      form.degree23_place      || null,
     degree4_place:       form.degree4_place       || null,
     degree_noble_place:  form.degree_noble_place  || null,
-    date_joined:         form.date_joined         || null,
+    date_joined:         toPgDate(form.date_joined),
     // [NEW] Lifecycle & Status
     status:              form.status              || 'Active',
     is_deceased:         !!form.is_deceased,
-    date_of_death:       form.date_of_death       || null,
-    burial_date:         form.burial_date         || null,
+    date_of_death:       toPgDate(form.date_of_death),
+    burial_date:         toPgDate(form.burial_date),
     burial_place:        form.burial_place        || null,
     transfer_from:       form.transfer_from       || null,
     transfer_to:         form.transfer_to         || null,
-    transfer_date:       form.transfer_date       || null,
+    transfer_date:       toPgDate(form.transfer_date),
     photo_url:           form.photo_url           || null,
   };
 
@@ -191,7 +222,7 @@ export async function saveMember(form) {
       .select()
       .single();
     if (error) throw error;
-    return data;
+    return cleanMemberDates(data);
   } else {
     const { data, error } = await supabase
       .from('members')
@@ -199,7 +230,7 @@ export async function saveMember(form) {
       .select()
       .single();
     if (error) throw error;
-    return data;
+    return cleanMemberDates(data);
   }
 }
 
@@ -212,7 +243,10 @@ export async function getChildren(memberId) {
     .eq('member_id', memberId)
     .order('id');
   if (error) throw error;
-  return data || [];
+  return (data || []).map(c => ({
+    ...c,
+    birth_date: fromPgDate(c.birth_date)
+  }));
 }
 
 export async function saveChild(item) {
@@ -222,7 +256,7 @@ export async function saveChild(item) {
       .from('children')
       .update({
         child_name:  item.child_name  || null,
-        birth_date:  item.birth_date  || null,
+        birth_date:  toPgDate(item.birth_date),
         birth_place: item.birth_place || null,
       })
       .eq('id', item.id);
@@ -233,7 +267,7 @@ export async function saveChild(item) {
       .insert({
         member_id:   memberId,
         child_name:  item.child_name  || null,
-        birth_date:  item.birth_date  || null,
+        birth_date:  toPgDate(item.birth_date),
         birth_place: item.birth_place || null,
       });
     if (error) throw error;
@@ -254,7 +288,11 @@ export async function getPositions(memberId) {
     .eq('member_id', memberId)
     .order('date_from', { ascending: false });
   if (error) throw error;
-  return data || [];
+  return (data || []).map(p => ({
+    ...p,
+    date_from: fromPgDate(p.date_from),
+    date_to:   fromPgDate(p.date_to)
+  }));
 }
 
 export async function savePosition(item) {
@@ -264,8 +302,8 @@ export async function savePosition(item) {
       .from('positions')
       .update({
         position_title: item.position_title || null,
-        date_from:      item.date_from      || null,
-        date_to:        item.date_to        || null,
+        date_from:      toPgDate(item.date_from),
+        date_to:        toPgDate(item.date_to),
       })
       .eq('id', item.id);
     if (error) throw error;
@@ -275,8 +313,8 @@ export async function savePosition(item) {
       .insert({
         member_id:      memberId,
         position_title: item.position_title || null,
-        date_from:      item.date_from      || null,
-        date_to:        item.date_to        || null,
+        date_from:      toPgDate(item.date_from),
+        date_to:        toPgDate(item.date_to),
       });
     if (error) throw error;
   }
@@ -340,15 +378,21 @@ export async function getMilitary(memberId) {
     .eq('member_id', memberId)
     .single();
   if (error && error.code !== 'PGRST116') throw error;
-  return data || { member_id: memberId, is_military: false };
+  if (!data) return { member_id: memberId, is_military: false };
+  return {
+    ...data,
+    uniform_blessed_date:   fromPgDate(data.uniform_blessed_date),
+    first_uniform_use_date: fromPgDate(data.first_uniform_use_date),
+    commission:             fromPgDate(data.commission),
+  };
 }
 
 export async function saveMilitary(item) {
   const memberId = item.member_id || await getMyMemberId();
   const payload = {
     is_military:            item.is_military            || false,
-    uniform_blessed_date:   item.uniform_blessed_date   || null,
-    first_uniform_use_date: item.first_uniform_use_date || null,
+    uniform_blessed_date:   toPgDate(item.uniform_blessed_date),
+    first_uniform_use_date: toPgDate(item.first_uniform_use_date),
     current_rank:           item.current_rank           || null,
     commission:             item.commission             || null,
   };
@@ -376,7 +420,10 @@ export async function getDegrees(memberId) {
     .eq('member_id', memberId)
     .order('degree_date');
   if (error) throw error;
-  return data || [];
+  return (data || []).map(d => ({
+    ...d,
+    degree_date: fromPgDate(d.degree_date)
+  }));
 }
 
 export async function saveDegree(item) {
@@ -386,7 +433,7 @@ export async function saveDegree(item) {
       .from('degrees')
       .update({
         degree_type:  item.degree_type  || null,
-        degree_date:  item.degree_date  || null,
+        degree_date:  toPgDate(item.degree_date),
         degree_place: item.degree_place || null,
       })
       .eq('id', item.id);
@@ -397,7 +444,7 @@ export async function saveDegree(item) {
       .insert({
         member_id:    memberId,
         degree_type:  item.degree_type  || null,
-        degree_date:  item.degree_date  || null,
+        degree_date:  toPgDate(item.degree_date),
         degree_place: item.degree_place || null,
       });
     if (error) throw error;
@@ -418,14 +465,18 @@ export async function getSpouse(memberId) {
     .eq('member_id', memberId)
     .single();
   if (error && error.code !== 'PGRST116') throw error;
-  return data || { member_id: memberId };
+  if (!data) return { member_id: memberId };
+  return {
+    ...data,
+    spouse_dob: fromPgDate(data.spouse_dob)
+  };
 }
 
 export async function saveSpouse(item) {
   const memberId = item.member_id || await getMyMemberId();
   const payload = {
     spouse_name:         item.spouse_name         || null,
-    spouse_dob:          item.spouse_dob          || null,
+    spouse_dob:          toPgDate(item.spouse_dob),
     spouse_nationality:  item.spouse_nationality  || null,
     spouse_denomination: item.spouse_denomination || null,
     spouse_is_sister:    item.spouse_is_sister    || false,
@@ -478,7 +529,10 @@ export async function getUniformedRankRecords(memberId) {
     .order('commission_date', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data || []).map(r => ({
+    ...r,
+    commission_date: fromPgDate(r.commission_date)
+  }));
 }
 
 async function syncCurrentUniformedRank(memberId) {
@@ -610,10 +664,12 @@ export async function getBirthdayReminders() {
 
   return data.filter(m => {
     const dob = m.date_of_birth;
+    // Handle DD/MM/YYYY or YYYY-MM-DD (ISO)
     if (dob.includes('-')) {
-      return dob.endsWith(matchString);
+      const parts = dob.split('-');
+      // ISO is YYYY-MM-DD, so M is index 1, D is index 2
+      return parts[1] === todayMonth && parts[2] === todayDay;
     }
-    // Handle DD/MM/YYYY
     const parts = dob.split('/');
     return parts[0] === todayDay && parts[1] === todayMonth;
   });
