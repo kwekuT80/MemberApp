@@ -132,6 +132,7 @@ export function DateInput({ label, value, onChangeText, required, hint, error })
               const [y, m, d] = val.split('-');
               onChangeText(`${d}/${m}/${y}`);
             }}
+            placeholder="DD/MM/YYYY"
             style={{
               padding: '0px',
               border: 'none',
@@ -144,7 +145,7 @@ export function DateInput({ label, value, onChangeText, required, hint, error })
               fontFamily: 'inherit',
             }}
           />
-          <Text style={styles._webDateIcon}>📅</Text>
+          <Text style={styles._webDateIcon}>🗓️</Text>
         </View>
       ) : (
         /* MOBILE VERSION: Tappable field that opens the picker */

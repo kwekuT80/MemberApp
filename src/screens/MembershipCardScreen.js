@@ -82,7 +82,9 @@ export default function MembershipCardScreen({ route, navigation }) {
               <Text style={s.orgName}>K.S.J.I REGISTRAR SUITE</Text>
               <Text style={s.orgSub}>Official Membership Record</Text>
             </View>
-            <Image source={require('../../assets/logo.png')} style={s.logoImg} resizeMode="contain" />
+            <View style={{ backgroundColor: '#FFF', borderRadius: 30, padding: 2, overflow: 'hidden' }}>
+              <Image source={require('../../assets/logo.png')} style={s.logoImg} resizeMode="contain" />
+            </View>
           </View>
 
           <View style={s.cardBody}>

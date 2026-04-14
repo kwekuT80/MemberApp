@@ -20,15 +20,18 @@ export async function uploadPhoto(uri) {
     const blob = await response.blob();
 
     // 2. Upload to Storage
-    // NOTE: Make sure a bucket named 'member-portraits' exists in Supabase.
     const { data, error } = await supabase.storage
       .from('member-portraits')
       .upload(fileName, blob, {
         contentType: 'image/jpeg',
+        cacheControl: '3600',
         upsert: true
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase Storage Error:', error);
+      throw new Error(`Storage Error: ${error.message}`);
+    }
 
     // 3. Return the Public URL
     const { data: { publicUrl } } = supabase.storage
@@ -150,6 +153,7 @@ export function fromPgDate(value) {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (match) {
     const [, yyyy, mm, dd] = match;
+    // CRITICAL: Ensure we return DD/MM/YYYY
     return `${dd}/${mm}/${yyyy}`;
   }
 
