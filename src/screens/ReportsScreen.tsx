@@ -208,8 +208,8 @@ export default function ReportsScreen({ navigation }) {
 
     try {
       if (Platform.OS === 'web') {
-        const { uri } = await Print.printToFileAsync({ html });
-        window.open(uri, '_blank');
+        // Direct print engine is more reliable for "True PDF" on web
+        await Print.printAsync({ html });
       } else {
         const { uri } = await Print.printToFileAsync({ html });
         await Sharing.shareAsync(uri);

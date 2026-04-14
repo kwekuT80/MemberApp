@@ -111,16 +111,16 @@ export default function MembershipCardScreen({ route, navigation }) {
           </View>
 
             <View style={s.cardFooter}>
-              <View style={s.qrStub}>
-                <View style={s.qrBox}>
-                  <Image 
-                    source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=KSJI:MEMBER:${member.id}` }} 
-                    style={{ width: '100%', height: '100%' }} 
-                    resizeMode="contain"
-                  />
-                </View>
-                <Text style={s.qrText}>SCAN TO VERIFY</Text>
+            <View style={s.qrStub}>
+              <View style={[s.qrBox, { marginBottom: 10 }]}>
+                <Image 
+                  source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=KSJI:MEMBER:${member.id}` }} 
+                  style={{ width: '100%', height: '100%' }} 
+                  resizeMode="contain"
+                />
               </View>
+              <Text style={s.qrText}>SCAN TO VERIFY</Text>
+            </View>
               
               <View style={s.meta}>
                 <Text style={s.metaLabel}>ID NUMBER</Text>
@@ -238,11 +238,11 @@ const s = StyleSheet.create({
   },
   qrStub: { width: 100, alignItems: 'center' },
   qrBox: { 
-    width: 80, height: 80, backgroundColor: Colors.white, borderRadius: 8, padding: 8,
+    width: 85, height: 85, backgroundColor: Colors.white, borderRadius: 8, padding: 8,
     justifyContent: 'center', alignItems: 'center',
     ...Shadows.subtle,
   },
-  qrText: { color: Colors.grey400, fontSize: 8, fontWeight: '800', marginTop: 8 },
+  qrText: { color: Colors.grey400, fontSize: 8, fontWeight: '800', marginTop: 10 },
 
   meta: { flex: 1, marginLeft: Spacing.lg, justifyContent: 'center' },
   metaLabel: { color: Colors.grey400, fontSize: 9, fontWeight: '800' },
