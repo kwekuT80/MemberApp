@@ -170,6 +170,9 @@ export default function ReportsScreen({ navigation }) {
           </style>
         </head>
         <body>
+          <div style="text-align:center; padding-bottom: 20px;">
+            <img src="/assets/logo.png" style="width: 80px; height: 80px;" alt="KSJI Logo" />
+          </div>
           <div class="header-banner">
             <h1>OFFICIALLY CERTIFIED REGISTRAR REPORT</h1>
             <div class="meta">COMMANDERY RECORDS | TYPE: ${reportType?.toUpperCase()} | GENERATED: ${new Date().toLocaleDateString('en-GB')}</div>

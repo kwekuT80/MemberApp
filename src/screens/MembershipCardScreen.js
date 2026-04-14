@@ -42,6 +42,25 @@ export default function MembershipCardScreen({ route, navigation }) {
     </View>
   );
 
+  if (!member) return (
+    <SafeAreaView style={s.safe}>
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+          <Text style={s.backText}>‹ Back</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={[s.container, { padding: 40 }]}>
+        <Text style={{ color: Colors.gold, fontSize: 40 }}>⚠️</Text>
+        <Text style={{ color: Colors.white, fontSize: 18, fontWeight: '700', marginTop: 20, textAlign: 'center' }}>
+          No Member Record Found
+        </Text>
+        <Text style={{ color: Colors.grey400, textAlign: 'center', marginTop: 10 }}>
+          Please ensure you have saved your profile before viewing the ID card.
+        </Text>
+      </View>
+    </SafeAreaView>
+  );
+
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
@@ -63,7 +82,7 @@ export default function MembershipCardScreen({ route, navigation }) {
               <Text style={s.orgName}>K.S.J.I REGISTRAR SUITE</Text>
               <Text style={s.orgSub}>Official Membership Record</Text>
             </View>
-            <Text style={s.logoIcon}>🛡️</Text>
+            <Image source={require('../../assets/logo.png')} style={s.logoImg} resizeMode="contain" />
           </View>
 
           <View style={s.cardBody}>
@@ -165,7 +184,7 @@ const s = StyleSheet.create({
   },
   orgName: { color: Colors.gold, fontSize: 16, fontWeight: '900', letterSpacing: 1.5 },
   orgSub: { color: Colors.grey300, fontSize: 10, fontWeight: '700', marginTop: 2 },
-  logoIcon: { fontSize: 32 },
+  logoImg: { width: 60, height: 60 },
 
   cardBody: { 
     alignItems: 'center', 
