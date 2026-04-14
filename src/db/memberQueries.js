@@ -251,27 +251,33 @@ export async function getChildren(memberId) {
 
 export async function saveChild(item) {
   const memberId = item.member_id || await getMyMemberId();
+  let result;
   if (item.id) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('children')
       .update({
         child_name:  item.child_name  || null,
         birth_date:  toPgDate(item.birth_date),
         birth_place: item.birth_place || null,
       })
-      .eq('id', item.id);
+      .eq('id', item.id)
+      .select().single();
     if (error) throw error;
+    result = data;
   } else {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('children')
       .insert({
         member_id:   memberId,
         child_name:  item.child_name  || null,
         birth_date:  toPgDate(item.birth_date),
         birth_place: item.birth_place || null,
-      });
+      })
+      .select().single();
     if (error) throw error;
+    result = data;
   }
+  return { ...result, birth_date: fromPgDate(result.birth_date) };
 }
 
 export async function deleteChild(id) {
@@ -297,27 +303,33 @@ export async function getPositions(memberId) {
 
 export async function savePosition(item) {
   const memberId = item.member_id || await getMyMemberId();
+  let result;
   if (item.id) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('positions')
       .update({
         position_title: item.position_title || null,
         date_from:      toPgDate(item.date_from),
         date_to:        toPgDate(item.date_to),
       })
-      .eq('id', item.id);
+      .eq('id', item.id)
+      .select().single();
     if (error) throw error;
+    result = data;
   } else {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('positions')
       .insert({
         member_id:      memberId,
         position_title: item.position_title || null,
         date_from:      toPgDate(item.date_from),
         date_to:        toPgDate(item.date_to),
-      });
+      })
+      .select().single();
     if (error) throw error;
+    result = data;
   }
+  return { ...result, date_from: fromPgDate(result.date_from), date_to: fromPgDate(result.date_to) };
 }
 
 export async function deletePosition(id) {
@@ -428,27 +440,33 @@ export async function getDegrees(memberId) {
 
 export async function saveDegree(item) {
   const memberId = item.member_id || await getMyMemberId();
+  let result;
   if (item.id) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('degrees')
       .update({
         degree_type:  item.degree_type  || null,
         degree_date:  toPgDate(item.degree_date),
         degree_place: item.degree_place || null,
       })
-      .eq('id', item.id);
+      .eq('id', item.id)
+      .select().single();
     if (error) throw error;
+    result = data;
   } else {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('degrees')
       .insert({
         member_id:    memberId,
         degree_type:  item.degree_type  || null,
         degree_date:  toPgDate(item.degree_date),
         degree_place: item.degree_place || null,
-      });
+      })
+      .select().single();
     if (error) throw error;
+    result = data;
   }
+  return { ...result, degree_date: fromPgDate(result.degree_date) };
 }
 
 export async function deleteDegree(id) {
