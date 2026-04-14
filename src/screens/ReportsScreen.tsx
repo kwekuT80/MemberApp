@@ -88,11 +88,19 @@ export default function ReportsScreen({ navigation }) {
   async function generateStatusReport(status) {
     setLoading(true);
     setReportType(status.toLowerCase());
-    const { data, error } = await supabase
+    
+    let query = supabase
       .from('members')
-      .select('surname, first_name, other_names, title, occupation, phone, residential_address, status')
-      .eq('status', status)
-      .order('surname', { ascending: true });
+      .select('surname, first_name, other_names, title, occupation, phone, residential_address, status');
+    
+    if (status === 'Dismissed') {
+      // Search for both terms during transition
+      query = query.or('status.eq.Dismissed,status.eq.Sacked');
+    } else {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query.order('surname', { ascending: true });
 
     if (error) {
       Alert.alert('Error', `Could not generate ${status} report.`);
@@ -239,7 +247,11 @@ export default function ReportsScreen({ navigation }) {
           </ScrollView>
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>Select a report type above to generate a preview.</Text>
+            <Text style={styles.emptyText}>
+              {reportType 
+                ? `No records found for ${reportType.charAt(0).toUpperCase() + reportType.slice(1)} members.`
+                : "Select a report type above to generate a preview."}
+            </Text>
           </View>
         )}
       </View>

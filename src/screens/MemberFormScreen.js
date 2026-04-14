@@ -61,7 +61,7 @@ const TABS = [
 const TITLES     = ['Bro.', 'Sir', 'Rev.', 'Dr.', 'Prof.', 'N/B'];
 const MARITAL    = ['Married', 'Single', 'Widowed', 'Religious', 'Separated'];
 const EMP_STATUS = ['Employed', 'Self-employed', 'Unemployed', 'Student', 'Other'];
-const STATUSES   = ['Active', 'Suspended', 'Sacked', 'Transfer-In', 'Transfer-Out', 'Deceased'];
+const STATUSES   = ['Active', 'Suspended', 'Dismissed', 'Transfer-In', 'Transfer-Out', 'Deceased'];
 
 export default function MemberFormScreen({ route, navigation }) {
   const [activeTab, setActiveTab] = useState(0);
@@ -196,13 +196,20 @@ export default function MemberFormScreen({ route, navigation }) {
     }
   }
 
-  async function handleSignOut() {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: async () => {
-        await supabase.auth.signOut();
-      }},
-    ]);
+    const logout = async () => {
+      await supabase.auth.signOut();
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to sign out?')) {
+        logout();
+      }
+    } else {
+      Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', style: 'destructive', onPress: logout },
+      ]);
+    }
   }
 
   if (loading) {
