@@ -209,11 +209,9 @@ export default function MemberFormScreen({ route, navigation }) {
     <SafeAreaView style={s.screenWrapper} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.navy} />
       <View style={s.header}>
-        {navigation.canGoBack() && (
-          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
-            <Text style={s.backIcon}>‹</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
+          <Text style={s.backIcon}>‹</Text>
+        </TouchableOpacity>
         <View style={s.headerLeft}>
           <Text style={s.headerEyebrow}>
             {route.params?.memberId !== undefined ? 'Member Profile' : 'My Profile'}

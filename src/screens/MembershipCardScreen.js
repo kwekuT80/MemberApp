@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, Image, TouchableOpacity, 
-  ActivityIndicator, Share, Alert, Platform 
+  ActivityIndicator, Share, Alert, Platform, ScrollView 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getMemberRecord } from '../db/memberQueries';
@@ -45,16 +45,17 @@ export default function MembershipCardScreen({ route, navigation }) {
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
           <Text style={s.backText}>‹ Back</Text>
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Digital ID</Text>
-        <TouchableOpacity onPress={handleShare}>
+        <Text style={s.headerTitle}>Digital Membership ID</Text>
+        <TouchableOpacity onPress={handleShare} style={s.shareBtn}>
           <Text style={s.shareText}>Share</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={s.container}>
+      <ScrollView contentContainerStyle={s.scrollContent}>
+        <View style={s.container}>
         {/* THE CARD */}
         <View style={s.card}>
           <View style={s.cardHeader}>
@@ -113,7 +114,7 @@ export default function MembershipCardScreen({ route, navigation }) {
         </View>
 
         <Text style={s.hint}>This card is an official digital record for use within the Commandery.</Text>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -131,6 +132,7 @@ const s = StyleSheet.create({
   shareText: { color: Colors.gold, fontSize: 14, fontWeight: '600' },
 
   container: { flex: 1, padding: Spacing.xl, justifyContent: 'center', alignItems: 'center' },
+  scrollContent: { flexGrow: 1, paddingBottom: 60 },
   
   card: {
     width: '100%',
