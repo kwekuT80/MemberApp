@@ -39,7 +39,7 @@ export default function RegistrarDashboard({ navigation }) {
     // Fetch members with children count and top positions
     const { data, error } = await supabase
       .from('members')
-      .select('*, children(id), positions(position_title, date_from)')
+      .select('*, children(id), positions(position_title, date_from, date_to)')
       .order('surname', { ascending: true });
       
     if (error) {
@@ -82,10 +82,22 @@ export default function RegistrarDashboard({ navigation }) {
 
     const phone = String(item.phone || item.mobile || '').trim();
     
-    // Sort positions by date_from descending to get the "current/latest" one
-    const latestPosition = [...(item.positions || [])]
-      .sort((a, b) => String(b.date_from || '').localeCompare(String(a.date_from || '')))
-      .map(p => p.position_title)[0];
+    // Determine the most relevant leadership tag
+    const posList = [...(item.positions || [])].sort((a, b) => 
+      String(b.date_from || '').localeCompare(String(a.date_from || ''))
+    );
+    
+    // Prioritize a position with no 'date_to' (current)
+    const currentPos = posList.find(p => !p.date_to);
+    const latestPos  = posList[0];
+    
+    let leadershipTag = null;
+    if (currentPos) {
+      const year = currentPos.date_from ? `'${currentPos.date_from.split('-')[0].slice(-2)}` : '';
+      leadershipTag = `${currentPos.position_title} ${year}`.trim();
+    } else if (latestPos) {
+      leadershipTag = `Past ${latestPos.position_title}`;
+    }
 
     const childCount = (item.children || []).length;
 
@@ -110,7 +122,7 @@ export default function RegistrarDashboard({ navigation }) {
               <View style={[
                 styles.statusBadge, 
                 item.status === 'Deceased' && styles.statusDeceased,
-                item.status === 'Sacked' && styles.statusSacked,
+                (item.status === 'Sacked' || item.status === 'Dismissed') && styles.statusSacked,
                 item.status === 'Suspended' && styles.statusSuspended,
                 item.status === 'Transfer-Out' && styles.statusOut,
               ]}>
@@ -118,13 +130,15 @@ export default function RegistrarDashboard({ navigation }) {
                   styles.statusBadgeText,
                   item.status === 'Deceased' && styles.statusDeceasedText
                 ]}>
-                  {item.status === 'Deceased' ? '🕯️ RIP' : item.status}
+                  {item.status === 'Deceased' ? '🕯️ RIP' : 
+                   (item.status === 'Sacked' || item.status === 'Dismissed') ? 'DISMISSED' : 
+                   item.status.toUpperCase()}
                 </Text>
               </View>
             )}
-            {latestPosition ? (
+            {leadershipTag ? (
               <View style={styles.positionBadge}>
-                <Text style={styles.positionBadgeText}>{latestPosition}</Text>
+                <Text style={styles.positionBadgeText}>{leadershipTag}</Text>
               </View>
             ) : null}
             <Text style={[styles.contactLabel, !phone && styles.contactLabelMissing]}>
