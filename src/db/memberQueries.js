@@ -213,8 +213,23 @@ export async function saveMember(form) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Not logged in');
 
+  // Determine user_id safely
+  let finalUserId = null;
+  if (form.id) {
+    // Editing an existing member: keep their user_id exactly as it was
+    finalUserId = form.user_id === '' ? null : (form.user_id || null);
+  } else {
+    // New member: Is it for me, or a new member created by an admin?
+    // We use a flag 'is_my_profile' which we'll add to MemberFormScreen.
+    if (form.is_my_profile) {
+      finalUserId = user.id;
+    } else {
+      finalUserId = null;
+    }
+  }
+
   const payload = {
-    user_id:             form.user_id || user.id,
+    user_id:             finalUserId,
     title:               form.title               || null,
     surname:             form.surname             || null,
     first_name:          form.first_name          || null,
@@ -244,7 +259,6 @@ export async function saveMember(form) {
     degree4_place:       form.degree4_place       || null,
     degree_noble_place:  form.degree_noble_place  || null,
     date_joined:         toPgDate(form.date_joined),
-    // [NEW] Lifecycle & Status
     status:              form.status              || 'Active',
     is_deceased:         !!form.is_deceased,
     date_of_death:       toPgDate(form.date_of_death),

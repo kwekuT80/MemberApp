@@ -108,8 +108,8 @@ export default function MemberFormScreen({ route, navigation }) {
           );
           setForm(sanitized);
           await loadMilitarySummary(record.id);
-        } else if (targetId === null) {
-          setForm(INITIAL_FORM_STATE);
+        } else {
+          setForm({ ...INITIAL_FORM_STATE, is_my_profile: targetId === undefined });
           setMilitary(EMPTY_MILITARY);
         }
         setRegions(rgns);
@@ -127,7 +127,7 @@ export default function MemberFormScreen({ route, navigation }) {
         loadMilitarySummary(form.id);
       }
       if (route.params?.memberId === null) {
-        setForm(INITIAL_FORM_STATE);
+        setForm({ ...INITIAL_FORM_STATE, is_my_profile: false });
         setMilitary(EMPTY_MILITARY);
         setDirty(false);
         navigation.setParams({ memberId: undefined });
@@ -316,6 +316,11 @@ function BioTab({ form, set, regions, military, setMilitaryField }) {
           <TouchableOpacity 
             style={s.photoBtn} 
             onPress={async () => {
+              const perm = await ImagePicker.requestCameraPermissionsAsync();
+              if (!perm.granted) {
+                Alert.alert('Permission Denied', 'Camera access is required to take a photo.');
+                return;
+              }
               const res = await ImagePicker.launchCameraAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
@@ -337,6 +342,11 @@ function BioTab({ form, set, regions, military, setMilitaryField }) {
           <TouchableOpacity 
             style={[s.photoBtn, { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.gold }]}
             onPress={async () => {
+              const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+              if (!perm.granted) {
+                Alert.alert('Permission Denied', 'Media library access is required to upload a photo.');
+                return;
+              }
               const res = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,

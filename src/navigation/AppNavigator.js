@@ -41,7 +41,10 @@ export default function AppNavigator() {
         setLoading(false);
         return;
       }
-      setLoading(true);
+      // Only show full loading screen if we don't already have a valid session
+      if (session === undefined) {
+        setLoading(true);
+      }
 
       try {
         // Use .single() so Supabase returns an object, not an array

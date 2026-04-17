@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Share,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../db/supabase';
@@ -155,6 +156,14 @@ export default function ReportsScreen({ navigation }) {
   };
 
   const handleExportPDF = async () => {
+    // Resolve the logo so it renders correctly on both Web and Native PDFs
+    let logoUri = '';
+    try {
+      logoUri = Image.resolveAssetSource(require('../../assets/logo.png')).uri;
+    } catch (e) {
+      console.warn("Logo could not be resolved", e);
+    }
+
     let html = `
       <html>
         <head>
@@ -167,11 +176,21 @@ export default function ReportsScreen({ navigation }) {
             th { border-bottom: 2px solid #0A1628; color: #0A1628; padding: 12px; text-align: left; font-size: 13px; font-weight: 800; }
             td { padding: 12px; border-bottom: 1px solid #EEE; font-size: 12px; color: #333; }
             .footer { margin-top: 50px; font-size: 10px; color: #AAA; text-align: center; border-top: 1px solid #EEE; padding-top: 20px; }
+            
+            @media print {
+              @page { margin: 20mm; }
+              body { padding: 0; margin: 0; }
+              table { page-break-inside: auto; width: 100%; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+              thead { display: table-header-group; }
+              tfoot { display: table-footer-group; }
+              .header-banner { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            }
           </style>
         </head>
         <body>
           <div style="text-align:center; padding-bottom: 20px;">
-            <img src="/assets/logo.png" style="width: 80px; height: 80px;" alt="KSJI Logo" />
+            <img src="${logoUri}" style="width: 80px; height: 80px;" alt="KSJI Logo" />
           </div>
           <div class="header-banner">
             <h1>OFFICIALLY CERTIFIED REGISTRAR REPORT</h1>

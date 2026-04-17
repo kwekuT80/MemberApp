@@ -114,7 +114,7 @@ export default function MembershipCardScreen({ route, navigation }) {
             <View style={s.qrStub}>
               <View style={[s.qrBox, { marginBottom: 10 }]}>
                 <Image 
-                  source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=KSJI:MEMBER:${member.id}` }} 
+                  source={{ uri: `https://quickchart.io/qr?text=${encodeURIComponent('KSJI:MEMBER:' + member.id)}&size=150&margin=1` }} 
                   style={{ width: '100%', height: '100%' }} 
                   resizeMode="contain"
                 />
