@@ -34,6 +34,36 @@ export default function ReportsPage() {
     window.print();
   };
 
+  const downloadCSV = () => {
+    if (!data.length) return;
+    
+    // Create CSV header
+    const headers = reportType === 'final' 
+      ? ['Title', 'First Name', 'Surname', 'Date of Death', 'Burial Date', 'Burial Place']
+      : ['Title', 'First Name', 'Surname', 'Occupation', 'Phone', 'Mobile', 'Email'];
+    
+    // Create CSV rows
+    const rows = data.map(m => reportType === 'final' 
+      ? [m.title, m.first_name, m.surname, m.date_of_death, m.burial_date, m.burial_place]
+      : [m.title, m.first_name, m.surname, m.occupation, m.phone, m.mobile, m.email]
+    );
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${val || ''}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${reportType}_report_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <RegistrarShell title="Reporting Hub" subtitle="Generate and export official commandery records">
       <div className="card">
@@ -43,7 +73,10 @@ export default function ReportsPage() {
           <button className={`btn-outline ${reportType === 'suspended' ? 'active' : ''}`} onClick={() => generateReport('suspended')}>Suspended List</button>
           <button className={`btn-outline ${reportType === 'dismissed' ? 'active' : ''}`} onClick={() => generateReport('dismissed')}>Dismissed List</button>
           {data.length > 0 && (
-            <button className="btn-primary" onClick={handlePrint} style={{ marginLeft: 'auto' }}>🖨️ Print to PDF</button>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 12 }}>
+              <button className="btn-outline" onClick={downloadCSV}>📥 Download CSV</button>
+              <button className="btn-primary" onClick={handlePrint}>🖨️ Print to PDF</button>
+            </div>
           )}
         </div>
 
@@ -51,9 +84,10 @@ export default function ReportsPage() {
           <div style={{ padding: 40, textAlign: 'center' }}>Loading report data...</div>
         ) : data.length > 0 ? (
           <div id="report-content">
-            <div className="report-header" style={{ textAlign: 'center', marginBottom: 30 }}>
-              <h1 style={{ color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: 2 }}>Official Registrar Report</h1>
-              <p style={{ color: 'var(--gold)', fontWeight: 700 }}>{reportType?.toUpperCase()} | Generated {new Date().toLocaleDateString()}</p>
+            <div className="report-header" style={{ textAlign: 'center', marginBottom: 40, borderBottom: '3px solid var(--gold)', paddingBottom: 20 }}>
+              <img src="/logo.png" alt="KSJI Logo" style={{ width: 80, height: 80, marginBottom: 15, objectFit: 'contain' }} />
+              <h1 style={{ color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: 2, margin: 0 }}>Official Registrar Report</h1>
+              <p style={{ color: 'var(--gold)', fontWeight: 700, margin: '5px 0 0 0' }}>{reportType?.toUpperCase()} | Generated {new Date().toLocaleDateString()}</p>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>

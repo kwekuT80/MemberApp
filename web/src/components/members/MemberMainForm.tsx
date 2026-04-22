@@ -160,12 +160,20 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
 
         {activeTab === 1 && (
           <div className="grid-cols-2">
+            <div style={{ gridColumn: '1 / -1', marginBottom: 20, padding: 16, background: 'rgba(212, 175, 55, 0.05)', borderRadius: 12, border: '1px dashed var(--gold)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+               <div>
+                 <div style={{ fontWeight: 800, color: 'var(--navy)' }}>Family & Dependents</div>
+                 <div style={{ fontSize: 12, opacity: 0.7 }}>Manage spouse details and children records.</div>
+               </div>
+               {form.id ? (
+                 <div style={{ display: 'flex', gap: 8 }}>
+                   <Link href={`/registrar/members/${form.id}/family`} className="tab tab-active">Manage Family →</Link>
+                 </div>
+               ) : <span style={{ fontSize: 12, fontStyle: 'italic' }}>Save member first to manage family.</span>}
+            </div>
             <InputField label="Father's Name" value={form.fathers_name} onChange={(v: string) => updateField('fathers_name', v)} />
             <InputField label="Mother's Name" value={form.mothers_name} onChange={(v: string) => updateField('mothers_name', v)} />
             <SelectField label="Marital Status" value={form.marital_status} options={MARITAL} onChange={(v: string) => updateField('marital_status', v)} />
-            <div className="input-group" style={{ gridColumn: '1 / -1' }}>
-              <p className="label" style={{ color: '#856404' }}>⚠️ Family members should be added below the main profile save.</p>
-            </div>
           </div>
         )}
 
@@ -184,6 +192,15 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
 
         {activeTab === 3 && (
           <div className="grid-cols-2">
+            <div style={{ gridColumn: '1 / -1', marginBottom: 20, padding: 16, background: 'rgba(212, 175, 55, 0.05)', borderRadius: 12, border: '1px dashed var(--gold)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+               <div>
+                 <div style={{ fontWeight: 800, color: 'var(--navy)' }}>Detailed Degree Records</div>
+                 <div style={{ fontSize: 12, opacity: 0.7 }}>Manage exemplification history and certificate details.</div>
+               </div>
+               {form.id ? (
+                 <Link href={`/registrar/members/${form.id}/education`} className="tab tab-active">Manage Degrees →</Link>
+               ) : <span style={{ fontSize: 12, fontStyle: 'italic' }}>Save member first to manage degrees.</span>}
+            </div>
             <InputField label="1st Degree Exemplification" value={form.degree1_place} onChange={(v: string) => updateField('degree1_place', v)} />
             <InputField label="2nd & 3rd Degree" value={form.degree23_place} onChange={(v: string) => updateField('degree23_place', v)} />
             <InputField label="4th Degree" value={form.degree4_place} onChange={(v: string) => updateField('degree4_place', v)} />
@@ -193,6 +210,15 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
 
         {activeTab === 4 && (
           <div className="grid-cols-2">
+            <div style={{ gridColumn: '1 / -1', marginBottom: 20, padding: 16, background: 'rgba(212, 175, 55, 0.05)', borderRadius: 12, border: '1px dashed var(--gold)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+               <div>
+                 <div style={{ fontWeight: 800, color: 'var(--navy)' }}>Uniformed Rank Records</div>
+                 <div style={{ fontSize: 12, opacity: 0.7 }}>Manage commissions, promotions, and service history.</div>
+               </div>
+               {form.id ? (
+                 <Link href={`/registrar/members/${form.id}/military`} className="tab tab-active">Manage Military →</Link>
+               ) : <span style={{ fontSize: 12, fontStyle: 'italic' }}>Save member first to manage military.</span>}
+            </div>
             <InputField label="Uniformed Position" value={form.uniform_positions} onChange={(v: string) => updateField('uniform_positions', v)} />
             <InputField label="Date Joined KSJI" type="date" value={form.date_joined} onChange={(v: string) => updateField('date_joined', v)} />
           </div>
