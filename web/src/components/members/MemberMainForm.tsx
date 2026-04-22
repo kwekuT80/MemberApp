@@ -16,7 +16,7 @@ interface Props {
 
 const TITLES = ['Bro.', 'Sir', 'Rev.', 'Dr.', 'Prof.', 'N/B'];
 const MARITAL = ['Married', 'Single', 'Widowed', 'Religious', 'Separated'];
-const EMP_STATUS = ['Employed', 'Self-employed', 'Unemployed', 'Student', 'Other'];
+const EMP_STATUS = ['Employed', 'Self-employed', 'Unemployed', 'Student', 'Retired'];
 const STATUSES = ['Active', 'Suspended', 'Dismissed', 'Transfer-In', 'Transfer-Out', 'Deceased'];
 
 const TABS = ['Bio', 'Family', 'Employment', 'Degrees', 'Military', 'Lifecycle'];

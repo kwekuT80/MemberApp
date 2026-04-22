@@ -67,15 +67,64 @@ export default function ReportsPage() {
   return (
     <RegistrarShell title="Reporting Hub" subtitle="Generate and export official commandery records">
       <div className="card">
-        <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }} className="no-print">
-          <button className={`btn-outline ${reportType === 'master' ? 'active' : ''}`} onClick={() => generateReport('master')}>Master Roll</button>
-          <button className={`btn-outline ${reportType === 'final' ? 'active' : ''}`} onClick={() => generateReport('final')}>Final Roll (Deceased)</button>
-          <button className={`btn-outline ${reportType === 'suspended' ? 'active' : ''}`} onClick={() => generateReport('suspended')}>Suspended List</button>
-          <button className={`btn-outline ${reportType === 'dismissed' ? 'active' : ''}`} onClick={() => generateReport('dismissed')}>Dismissed List</button>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }} className="no-print">
+          {[
+            { id: 'master', label: 'Master Roll' },
+            { id: 'final', label: 'Final Roll (Deceased)' },
+            { id: 'suspended', label: 'Suspended List' },
+            { id: 'dismissed', label: 'Dismissed List' },
+          ].map((type) => (
+            <button 
+              key={type.id}
+              onClick={() => generateReport(type.id)}
+              style={{
+                background: reportType === type.id ? 'var(--navy)' : 'transparent',
+                color: reportType === type.id ? 'var(--gold)' : 'var(--navy)',
+                border: reportType === type.id ? '2px solid var(--navy)' : '2px solid #eee',
+                padding: '10px 20px',
+                borderRadius: 100,
+                fontSize: 13,
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {type.label}
+            </button>
+          ))}
           {data.length > 0 && (
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 12 }}>
-              <button className="btn-outline" onClick={downloadCSV}>📥 Download CSV</button>
-              <button className="btn-primary" onClick={handlePrint}>🖨️ Print to PDF</button>
+              <button 
+                onClick={downloadCSV}
+                style={{
+                  background: '#f8fafc',
+                  color: 'var(--navy)',
+                  border: '2px solid #eee',
+                  padding: '10px 24px',
+                  borderRadius: 100,
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                📥 Download CSV
+              </button>
+              <button 
+                onClick={handlePrint}
+                style={{
+                  background: 'var(--gold)',
+                  color: 'var(--navy)',
+                  border: 'none',
+                  padding: '10px 24px',
+                  borderRadius: 100,
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(212, 175, 55, 0.3)'
+                }}
+              >
+                🖨️ Print Official PDF
+              </button>
             </div>
           )}
         </div>
