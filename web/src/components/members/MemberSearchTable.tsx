@@ -25,7 +25,10 @@ export default function MemberSearchTable({ members, basePath='/registrar/member
               const posList = [...(member.positions || [])].sort((a: any, b: any) => 
                 String(b.date_from || '').localeCompare(String(a.date_from || ''))
               );
-              const currentPos = posList.find((p: any) => !p.date_to || p.date_to === '');
+              
+              // A member can only have a 'Current' position if they are 'Active'
+              const isActive = member.status === 'Active' || !member.status;
+              const currentPos = isActive ? posList.find((p: any) => !p.date_to || p.date_to === '') : null;
               const latestPos = posList[0];
 
               let leadershipTag = '—';
@@ -33,8 +36,11 @@ export default function MemberSearchTable({ members, basePath='/registrar/member
                 leadershipTag = `Current: ${currentPos.position_title}`;
               } else if (latestPos) {
                 const startYear = latestPos.date_from?.split('-')[0] || latestPos.date_from?.split('/')[2] || '??';
-                const endYear = latestPos.date_to?.split('-')[0] || latestPos.date_to?.split('/')[2] || '??';
-                leadershipTag = `Past: ${latestPos.position_title} (${startYear}-${endYear})`;
+                const endYear = latestPos.date_to?.split('-')[0] || latestPos.date_to?.split('/')[2] || latestPos.date_to || '??';
+                
+                // Use 'Former' for Deceased/Dismissed, 'Past' for others
+                const prefix = (member.status === 'Deceased' || member.status === 'Dismissed') ? 'Former' : 'Past';
+                leadershipTag = `${prefix}: ${latestPos.position_title} (${startYear}-${endYear})`;
               }
 
               return (
