@@ -11,9 +11,13 @@ export function sanitizeSpouse(spouse: SpouseRecord): SpouseRecord {
   return {
     ...spouse,
     spouse_name: cleanText(spouse.spouse_name) || null,
-    birth_date: cleanText(spouse.birth_date) || null,
-    occupation: cleanText(spouse.occupation) || null,
-    phone: cleanText(spouse.phone) || null,
+    spouse_dob: cleanText(spouse.spouse_dob) || null,
+    spouse_nationality: cleanText(spouse.spouse_nationality) || null,
+    spouse_denomination: cleanText(spouse.spouse_denomination) || null,
+    spouse_parish: cleanText(spouse.spouse_parish) || null,
+    auxiliary_name: cleanText(spouse.auxiliary_name) || null,
+    auxiliary_number: cleanText(spouse.auxiliary_number) || null,
+    spouse_notes: cleanText(spouse.spouse_notes) || null,
   };
 }
 
@@ -28,8 +32,7 @@ export function sanitizeChildren(children: ChildRecord[]): ChildRecord[] {
 
 export function validateFamily(spouse: SpouseRecord, children: ChildRecord[]): string[] {
   const errors = compactErrors([
-    !isBlank(spouse.phone) && !isValidPhone(spouse.phone) ? 'Spouse phone number format looks invalid.' : null,
-    !isBlank(spouse.birth_date) && !isLikelyDate(spouse.birth_date) ? 'Spouse birth date should use YYYY-MM-DD or DD/MM/YYYY.' : null,
+    !isBlank(spouse.spouse_dob) && !isLikelyDate(spouse.spouse_dob) ? 'Spouse date of birth should use YYYY-MM-DD or DD/MM/YYYY.' : null,
   ]);
 
   children.forEach((child, index) => {
@@ -108,28 +111,32 @@ export function validatePositions(positions: PositionRecord[]): string[] {
 export function sanitizeMilitary(military: MilitaryRecord): MilitaryRecord {
   return {
     ...military,
-    service_branch: cleanText(military.service_branch) || null,
-    enlistment_date: cleanText(military.enlistment_date) || null,
-    service_number: cleanText(military.service_number) || null,
+    uniform_blessed_date: cleanText(military.uniform_blessed_date) || null,
+    first_uniform_use_date: cleanText(military.first_uniform_use_date) || null,
+    current_rank: cleanText(military.current_rank) || null,
+    commission: cleanText(military.commission) || null,
   };
 }
 
 export function sanitizeRanks(ranks: RankRecord[]): RankRecord[] {
   return ranks.map((rank) => ({
     ...rank,
-    rank_name: cleanText(rank.rank_name) || null,
+    rank_title: cleanText(rank.rank_title) || null,
     commission_date: cleanText(rank.commission_date) || null,
+    notes: cleanText(rank.notes) || null,
   }));
 }
 
 export function validateMilitary(military: MilitaryRecord, ranks: RankRecord[]): string[] {
   const errors = compactErrors([
-    !isBlank(military.enlistment_date) && !isLikelyDate(military.enlistment_date) ? 'Enlistment date should use YYYY-MM-DD or DD/MM/YYYY.' : null,
+    !isBlank(military.uniform_blessed_date) && !isLikelyDate(military.uniform_blessed_date) ? 'Uniform blessed date should use YYYY-MM-DD or DD/MM/YYYY.' : null,
+    !isBlank(military.first_uniform_use_date) && !isLikelyDate(military.first_uniform_use_date) ? 'First use date should use YYYY-MM-DD or DD/MM/YYYY.' : null,
+    !isBlank(military.commission) && !isLikelyDate(military.commission) ? 'Commission date should use YYYY-MM-DD or DD/MM/YYYY.' : null,
   ]);
   ranks.forEach((rank, index) => {
     const label = `Rank ${index + 1}`;
-    const hasAny = !isBlank(rank.rank_name) || !isBlank(rank.commission_date);
-    if (hasAny && isBlank(rank.rank_name)) errors.push(`${label}: rank name is required once a row is started.`);
+    const hasAny = !isBlank(rank.rank_title) || !isBlank(rank.commission_date);
+    if (hasAny && isBlank(rank.rank_title)) errors.push(`${label}: rank title is required once a row is started.`);
     if (!isBlank(rank.commission_date) && !isLikelyDate(rank.commission_date)) errors.push(`${label}: commission date should use YYYY-MM-DD or DD/MM/YYYY.`);
   });
   return errors;
