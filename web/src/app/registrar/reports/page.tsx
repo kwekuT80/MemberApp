@@ -30,8 +30,11 @@ export default function ReportsPage() {
     setLoading(false);
   }
 
-  const handlePrint = () => {
-    window.print();
+  const formatDate = (date: Date) => {
+    const d = date.getDate().toString().padStart(2, '0');
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const y = date.getFullYear();
+    return `${d}/${m}/${y}`;
   };
 
   const downloadCSV = () => {
@@ -68,7 +71,6 @@ export default function ReportsPage() {
     const reportHtml = document.getElementById('report-content')?.innerHTML;
     if (!reportHtml) return;
 
-    // Create a hidden iframe or new window for a pure print experience
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -85,7 +87,7 @@ export default function ReportsPage() {
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
             th { text-align: left; padding: 12px; border-bottom: 2px solid #10233f; font-size: 14px; }
             td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
-            .name-cell { fontWeight: 600; }
+            @page { margin: 2cm; }
           </style>
         </head>
         <body>
@@ -131,7 +133,7 @@ export default function ReportsPage() {
             </button>
           ))}
           {data.length > 0 && (
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 12 }} className="no-print">
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 12 }}>
               <button 
                 onClick={downloadCSV}
                 style={{
@@ -199,37 +201,20 @@ export default function ReportsPage() {
                     <td style={{ padding: 12, fontWeight: 600 }}>{m.title} {m.first_name} {m.surname}</td>
                     {reportType === 'final' ? (
                       <>
-                        <th style={{ textAlign: 'left', padding: 12 }}>Died</th>
-                        <th style={{ textAlign: 'left', padding: 12 }}>Burial</th>
+                        <td style={{ padding: 12 }}>{m.date_of_death || '---'}</td>
+                        <td style={{ padding: 12 }}>{m.burial_date || '---'}</td>
                       </>
                     ) : (
                       <>
-                        <th style={{ textAlign: 'left', padding: 12 }}>Occupation</th>
-                        <th style={{ textAlign: 'left', padding: 12 }}>Phone</th>
+                        <td style={{ padding: 12 }}>{m.occupation || '---'}</td>
+                        <td style={{ padding: 12 }}>{m.phone || m.mobile || '---'}</td>
                       </>
                     )}
                   </tr>
-                </thead>
-                <tbody>
-                  {data.map((m) => (
-                    <tr key={m.id} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: 12, fontWeight: 600 }}>{m.title} {m.first_name} {m.surname}</td>
-                      {reportType === 'final' ? (
-                        <>
-                          <td style={{ padding: 12 }}>{m.date_of_death || '---'}</td>
-                          <td style={{ padding: 12 }}>{m.burial_date || '---'}</td>
-                        </>
-                      ) : (
-                        <>
-                          <td style={{ padding: 12 }}>{m.occupation || '---'}</td>
-                          <td style={{ padding: 12 }}>{m.phone || m.mobile || '---'}</td>
-                        </>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div style={{ padding: 60, textAlign: 'center', color: '#666' }}>
             Select a report type above to preview data.
