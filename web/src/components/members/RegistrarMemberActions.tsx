@@ -3,6 +3,7 @@ import Link from 'next/link';
 export default function RegistrarMemberActions({ memberId }: { memberId: string }) {
   const sections = [
     ['Edit main record', `/registrar/members/${memberId}/edit`],
+    ['Digital ID Card', `/registrar/members/${memberId}/id-card`],
     ['Family', `/registrar/members/${memberId}/family`],
     ['Degree', `/registrar/members/${memberId}/education`],
     ['Positions', `/registrar/members/${memberId}/positions`],

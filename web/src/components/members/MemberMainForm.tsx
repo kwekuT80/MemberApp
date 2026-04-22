@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Member } from '@/types/member';
 import { saveMember } from '@/services/memberService';
+import { uploadMemberPhoto } from '@/services/photoService';
+
 
 interface Props {
   initialMember: Member | null;
@@ -14,7 +16,7 @@ interface Props {
 const TITLES = ['Bro.', 'Sir', 'Rev.', 'Dr.', 'Prof.', 'N/B'];
 const MARITAL = ['Married', 'Single', 'Widowed', 'Religious', 'Separated'];
 const EMP_STATUS = ['Employed', 'Self-employed', 'Unemployed', 'Student', 'Other'];
-const STATUSES = ['Active', 'Suspended', 'Sacked', 'Transfer-In', 'Transfer-Out', 'Deceased'];
+const STATUSES = ['Active', 'Suspended', 'Dismissed', 'Transfer-In', 'Transfer-Out', 'Deceased'];
 
 const TABS = ['Bio', 'Family', 'Employment', 'Degrees', 'Military', 'Lifecycle'];
 
@@ -24,8 +26,26 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
   const [form, setForm] = useState<any>(initialMember || { status: 'Active' });
   const [regions, setRegions] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError(null);
+    try {
+      const url = await uploadMemberPhoto(file);
+      updateField('photo_url', url);
+      setMessage('Photo uploaded successfully.');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   useEffect(() => {
     async function loadRegions() {
@@ -80,6 +100,44 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
       <form onSubmit={handleSubmit}>
         {activeTab === 0 && (
           <div className="grid-cols-2">
+            <div style={{ gridColumn: '1 / -1', marginBottom: 24, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ 
+                width: 150, 
+                height: 150, 
+                borderRadius: 12, 
+                border: '2px dashed var(--gold)', 
+                background: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                cursor: 'pointer',
+                position: 'relative'
+              }} onClick={() => document.getElementById('photo-input')?.click()}>
+                {form.photo_url ? (
+                  <img src={form.photo_url} alt="Portrait" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ textAlign: 'center', color: 'var(--navy)', opacity: 0.5 }}>
+                    <div style={{ fontSize: 40 }}>👤</div>
+                    <div style={{ fontSize: 12, fontWeight: 700 }}>{uploading ? 'Uploading...' : 'Click to Upload'}</div>
+                  </div>
+                )}
+              </div>
+              <input 
+                id="photo-input" 
+                type="file" 
+                accept="image/*" 
+                onChange={handlePhotoChange} 
+                style={{ display: 'none' }} 
+              />
+              <button 
+                type="button" 
+                onClick={() => document.getElementById('photo-input')?.click()}
+                style={{ marginTop: 12, fontSize: 13, background: 'none', border: 'none', color: 'var(--navy)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Change Portrait Photo
+              </button>
+            </div>
             <SelectField label="Title" value={form.title} options={TITLES} onChange={(v: string) => updateField('title', v)} />
             <InputField label="Surname" value={form.surname} onChange={(v: string) => updateField('surname', v)} />
             <InputField label="First Name" value={form.first_name} onChange={(v: string) => updateField('first_name', v)} />

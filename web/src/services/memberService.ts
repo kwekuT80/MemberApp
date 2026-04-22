@@ -57,7 +57,7 @@ export async function saveMember(form: any): Promise<Member> {
   
   // Explicitly define the columns to extract from the form object
   const validColumns = [
-    'user_id', 'title', 'surname', 'first_name', 'other_names', 
+    'user_id', 'photo_url', 'title', 'surname', 'first_name', 'other_names', 
     'date_of_birth', 'birth_town', 'birth_region', 'nationality', 
     'home_town', 'home_region', 'residential_address', 'postal_address', 
     'phone', 'mobile', 'email', 'fathers_name', 'mothers_name', 
