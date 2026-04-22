@@ -143,7 +143,7 @@ export default function RegistrarDashboard({ navigation }) {
               <View style={[
                 styles.statusBadge, 
                 item.status === 'Deceased' && styles.statusDeceased,
-                item.status === 'Dismissed' && styles.statusSacked,
+                item.status === 'Dismissed' && styles.statusDismissed,
                 item.status === 'Suspended' && styles.statusSuspended,
                 item.status === 'Transfer-Out' && styles.statusOut,
               ]}>
@@ -614,8 +614,8 @@ const styles = StyleSheet.create({
   },
   statusDeceased: { backgroundColor: '#111827' },
   statusDeceasedText: { color: '#F3F4F6' },
-  statusSacked: { backgroundColor: '#FEE2E2' },
-  statusSackedText: { color: '#991B1B' },
+  statusDismissed: { backgroundColor: '#FEE2E2' },
+  statusDismissedText: { color: '#991B1B' },
   statusSuspended: { backgroundColor: '#FEF3C7' },
   statusSuspendedText: { color: '#92400E' },
   statusOut: { backgroundColor: '#DBEAFE' },
