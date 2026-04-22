@@ -70,7 +70,19 @@ export default function MemberSearchTable({ members, basePath='/registrar/member
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--grey)' }}>{member.occupation || 'N/A'}</div>
                   </td>
-                  <td style={{ fontSize: 13 }}>{member.phone || member.mobile || '—'}</td>
+                  <td style={{ fontSize: 13 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>{member.phone || member.mobile || '—'}</span>
+                        {(member.phone || member.mobile) && (
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <a href={`tel:${member.phone || member.mobile}`} title="Call Brother" style={{ textDecoration: 'none', fontSize: 14 }}>📞</a>
+                            <a href={`https://wa.me/${(member.phone || member.mobile)?.replace(/\D/g, '')}`} target="_blank" title="WhatsApp Brother" style={{ textDecoration: 'none', fontSize: 14 }}>💬</a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
                   <td align='center'>
                     {member.children?.length > 0 ? (
                       <span className="badge-blue">👶 {member.children.length}</span>
@@ -83,9 +95,11 @@ export default function MemberSearchTable({ members, basePath='/registrar/member
                   </td>
                   <td style={{ fontSize: 12 }}>{member.date_joined || '—'}</td>
                   <td align='center'>
-                    <Link href={`${basePath}/${member.id}`} className="tab tab-active" style={{ padding: '6px 12px', fontSize: 12 }}>
-                      View Profile
-                    </Link>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                      <Link href={`${basePath}/${member.id}`} className="tab tab-active" style={{ padding: '6px 12px', fontSize: 12 }}>
+                        Profile
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               );
