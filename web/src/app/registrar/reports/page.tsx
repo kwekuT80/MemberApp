@@ -64,61 +64,47 @@ export default function ReportsPage() {
     document.body.removeChild(link);
   };
 
-  const formatDate = (date: Date) => {
-    const d = date.getDate().toString().padStart(2, '0');
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const y = date.getFullYear();
-    return `${d}/${m}/${y}`;
+  const handlePrint = () => {
+    const reportHtml = document.getElementById('report-content')?.innerHTML;
+    if (!reportHtml) return;
+
+    // Create a hidden iframe or new window for a pure print experience
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>KSJI Official Report - ${reportType}</title>
+          <style>
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #10233f; }
+            .report-header { text-align: center; margin-bottom: 40px; border-bottom: 3px solid #C9A84C; padding-bottom: 20px; }
+            .report-header img { width: 80px; height: 80px; margin-bottom: 15px; }
+            .report-header h1 { text-transform: uppercase; letter-spacing: 2px; margin: 0; font-size: 24px; }
+            .report-header p { color: #C9A84C; font-weight: 700; margin: 5px 0 0 0; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { text-align: left; padding: 12px; border-bottom: 2px solid #10233f; font-size: 14px; }
+            td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
+            .name-cell { fontWeight: 600; }
+          </style>
+        </head>
+        <body>
+          ${reportHtml}
+          <script>
+            window.onload = function() {
+              window.print();
+              window.onafterprint = function() { window.close(); };
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
     <RegistrarShell title="Reporting Hub" subtitle="Generate and export official commandery records">
       <div className="card">
-        <style dangerouslySetInnerHTML={{ __html: `
-          @media print {
-            /* HIDE EVERYTHING IN THE APP */
-            html, body, #__next, .shell-root, .sidebar, .shell-header, .tab-bar, .no-print, button, nav {
-              display: none !important;
-              visibility: hidden !important;
-              width: 0 !important;
-              height: 0 !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-
-            /* ONLY SHOW THE REPORT CONTENT */
-            #report-wrap, #report-wrap * {
-              display: block !important;
-              visibility: visible !important;
-            }
-
-            #report-wrap {
-              position: absolute !important;
-              top: 0 !important;
-              left: 0 !important;
-              width: 100% !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              background: white !important;
-            }
-
-            .card {
-              border: none !important;
-              box-shadow: none !important;
-              padding: 0 !important;
-              background: transparent !important;
-            }
-
-            table {
-              width: 100% !important;
-              border-collapse: collapse !important;
-            }
-
-            th, td {
-              border-bottom: 1px solid #ddd !important;
-            }
-          }
-        `}} />
         <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }} className="no-print">
           {[
             { id: 'master', label: 'Master Roll' },
@@ -129,7 +115,6 @@ export default function ReportsPage() {
             <button 
               key={type.id}
               onClick={() => generateReport(type.id)}
-              className="no-print"
               style={{
                 background: reportType === type.id ? 'var(--navy)' : 'transparent',
                 color: reportType === type.id ? 'var(--gold)' : 'var(--navy)',
@@ -149,7 +134,6 @@ export default function ReportsPage() {
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 12 }} className="no-print">
               <button 
                 onClick={downloadCSV}
-                className="no-print"
                 style={{
                   background: '#f8fafc',
                   color: 'var(--navy)',
@@ -165,7 +149,6 @@ export default function ReportsPage() {
               </button>
               <button 
                 onClick={handlePrint}
-                className="no-print"
                 style={{
                   background: 'var(--gold)',
                   color: 'var(--navy)',
@@ -187,17 +170,33 @@ export default function ReportsPage() {
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center' }}>Loading report data...</div>
         ) : data.length > 0 ? (
-          <div id="report-wrap">
-            <div id="report-content">
-              <div className="report-header" style={{ textAlign: 'center', marginBottom: 40, borderBottom: '3px solid var(--gold)', paddingBottom: 20 }}>
-                <img src="/logo.png" alt="KSJI Logo" style={{ width: 80, height: 80, marginBottom: 15, objectFit: 'contain' }} />
-                <h1 style={{ color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: 2, margin: 0 }}>Official Registrar Report</h1>
-                <p style={{ color: 'var(--gold)', fontWeight: 700, margin: '5px 0 0 0' }}>{reportType?.toUpperCase()} | Generated {formatDate(new Date())}</p>
-              </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid var(--navy)' }}>
-                    <th style={{ textAlign: 'left', padding: 12 }}>Name</th>
+          <div id="report-content">
+            <div className="report-header" style={{ textAlign: 'center', marginBottom: 40, borderBottom: '3px solid var(--gold)', paddingBottom: 20 }}>
+              <img src="/logo.png" alt="KSJI Logo" style={{ width: 80, height: 80, marginBottom: 15, objectFit: 'contain' }} />
+              <h1 style={{ color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: 2, margin: 0 }}>Official Registrar Report</h1>
+              <p style={{ color: 'var(--gold)', fontWeight: 700, margin: '5px 0 0 0' }}>{reportType?.toUpperCase()} | Generated {formatDate(new Date())}</p>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--navy)' }}>
+                  <th style={{ textAlign: 'left', padding: 12 }}>Name</th>
+                  {reportType === 'final' ? (
+                    <>
+                      <th style={{ textAlign: 'left', padding: 12 }}>Died</th>
+                      <th style={{ textAlign: 'left', padding: 12 }}>Burial</th>
+                    </>
+                  ) : (
+                    <>
+                      <th style={{ textAlign: 'left', padding: 12 }}>Occupation</th>
+                      <th style={{ textAlign: 'left', padding: 12 }}>Phone</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((m) => (
+                  <tr key={m.id} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ padding: 12, fontWeight: 600 }}>{m.title} {m.first_name} {m.surname}</td>
                     {reportType === 'final' ? (
                       <>
                         <th style={{ textAlign: 'left', padding: 12 }}>Died</th>
@@ -231,7 +230,6 @@ export default function ReportsPage() {
                 </tbody>
               </table>
             </div>
-          </div>
         ) : (
           <div style={{ padding: 60, textAlign: 'center', color: '#666' }}>
             Select a report type above to preview data.
