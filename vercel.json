@@ -1,9 +1,4 @@
 {
-    "framework": null,
-    "installCommand": "npm install --legacy-peer-deps && chmod -R +x node_modules/.bin",
-    "buildCommand": "npx expo export --platform web",
-    "outputDirectory": "dist",
-    "rewrites": [
-        { "source": "/(.*)", "destination": "/index.html" }
-    ]
+  "framework": "nextjs",
+  "rootDirectory": "web"
 }

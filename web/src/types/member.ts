@@ -30,5 +30,13 @@ export interface Member {
   degree4_place?: string | null;
   degree_noble_place?: string | null;
   date_joined?: string | null;
+  status?: string | null;
+  is_deceased?: boolean | null;
+  date_of_death?: string | null;
+  burial_date?: string | null;
+  burial_place?: string | null;
+  transfer_from?: string | null;
+  transfer_to?: string | null;
+  transfer_date?: string | null;
   created_at?: string | null;
 }

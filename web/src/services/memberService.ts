@@ -1,3 +1,4 @@
+'use server';
 import { createClient } from '@/lib/supabase/server';
 import { Member } from '@/types/member';
 
@@ -62,13 +63,17 @@ export async function saveMember(form: any): Promise<Member> {
     'phone', 'mobile', 'email', 'fathers_name', 'mothers_name', 
     'marital_status', 'emp_status', 'occupation', 'workplace', 
     'job_status', 'work_address', 'uniform_positions', 'date_joined',
+    'degree1_place', 'degree23_place', 'degree4_place', 'degree_noble_place',
     'status', 'is_deceased', 'date_of_death', 'burial_date', 'burial_place',
     'transfer_from', 'transfer_to', 'transfer_date'
   ];
 
   const payload: any = {};
   validColumns.forEach(col => {
-    if (form[col] !== undefined) payload[col] = form[col] || null;
+    if (form[col] !== undefined) {
+      // Correctly handle false values for booleans
+      payload[col] = (form[col] === '' || form[col] === undefined) ? null : form[col];
+    }
   });
 
   if (form.id) {
