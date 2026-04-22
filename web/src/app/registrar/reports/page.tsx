@@ -76,21 +76,46 @@ export default function ReportsPage() {
       <div className="card">
         <style dangerouslySetInnerHTML={{ __html: `
           @media print {
-            .no-print, nav, .sidebar, .shell-header, .btn-primary, .btn-outline, button {
+            /* HIDE EVERYTHING IN THE APP */
+            html, body, #__next, .shell-root, .sidebar, .shell-header, .tab-bar, .no-print, button, nav {
               display: none !important;
+              visibility: hidden !important;
+              width: 0 !important;
+              height: 0 !important;
+              margin: 0 !important;
+              padding: 0 !important;
             }
+
+            /* ONLY SHOW THE REPORT CONTENT */
+            #report-wrap, #report-wrap * {
+              display: block !important;
+              visibility: visible !important;
+            }
+
+            #report-wrap {
+              position: absolute !important;
+              top: 0 !important;
+              left: 0 !important;
+              width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+            }
+
             .card {
               border: none !important;
               box-shadow: none !important;
               padding: 0 !important;
+              background: transparent !important;
             }
-            body {
-              background: white !important;
-            }
-            #report-content {
+
+            table {
               width: 100% !important;
-              margin: 0 !important;
-              padding: 20px !important;
+              border-collapse: collapse !important;
+            }
+
+            th, td {
+              border-bottom: 1px solid #ddd !important;
             }
           }
         `}} />
@@ -162,48 +187,50 @@ export default function ReportsPage() {
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center' }}>Loading report data...</div>
         ) : data.length > 0 ? (
-          <div id="report-content">
-            <div className="report-header" style={{ textAlign: 'center', marginBottom: 40, borderBottom: '3px solid var(--gold)', paddingBottom: 20 }}>
-              <img src="/logo.png" alt="KSJI Logo" style={{ width: 80, height: 80, marginBottom: 15, objectFit: 'contain' }} />
-              <h1 style={{ color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: 2, margin: 0 }}>Official Registrar Report</h1>
-              <p style={{ color: 'var(--gold)', fontWeight: 700, margin: '5px 0 0 0' }}>{reportType?.toUpperCase()} | Generated {formatDate(new Date())}</p>
-            </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--navy)' }}>
-                  <th style={{ textAlign: 'left', padding: 12 }}>Name</th>
-                  {reportType === 'final' ? (
-                    <>
-                      <th style={{ textAlign: 'left', padding: 12 }}>Died</th>
-                      <th style={{ textAlign: 'left', padding: 12 }}>Burial</th>
-                    </>
-                  ) : (
-                    <>
-                      <th style={{ textAlign: 'left', padding: 12 }}>Occupation</th>
-                      <th style={{ textAlign: 'left', padding: 12 }}>Phone</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((m) => (
-                  <tr key={m.id} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: 12, fontWeight: 600 }}>{m.title} {m.first_name} {m.surname}</td>
+          <div id="report-wrap">
+            <div id="report-content">
+              <div className="report-header" style={{ textAlign: 'center', marginBottom: 40, borderBottom: '3px solid var(--gold)', paddingBottom: 20 }}>
+                <img src="/logo.png" alt="KSJI Logo" style={{ width: 80, height: 80, marginBottom: 15, objectFit: 'contain' }} />
+                <h1 style={{ color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: 2, margin: 0 }}>Official Registrar Report</h1>
+                <p style={{ color: 'var(--gold)', fontWeight: 700, margin: '5px 0 0 0' }}>{reportType?.toUpperCase()} | Generated {formatDate(new Date())}</p>
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--navy)' }}>
+                    <th style={{ textAlign: 'left', padding: 12 }}>Name</th>
                     {reportType === 'final' ? (
                       <>
-                        <td style={{ padding: 12 }}>{m.date_of_death || '---'}</td>
-                        <td style={{ padding: 12 }}>{m.burial_date || '---'}</td>
+                        <th style={{ textAlign: 'left', padding: 12 }}>Died</th>
+                        <th style={{ textAlign: 'left', padding: 12 }}>Burial</th>
                       </>
                     ) : (
                       <>
-                        <td style={{ padding: 12 }}>{m.occupation || '---'}</td>
-                        <td style={{ padding: 12 }}>{m.phone || m.mobile || '---'}</td>
+                        <th style={{ textAlign: 'left', padding: 12 }}>Occupation</th>
+                        <th style={{ textAlign: 'left', padding: 12 }}>Phone</th>
                       </>
                     )}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.map((m) => (
+                    <tr key={m.id} style={{ borderBottom: '1px solid #eee' }}>
+                      <td style={{ padding: 12, fontWeight: 600 }}>{m.title} {m.first_name} {m.surname}</td>
+                      {reportType === 'final' ? (
+                        <>
+                          <td style={{ padding: 12 }}>{m.date_of_death || '---'}</td>
+                          <td style={{ padding: 12 }}>{m.burial_date || '---'}</td>
+                        </>
+                      ) : (
+                        <>
+                          <td style={{ padding: 12 }}>{m.occupation || '---'}</td>
+                          <td style={{ padding: 12 }}>{m.phone || m.mobile || '---'}</td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
           <div style={{ padding: 60, textAlign: 'center', color: '#666' }}>
