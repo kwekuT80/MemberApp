@@ -64,9 +64,36 @@ export default function ReportsPage() {
     document.body.removeChild(link);
   };
 
+  const formatDate = (date: Date) => {
+    const d = date.getDate().toString().padStart(2, '0');
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const y = date.getFullYear();
+    return `${d}/${m}/${y}`;
+  };
+
   return (
     <RegistrarShell title="Reporting Hub" subtitle="Generate and export official commandery records">
       <div className="card">
+        <style dangerouslySetInnerHTML={{ __html: `
+          @media print {
+            .no-print, nav, .sidebar, .shell-header, .btn-primary, .btn-outline, button {
+              display: none !important;
+            }
+            .card {
+              border: none !important;
+              box-shadow: none !important;
+              padding: 0 !important;
+            }
+            body {
+              background: white !important;
+            }
+            #report-content {
+              width: 100% !important;
+              margin: 0 !important;
+              padding: 20px !important;
+            }
+          }
+        `}} />
         <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }} className="no-print">
           {[
             { id: 'master', label: 'Master Roll' },
@@ -77,6 +104,7 @@ export default function ReportsPage() {
             <button 
               key={type.id}
               onClick={() => generateReport(type.id)}
+              className="no-print"
               style={{
                 background: reportType === type.id ? 'var(--navy)' : 'transparent',
                 color: reportType === type.id ? 'var(--gold)' : 'var(--navy)',
@@ -93,9 +121,10 @@ export default function ReportsPage() {
             </button>
           ))}
           {data.length > 0 && (
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 12 }}>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 12 }} className="no-print">
               <button 
                 onClick={downloadCSV}
+                className="no-print"
                 style={{
                   background: '#f8fafc',
                   color: 'var(--navy)',
@@ -111,6 +140,7 @@ export default function ReportsPage() {
               </button>
               <button 
                 onClick={handlePrint}
+                className="no-print"
                 style={{
                   background: 'var(--gold)',
                   color: 'var(--navy)',
@@ -136,7 +166,7 @@ export default function ReportsPage() {
             <div className="report-header" style={{ textAlign: 'center', marginBottom: 40, borderBottom: '3px solid var(--gold)', paddingBottom: 20 }}>
               <img src="/logo.png" alt="KSJI Logo" style={{ width: 80, height: 80, marginBottom: 15, objectFit: 'contain' }} />
               <h1 style={{ color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: 2, margin: 0 }}>Official Registrar Report</h1>
-              <p style={{ color: 'var(--gold)', fontWeight: 700, margin: '5px 0 0 0' }}>{reportType?.toUpperCase()} | Generated {new Date().toLocaleDateString()}</p>
+              <p style={{ color: 'var(--gold)', fontWeight: 700, margin: '5px 0 0 0' }}>{reportType?.toUpperCase()} | Generated {formatDate(new Date())}</p>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
