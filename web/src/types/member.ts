@@ -39,4 +39,5 @@ export interface Member {
   transfer_to?: string | null;
   transfer_date?: string | null;
   created_at?: string | null;
+  photo_url?: string | null;
 }
