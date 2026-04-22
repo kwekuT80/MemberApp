@@ -27,8 +27,16 @@ export default function MemberSearchTable({ members, basePath='/registrar/member
               );
               
               // A member can only have a 'Current' position if they are 'Active'
-              const isActive = member.status === 'Active' || !member.status;
-              const currentPos = isActive ? posList.find((p: any) => !p.date_to || p.date_to === '') : null;
+              // AND the tenure hasn't expired
+              const today = new Date().toISOString().split('T')[0];
+              const isActiveMember = member.status === 'Active' || !member.status;
+              
+              const currentPos = isActiveMember ? posList.find((p: any) => {
+                const hasNoEndDate = !p.date_to || p.date_to === '';
+                const isTenureActive = !hasNoEndDate ? p.date_to >= today : true;
+                return hasNoEndDate || isTenureActive;
+              }) : null;
+              
               const latestPos = posList[0];
 
               let leadershipTag = '—';
