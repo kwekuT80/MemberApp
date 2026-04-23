@@ -21,34 +21,70 @@ const fromInputDate = (value?: string | null) => {
   return value;
 };
 
-const POSITION_OPTIONS = [
-  'President',
-  '1st Vice President',
-  '2nd Vice President',
-  'Recording & Corresponding Secretary',
-  'Assistant Secretary',
-  'Financial Secretary',
-  'Treasurer',
-  '1st Trustee',
-  '2nd Trustee',
-  '3rd Trustee',
-  'Commander',
-  'First Vice Commander',
-  'Second Vice Commander',
-  'Messenger',
-  'Sergeant-at-Arms',
-  'Guard',
-  'Cadet Organizer',
+const HIERARCHY_LEVELS = [
+  'Local',
+  'Battalion',
+  'Regiment',
+  'Grand Commandery',
+  'Supreme Subordinate Commandery',
+  'Supreme Commandery'
 ];
 
-export default function PositionsEditor({ memberId, initialPositions }: { memberId: string; initialPositions: PositionRecord[] }) {
+const POSITION_DATA: Record<string, string[]> = {
+  'Local': [
+    'President',
+    '1st Vice President',
+    '2nd Vice President',
+    'Recording & Corresponding Secretary',
+    'Assistant Secretary',
+    'Financial Secretary',
+    'Treasurer',
+    '1st Trustee',
+    '2nd Trustee',
+    '3rd Trustee',
+    'Commander',
+    'First Vice Commander',
+    'Second Vice Commander',
+    'Messenger',
+    'Sergeant-at-Arms',
+    'Guard',
+    'Cadet Organizer',
+  ],
+  'Grand Commandery': [
+    'Spiritual Director',
+    'Grand President',
+    'Past Grand President',
+    '1st Vice President',
+    '2nd Vice President',
+    'Grand Secretary',
+    'Grand Treasurer',
+    'Grand Financial Secretary',
+    'Grand Judge Advocate',
+    'Grand Trustee (1st)',
+    'Grand Trustee (2nd)',
+    'Grand Trustee (3rd)',
+    'Grand Messenger',
+    'Grand Sergeant-at-Arms',
+    'Grand Guard',
+    'Assistant Grand Secretary',
+    'Grand Organizer',
+    'Grand Deputy Organizer',
+    'Grand Cadet Organizer',
+  ],
+  'Battalion': ['Commander', 'Vice Commander', 'Adjutant', 'Quartermaster'], // Placeholders
+  'Regiment': ['Colonel', 'Lt. Colonel', 'Major', 'Adjutant'], // Placeholders
+  'Supreme Subordinate Commandery': ['President', 'Secretary', 'Treasurer'], // Placeholders
+  'Supreme Commandery': ['Supreme President', 'Supreme Secretary', 'Supreme Treasurer'], // Placeholders
+};
+
+export default function PositionsEditor({ memberId, initialPositions }: { memberId: string; initialPositions: any[] }) {
   const supabase = createClient();
   const [positions, setPositions] = useState<PositionRecord[]>(initialPositions.length ? initialPositions.map((p) => ({ ...p, date_from: toInputDate(p.date_from), date_to: toInputDate(p.date_to) })) : [{ position_title: '', date_from: '', date_to: '' }]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function update(index: number, key: keyof PositionRecord, value: string) {
+  function update(index: number, key: string, value: string) {
     setPositions((items) => items.map((item, i) => (i === index ? { ...item, [key]: value } : item)));
   }
 
@@ -62,7 +98,13 @@ export default function PositionsEditor({ memberId, initialPositions }: { member
     if (toDelete.length) await supabase.from('positions').delete().in('id', toDelete);
     for (const position of positions) {
       if (!(position.position_title || position.date_from || position.date_to)) continue;
-      const payload = { ...position, member_id: memberId, date_from: fromInputDate(position.date_from), date_to: fromInputDate(position.date_to) };
+      const payload = { 
+        ...position, 
+        member_id: memberId, 
+        date_from: fromInputDate(position.date_from), 
+        date_to: fromInputDate(position.date_to),
+        level: position.level || 'Local'
+      };
       const result = position.id
         ? await supabase.from('positions').update(payload).eq('id', position.id).select().single()
         : await supabase.from('positions').insert(payload).select().single();
@@ -77,7 +119,36 @@ export default function PositionsEditor({ memberId, initialPositions }: { member
     window.location.reload();
   }
 
-  return <div style={cardStyle}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><h2 style={{ margin: 0 }}>Positions</h2><button type='button' onClick={() => setPositions((items) => [...items, { position_title: '', date_from: '', date_to: '' }])} style={secondaryButton}>Add position</button></div>{positions.map((position, index) => <div key={position.id || index} style={subCardStyle}><div style={gridStyle}><label style={{ display: 'grid', gap: 6 }}><span style={labelStyle}>Position Title</span><select value={position.position_title || ''} onChange={(e) => update(index, 'position_title', e.target.value)} style={inputStyle}><option value=''>Select…</option>{POSITION_OPTIONS.map((item) => <option key={item} value={item}>{item}</option>)}</select></label><Field label='From' type='date' value={position.date_from || ''} onChange={(v) => update(index, 'date_from', v)} /><Field label='To' type='date' value={position.date_to || ''} onChange={(v) => update(index, 'date_to', v)} /></div><button type='button' onClick={() => setPositions((items) => items.filter((_, i) => i !== index))} style={dangerButton}>Remove</button></div>)}<div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}><button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save positions'}</button>{message ? <span style={{ color: '#1f6f43' }}>{message}</span> : null}{error ? <span style={{ color: 'crimson' }}>{error}</span> : null}</div></div>;
+  return <div style={cardStyle}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><h2 style={{ margin: 0 }}>Positions</h2><button type='button' onClick={() => setPositions((items) => [...items, { position_title: '', date_from: '', date_to: '', level: 'Local' }])} style={secondaryButton}>Add position</button></div>{positions.map((position, index) => {
+    const currentLevel = position.level || 'Local';
+    const availableTitles = POSITION_DATA[currentLevel] || [];
+
+    return (
+      <div key={position.id || index} style={subCardStyle}>
+        <div style={gridStyle}>
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span style={labelStyle}>Level of Jurisdiction</span>
+            <select value={currentLevel} onChange={(e) => {
+              update(index, 'level', e.target.value);
+              update(index, 'position_title', ''); // Reset title if level changes
+            }} style={inputStyle}>
+              {HIERARCHY_LEVELS.map((lvl) => <option key={lvl} value={lvl}>{lvl}</option>)}
+            </select>
+          </label>
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span style={labelStyle}>Position Title</span>
+            <select value={position.position_title || ''} onChange={(e) => update(index, 'position_title', e.target.value)} style={inputStyle}>
+              <option value=''>Select…</option>
+              {availableTitles.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </label>
+          <Field label='From' type='date' value={position.date_from || ''} onChange={(v: string) => update(index, 'date_from', v)} />
+          <Field label='To' type='date' value={position.date_to || ''} onChange={(v: string) => update(index, 'date_to', v)} />
+        </div>
+        <button type='button' onClick={() => setPositions((items) => items.filter((_, i) => i !== index))} style={dangerButton}>Remove</button>
+      </div>
+    );
+  })}<div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}><button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save positions'}</button>{message ? <span style={{ color: '#1f6f43' }}>{message}</span> : null}{error ? <span style={{ color: 'crimson' }}>{error}</span> : null}</div></div>;
 }
 
 function Field({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
