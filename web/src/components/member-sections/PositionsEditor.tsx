@@ -38,6 +38,7 @@ const POSITION_OPTIONS = [
   'Messenger',
   'Sergeant-at-Arms',
   'Guard',
+  'Cadet Organizer',
 ];
 
 export default function PositionsEditor({ memberId, initialPositions }: { memberId: string; initialPositions: PositionRecord[] }) {

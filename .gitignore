@@ -9,3 +9,5 @@ web-build
 .env.production.local
 tmp/
 .vercel
+android/
+ios/
