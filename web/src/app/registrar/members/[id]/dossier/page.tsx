@@ -35,32 +35,33 @@ export default function MemberDossierPage() {
   const otherNames = String(member.other_names || '').trim();
   const surname = String(member.surname || '').trim();
 
+  // Extreme Safety Formatting
   const formatDate = (dateStr: any) => {
     if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') return '—';
     try {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return '—';
       return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
-    } catch (e) {
-      return '—';
-    }
+    } catch (e) { return '—'; }
   };
 
-  const sortedDegrees = Array.isArray(member.degrees) 
-    ? [...member.degrees].sort((a, b) => {
-        const da = a.degree_date ? new Date(a.degree_date).getTime() : 0;
-        const db = b.degree_date ? new Date(b.degree_date).getTime() : 0;
-        return (isNaN(da) ? 0 : da) - (isNaN(db) ? 0 : db);
-      })
-    : [];
+  // Cast Iron Array Handling
+  const safeDegrees = Array.isArray(member.degrees) ? [...member.degrees] : [];
+  const safePositions = Array.isArray(member.positions) ? [...member.positions] : [];
+  const safeSpouse = Array.isArray(member.spouse) ? member.spouse : [];
+  const safeChildren = Array.isArray(member.children) ? member.children : [];
 
-  const sortedPositions = Array.isArray(member.positions)
-    ? [...member.positions].sort((a, b) => {
-        const da = a.date_from ? new Date(a.date_from).getTime() : 0;
-        const db = b.date_from ? new Date(b.date_from).getTime() : 0;
-        return (isNaN(da) ? 0 : da) - (isNaN(db) ? 0 : db);
-      })
-    : [];
+  const sortedDegrees = safeDegrees.sort((a, b) => {
+    const da = a.degree_date ? new Date(a.degree_date).getTime() : 0;
+    const db = b.degree_date ? new Date(b.degree_date).getTime() : 0;
+    return (isNaN(da) ? 0 : da) - (isNaN(db) ? 0 : db);
+  });
+
+  const sortedPositions = safePositions.sort((a, b) => {
+    const da = a.date_from ? new Date(a.date_from).getTime() : 0;
+    const db = b.date_from ? new Date(b.date_from).getTime() : 0;
+    return (isNaN(da) ? 0 : da) - (isNaN(db) ? 0 : db);
+  });
 
   return (
     <RegistrarShell title="Master Member Record" subtitle={`Full Dossier for ${displayTitle} ${surname}`}>
@@ -132,21 +133,21 @@ export default function MemberDossierPage() {
                 </tr>
               </thead>
               <tbody>
-                {member.spouse?.map((s: any, idx: number) => (
+                {safeSpouse.map((s: any, idx: number) => (
                   <tr key={idx}>
                     <td style={td}>Spouse</td>
                     <td style={td}>{s.spouse_name || 'N/A'}</td>
                     <td style={td}>{s.spouse_parish ? `Parish: ${s.spouse_parish}` : 'N/A'}</td>
                   </tr>
                 ))}
-                {member.children?.map((c: any, idx: number) => (
+                {safeChildren.map((c: any, idx: number) => (
                   <tr key={idx}>
                     <td style={td}>Child</td>
                     <td style={td}>{c.child_name || 'N/A'}</td>
                     <td style={td}>{c.birth_date ? `Born: ${formatDate(c.birth_date)}` : 'N/A'}</td>
                   </tr>
                 ))}
-                {!member.spouse?.length && !member.children?.length && (
+                {safeSpouse.length === 0 && safeChildren.length === 0 && (
                   <tr><td colSpan={3} style={{ ...td, textAlign: 'center', color: '#718096' }}>No family records on file.</td></tr>
                 )}
               </tbody>
@@ -206,6 +207,7 @@ export default function MemberDossierPage() {
               </tbody>
             </table>
           </section>
+tion>
 
           <div style={footer}>
             <p>End of Official Record</p>
