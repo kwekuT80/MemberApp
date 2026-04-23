@@ -24,10 +24,27 @@ const fromInputDate = (value?: string | null) => {
 const HIERARCHY_LEVELS = [
   'Local',
   'Battalion',
+  'District',
   'Regiment',
   'Grand Commandery',
   'Supreme Subordinate Commandery',
   'Supreme Commandery'
+];
+
+const RANK_OPTIONS = [
+  '2nd Lt.',
+  '1st Lt.',
+  'Capt.',
+  'Major',
+  'Lt. Col.',
+  'Col.',
+  'Brig. Gen.',
+  'Maj. Gen.',
+  'Lt. Gen.',
+  'Gen.',
+  'Adjutant Gen.',
+  'Paymaster Gen.',
+  'Judge-Advocate Gen.',
 ];
 
 const POSITION_DATA: Record<string, string[]> = {
@@ -50,6 +67,33 @@ const POSITION_DATA: Record<string, string[]> = {
     'Guard',
     'Cadet Organizer',
   ],
+  'Battalion': [
+    'Battalion Commander',
+    '1st Vice Commander',
+    '2nd Vice Commander',
+    'Adjutant',
+    'Inspector',
+    'Paymaster',
+    'Quartermaster',
+  ],
+  'District': [
+    'District Commander',
+    '1st Vice Commander',
+    '2nd Vice Commander',
+    'Adjutant',
+    'Inspector',
+    'Paymaster',
+    'Quartermaster',
+  ],
+  'Regiment': [
+    'Regimental Commander',
+    '1st Vice Commander',
+    '2nd Vice Commander',
+    'Adjutant',
+    'Inspector',
+    'Paymaster',
+    'Quartermaster',
+  ],
   'Grand Commandery': [
     'Spiritual Director',
     'Grand President',
@@ -71,10 +115,32 @@ const POSITION_DATA: Record<string, string[]> = {
     'Grand Deputy Organizer',
     'Grand Cadet Organizer',
   ],
-  'Battalion': ['Commander', 'Vice Commander', 'Adjutant', 'Quartermaster'], // Placeholders
-  'Regiment': ['Colonel', 'Lt. Colonel', 'Major', 'Adjutant'], // Placeholders
-  'Supreme Subordinate Commandery': ['President', 'Secretary', 'Treasurer'], // Placeholders
-  'Supreme Commandery': ['Supreme President', 'Supreme Secretary', 'Supreme Treasurer'], // Placeholders
+  'Supreme Subordinate Commandery': [
+    'Supreme Subordinate Spiritual Director',
+    'Supreme Subordinate President',
+    'Supreme Subordinate First Vice President',
+    'Supreme Subordinate Second Vice President',
+    'Supreme Subordinate Secretary',
+    'Supreme Subordinate Treasurer',
+    'Supreme Subordinate Judge Advocate',
+    'Supreme Subordinate Trustee (1)',
+    'Supreme Subordinate Trustee (2)',
+  ],
+  'Supreme Commandery': [
+    'Supreme President',
+    'Supreme First Vice-President',
+    'Supreme Second Vice-President',
+    'Supreme Secretary',
+    'Supreme Treasurer',
+    'Supreme Trustee (1)',
+    'Supreme Trustee (2)',
+    'Supreme Spiritual Director',
+    'Supreme Counsel',
+    'Inspector-General',
+    'Quartermaster-General',
+    'Supreme Organizer',
+    'Aide-de-Camp',
+  ],
 };
 
 export default function PositionsEditor({ memberId, initialPositions }: { memberId: string; initialPositions: any[] }) {
@@ -103,7 +169,8 @@ export default function PositionsEditor({ memberId, initialPositions }: { member
         member_id: memberId, 
         date_from: fromInputDate(position.date_from), 
         date_to: fromInputDate(position.date_to),
-        level: position.level || 'Local'
+        level: position.level || 'Local',
+        rank: position.rank || ''
       };
       const result = position.id
         ? await supabase.from('positions').update(payload).eq('id', position.id).select().single()
@@ -119,7 +186,7 @@ export default function PositionsEditor({ memberId, initialPositions }: { member
     window.location.reload();
   }
 
-  return <div style={cardStyle}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><h2 style={{ margin: 0 }}>Positions</h2><button type='button' onClick={() => setPositions((items) => [...items, { position_title: '', date_from: '', date_to: '', level: 'Local' }])} style={secondaryButton}>Add position</button></div>{positions.map((position, index) => {
+  return <div style={cardStyle}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><h2 style={{ margin: 0 }}>Positions</h2><button type='button' onClick={() => setPositions((items) => [...items, { position_title: '', date_from: '', date_to: '', level: 'Local', rank: '' }])} style={secondaryButton}>Add position</button></div>{positions.map((position, index) => {
     const currentLevel = position.level || 'Local';
     const availableTitles = POSITION_DATA[currentLevel] || [];
 
@@ -142,6 +209,13 @@ export default function PositionsEditor({ memberId, initialPositions }: { member
               {availableTitles.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span style={labelStyle}>Military Rank</span>
+            <select value={position.rank || ''} onChange={(e) => update(index, 'rank', e.target.value)} style={inputStyle}>
+              <option value=''>N/A</option>
+              {RANK_OPTIONS.map((rank) => <option key={rank} value={rank}>{rank}</option>)}
+            </select>
+          </label>
           <Field label='From' type='date' value={position.date_from || ''} onChange={(v: string) => update(index, 'date_from', v)} />
           <Field label='To' type='date' value={position.date_to || ''} onChange={(v: string) => update(index, 'date_to', v)} />
         </div>
@@ -151,8 +225,8 @@ export default function PositionsEditor({ memberId, initialPositions }: { member
   })}<div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}><button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save positions'}</button>{message ? <span style={{ color: '#1f6f43' }}>{message}</span> : null}{error ? <span style={{ color: 'crimson' }}>{error}</span> : null}</div></div>;
 }
 
-function Field({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
-  return <label style={{ display: 'grid', gap: 6 }}><span style={labelStyle}>{label}</span><input type={type} value={value} onChange={(e) => onChange(e.target.value)} style={inputStyle} /></label>;
+function Field({ label, value, onChange, type = 'text', placeholder }: { label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string }) {
+  return <label style={{ display: 'grid', gap: 6 }}><span style={labelStyle}>{label}</span><input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} style={inputStyle} /></label>;
 }
 
 const cardStyle: React.CSSProperties = { background: '#fff', padding: 20, borderRadius: 16, boxShadow: '0 8px 24px rgba(16,35,63,0.08)', display: 'grid', gap: 16 };
