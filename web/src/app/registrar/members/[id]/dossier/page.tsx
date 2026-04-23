@@ -30,6 +30,15 @@ export default function MemberDossierPage() {
   if (loading) return <RegistrarShell title="Loading Dossier..." subtitle="Preparing full record."><div style={center}>Preparing Member Dossier...</div></RegistrarShell>;
   if (!member) return <RegistrarShell title="Error" subtitle="Member not found."><div>Record not found.</div></RegistrarShell>;
 
+  const displayTitle = formatMemberTitle(member.title);
+
+  const formatDate = (dateStr: any) => {
+    if (!dateStr || typeof dateStr !== 'string') return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr; // Return raw if invalid
+    return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+  };
+
   // Safe sorting function
   const safeSort = (arr: any[], dateField: string) => {
     return [...(arr || [])].sort((a, b) => {
@@ -75,7 +84,7 @@ export default function MemberDossierPage() {
                 </tr>
                 <tr>
                   <th style={th}>Date of Birth</th>
-                  <td style={td}>{member.date_of_birth || 'N/A'}</td>
+                  <td style={td}>{formatDate(member.date_of_birth)}</td>
                   <th style={th}>Place of Birth</th>
                   <td style={td}>{member.birth_town || 'N/A'} {member.birth_region ? `(${member.birth_region})` : ''}</td>
                 </tr>
@@ -128,7 +137,7 @@ export default function MemberDossierPage() {
                   <tr key={idx}>
                     <td style={td}>Child</td>
                     <td style={td}>{c.child_name || 'N/A'}</td>
-                    <td style={td}>{c.birth_date ? `Born: ${c.birth_date}` : 'N/A'}</td>
+                    <td style={td}>{c.birth_date ? `Born: ${formatDate(c.birth_date)}` : 'N/A'}</td>
                   </tr>
                 ))}
                 {!member.spouse?.length && !member.children?.length && (
@@ -152,7 +161,7 @@ export default function MemberDossierPage() {
               <tbody>
                 {sortedDegrees.map((d: any, idx: number) => (
                   <tr key={idx}>
-                    <td style={td}>{d.degree_date || '—'}</td>
+                    <td style={td}>{formatDate(d.degree_date)}</td>
                     <td style={td}>{d.degree_type || 'N/A'}</td>
                     <td style={td}>{d.degree_place || 'N/A'}</td>
                   </tr>
@@ -179,7 +188,7 @@ export default function MemberDossierPage() {
               <tbody>
                 {sortedPositions.map((p: any, idx: number) => (
                   <tr key={idx}>
-                    <td style={td}>{safeSplitYear(p.date_from)} - {p.date_to ? safeSplitYear(p.date_to) : 'Present'}</td>
+                    <td style={td}>{formatDate(p.date_from)} - {p.date_to ? formatDate(p.date_to) : 'Present'}</td>
                     <td style={td}>{p.position_title || 'N/A'}</td>
                     <td style={td}>{p.level || 'Local'}</td>
                     <td style={td}>{p.rank || 'N/A'}</td>
