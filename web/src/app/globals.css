@@ -169,3 +169,13 @@ body {
   font-weight: 700;
   border: 1px solid var(--gold-pale);
 }
+
+/* KSJI Print Optimization */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white !important; color: black !important; }
+  main, .print-main { width: 100% !important; margin: 0 !important; padding: 0 !important; display: block !important; }
+  .premium-header, aside { display: none !important; }
+  .card { border: none !important; box-shadow: none !important; }
+  .print-layout { display: block !important; margin: 0 !important; }
+}

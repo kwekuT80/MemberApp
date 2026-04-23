@@ -183,30 +183,6 @@ export default function MemberDossierPage() {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @page {
-          size: A4;
-          margin: 15mm;
-        }
-        @media print {
-          .no-print { display: none !important; }
-          #dossier-print { 
-            box-shadow: none !important; 
-            border: none !important; 
-            margin: 0 !important; 
-            padding: 0 !important; 
-            width: 100% !important;
-            font-family: "Georgia", "Times New Roman", serif !important;
-          }
-          body { background: white !important; }
-          .dossier-table th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; }
-          .dossier-table td, .dossier-table th { border: 1px solid #94a3b8 !important; }
-          thead th { background-color: #10233f !important; color: white !important; -webkit-print-color-adjust: exact; }
-          tr { page-break-inside: avoid; }
-          h2 { border-left: 6px solid #d4af37 !important; -webkit-print-color-adjust: exact; }
-        }
-      `}</style>
     </RegistrarShell>
   );
 }

@@ -3,16 +3,6 @@ import Sidebar, { SidebarItem } from './Sidebar';
 export default function AppShell({ children, title, subtitle, navItems }: { children: React.ReactNode; title: string; subtitle?: string; navItems: SidebarItem[]; }) {
   return (
     <div style={{ minHeight: '100vh' }}>
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          body { background: white !important; }
-          main { width: 100% !important; margin: 0 !important; padding: 0 !important; }
-          .premium-header { display: none !important; }
-          aside { display: none !important; }
-          .card { border: none !important; box-shadow: none !important; }
-        }
-      `}</style>
       <header className="premium-header no-print">
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <p className="title-gold">Official Registry Portal</p>

@@ -193,28 +193,6 @@ ${degrees.map(d => `• ${formatDate(d.degree_date)}: ${d.degree_type || 'Exempl
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @page {
-          size: A4;
-          margin: 20mm;
-        }
-        @media print {
-          .no-print { display: none !important; }
-          body { background: white !important; }
-          #bio-content { 
-            box-shadow: none !important; 
-            border: none !important; 
-            margin: 0 !important; 
-            width: 100% !important; 
-            padding: 0 !important;
-            font-family: "Georgia", "Times New Roman", serif !important;
-          }
-          h1 { color: #10233f !important; -webkit-print-color-adjust: exact; }
-          strong { color: black !important; }
-          .divider { background-color: #d4af37 !important; -webkit-print-color-adjust: exact; }
-        }
-      `}</style>
     </RegistrarShell>
   );
 }
