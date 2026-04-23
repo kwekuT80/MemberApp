@@ -31,32 +31,36 @@ export default function MemberDossierPage() {
   if (!member) return <RegistrarShell title="Error" subtitle="Member not found."><div>Record not found.</div></RegistrarShell>;
 
   const displayTitle = formatMemberTitle(member.title);
-  const firstName = (member.first_name || '').trim();
-  const otherNames = (member.other_names || '').trim();
-  const surname = (member.surname || '').trim();
+  const firstName = String(member.first_name || '').trim();
+  const otherNames = String(member.other_names || '').trim();
+  const surname = String(member.surname || '').trim();
 
   const formatDate = (dateStr: any) => {
     if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') return '—';
     try {
       const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
+      if (isNaN(d.getTime())) return '—';
       return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
     } catch (e) {
       return '—';
     }
   };
 
-  const safeSort = (arr: any[], dateField: string) => {
-    const validArr = Array.isArray(arr) ? arr : [];
-    return [...validArr].sort((a, b) => {
-      const dateA = a[dateField] ? new Date(a[dateField]).getTime() : 0;
-      const dateB = b[dateField] ? new Date(b[dateField]).getTime() : 0;
-      return (isNaN(dateA) ? 0 : dateA) - (isNaN(dateB) ? 0 : dateB);
-    });
-  };
+  const sortedDegrees = Array.isArray(member.degrees) 
+    ? [...member.degrees].sort((a, b) => {
+        const da = a.degree_date ? new Date(a.degree_date).getTime() : 0;
+        const db = b.degree_date ? new Date(b.degree_date).getTime() : 0;
+        return (isNaN(da) ? 0 : da) - (isNaN(db) ? 0 : db);
+      })
+    : [];
 
-  const sortedDegrees = safeSort(member.degrees, 'degree_date');
-  const sortedPositions = safeSort(member.positions, 'date_from');
+  const sortedPositions = Array.isArray(member.positions)
+    ? [...member.positions].sort((a, b) => {
+        const da = a.date_from ? new Date(a.date_from).getTime() : 0;
+        const db = b.date_from ? new Date(b.date_from).getTime() : 0;
+        return (isNaN(da) ? 0 : da) - (isNaN(db) ? 0 : db);
+      })
+    : [];
 
   return (
     <RegistrarShell title="Master Member Record" subtitle={`Full Dossier for ${displayTitle} ${surname}`}>
