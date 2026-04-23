@@ -30,17 +30,20 @@ export default function MemberBioPage() {
   if (loading) return <RegistrarShell title="Loading Bio..." subtitle="Please wait."><div style={loadingStyle}>Preparing Testimonial...</div></RegistrarShell>;
   if (!member) return <RegistrarShell title="Error" subtitle="Member not found."><div>Record not found.</div></RegistrarShell>;
 
+  const displayTitle = member.title === 'N/B' ? 'Noble Brother' : member.title;
   const joinedDate = member.date_joined ? new Date(member.date_joined).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : 'an unknown date';
   const childCount = member.children?.length || 0;
   const isMarried = member.spouse && member.spouse.length > 0;
   const spouseName = isMarried ? member.spouse[0].spouse_name : null;
+  const isDeceased = !!member.is_deceased;
 
   // Group positions by level
   const positions = member.positions || [];
   const sortedPositions = [...positions].sort((a, b) => new Date(a.date_from || 0).getTime() - new Date(b.date_from || 0).getTime());
+  const degrees = [...(member.degrees || [])].sort((a, b) => new Date(a.degree_date || 0).getTime() - new Date(b.degree_date || 0).getTime());
 
   return (
-    <RegistrarShell title="Service Bio & Testimonial" subtitle={`A formal summary of Brother ${member.surname}'s journey.`}>
+    <RegistrarShell title="Service Bio & Testimonial" subtitle={`A formal summary of ${displayTitle} ${member.surname}'s journey.`}>
       <div style={container}>
         {/* PRINT BUTTON */}
         <div className="no-print" style={printHeader}>
@@ -51,13 +54,13 @@ export default function MemberBioPage() {
         {/* THE BIO CARD */}
         <div id="bio-content" style={paper}>
           <div style={header}>
-            <h1 style={title}>{member.title} {member.first_name} {member.surname}</h1>
+            <h1 style={title}>{displayTitle} {member.first_name} {member.surname}</h1>
             <div style={divider} />
           </div>
 
           <section style={section}>
             <p style={narrative}>
-              Brother <strong>{member.first_name} {member.surname}</strong> joined the Knights of St. John International in <strong>{joinedDate}</strong>. 
+              {displayTitle} <strong>{member.first_name} {member.surname}</strong> joined the Knights of St. John International in <strong>{joinedDate}</strong>. 
               Over the years, he has demonstrated unwavering commitment to the Order's values of Charity, Fraternity, and Service.
             </p>
           </section>
@@ -96,16 +99,35 @@ export default function MemberBioPage() {
             </section>
           )}
 
-          {member.degrees?.length > 0 && (
+          {degrees.length > 0 && (
             <section style={section}>
               <h2 style={sectionTitle}>Degrees Attained</h2>
-              <p style={narrative}>
-                Throughout his progression in the Order, Brother {member.surname} has attained the following degrees:
-                <br />
-                <span style={degreeList}>
-                  {member.degrees.map((d: any) => d.degree_type).join(' • ')}
-                </span>
+              <div style={list}>
+                {degrees.map((d: any, idx: number) => (
+                  <div key={idx} style={listItem}>
+                    <span style={date}>{d.degree_date ? new Date(d.degree_date).getFullYear() : '—'}</span>
+                    <div style={content}>
+                      <strong>{d.degree_type}</strong>
+                      {d.degree_place && <div style={levelTag}>Conferred at {d.degree_place}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {isDeceased && (
+            <section style={{ ...section, marginTop: 60, textAlign: 'center' }}>
+              <div style={{ ...divider, width: 40, opacity: 0.3 }} />
+              <p style={{ ...narrative, fontStyle: 'italic', color: '#718096' }}>
+                May his soul, and the souls of all the faithful departed, 
+                through the mercy of God, rest in peace. Amen.
               </p>
+              {member.date_of_death && (
+                <p style={{ fontSize: 14, color: '#a0aec0' }}>
+                  Called to Glory on {new Date(member.date_of_death).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              )}
             </section>
           )}
 
