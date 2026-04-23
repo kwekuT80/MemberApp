@@ -84,6 +84,7 @@ const POSITION_DATA: Record<string, string[]> = {
     'Inspector',
     'Paymaster',
     'Quartermaster',
+    'District Cadet Coordinator',
   ],
   'Regiment': [
     'Regimental Commander',
@@ -93,6 +94,7 @@ const POSITION_DATA: Record<string, string[]> = {
     'Inspector',
     'Paymaster',
     'Quartermaster',
+    'Regimental Cadet Coordinator',
   ],
   'Grand Commandery': [
     'Spiritual Director',
