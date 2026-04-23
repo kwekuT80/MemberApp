@@ -1,3 +1,9 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import RegistrarShell from '@/components/layout/RegistrarShell';
+import { createClient } from '@/lib/supabase/client';
 import { formatMemberTitle, formatExemplification } from '@/lib/utils/ksji-logic';
 
 export default function MemberBioPage() {

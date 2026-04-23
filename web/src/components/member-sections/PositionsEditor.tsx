@@ -28,7 +28,8 @@ const HIERARCHY_LEVELS = [
   'Regiment',
   'Grand Commandery',
   'Supreme Subordinate Commandery',
-  'Supreme Commandery'
+  'Supreme Commandery',
+  'Chevaliers (4th Degree)'
 ];
 
 const RANK_OPTIONS = [
@@ -142,6 +143,16 @@ const POSITION_DATA: Record<string, string[]> = {
     'Quartermaster-General',
     'Supreme Organizer',
     'Aide-de-Camp',
+  ],
+  'Chevaliers (4th Degree)': [
+    'Grand Master',
+    '1st Vice Grand Master',
+    '2nd Vice Grand Master',
+    'Scribe',
+    'Financial Secretary',
+    'Treasurer',
+    '1st Inspector',
+    '2nd Inspector',
   ],
 };
 
