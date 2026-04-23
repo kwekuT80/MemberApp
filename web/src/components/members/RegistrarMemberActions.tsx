@@ -5,7 +5,7 @@ export default function RegistrarMemberActions({ memberId }: { memberId: string 
     ['Edit main record', `/registrar/members/${memberId}/edit`],
     ['Digital ID Card', `/registrar/members/${memberId}/id-card`],
     ['Family', `/registrar/members/${memberId}/family`],
-    ['Degree', `/registrar/members/${memberId}/education`],
+    ['Exemplification', `/registrar/members/${memberId}/education`],
     ['Positions', `/registrar/members/${memberId}/positions`],
     ['Military', `/registrar/members/${memberId}/military`],
     ['Emergency', `/registrar/members/${memberId}/emergency`],

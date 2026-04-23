@@ -1,10 +1,4 @@
-'use client';
-
-import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import RegistrarShell from '@/components/layout/RegistrarShell';
-import { getMemberById } from '@/services/memberService';
-import { createClient } from '@/lib/supabase/client';
+import { formatMemberTitle, formatExemplification } from '@/lib/utils/ksji-logic';
 
 export default function MemberBioPage() {
   const { id } = useParams();
@@ -30,7 +24,7 @@ export default function MemberBioPage() {
   if (loading) return <RegistrarShell title="Loading Bio..." subtitle="Please wait."><div style={loadingStyle}>Preparing Testimonial...</div></RegistrarShell>;
   if (!member) return <RegistrarShell title="Error" subtitle="Member not found."><div>Record not found.</div></RegistrarShell>;
 
-  const displayTitle = member.title === 'N/B' ? 'Noble Brother' : member.title;
+  const displayTitle = formatMemberTitle(member.title);
   const joinedDate = member.date_joined ? new Date(member.date_joined).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : 'an unknown date';
   const childCount = member.children?.length || 0;
   const isMarried = member.spouse && member.spouse.length > 0;
@@ -101,17 +95,20 @@ export default function MemberBioPage() {
 
           {degrees.length > 0 && (
             <section style={section}>
-              <h2 style={sectionTitle}>Degrees Attained</h2>
+              <h2 style={sectionTitle}>Exemplification History</h2>
               <div style={list}>
-                {degrees.map((d: any, idx: number) => (
-                  <div key={idx} style={listItem}>
-                    <span style={date}>{d.degree_date ? new Date(d.degree_date).getFullYear() : '—'}</span>
-                    <div style={content}>
-                      <strong>{d.degree_type}</strong>
-                      {d.degree_place && <div style={levelTag}>Conferred at {d.degree_place}</div>}
+                {degrees.map((d: any, idx: number) => {
+                  const { year, narrative: degNarrative, details } = formatExemplification(d.degree_type, d.degree_date, d.degree_place);
+                  return (
+                    <div key={idx} style={listItem}>
+                      <span style={date}>{year}</span>
+                      <div style={content}>
+                        <strong>{degNarrative}</strong>
+                        {details && <div style={levelTag}>{details}</div>}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}
