@@ -48,9 +48,12 @@ export default function FamilyEditor({ memberId, initialSpouse, initialChildren 
     setError(null);
 
     const spousePayload = { ...spouse, member_id: memberId, spouse_dob: fromInputDate(spouse.spouse_dob) };
-    const spouseResult = spouse.id
-      ? await supabase.from('spouse').update(spousePayload).eq('id', spouse.id).select().single()
-      : await supabase.from('spouse').insert(spousePayload).select().single();
+    const spouseResult = await supabase
+      .from('spouse')
+      .upsert(spousePayload, { onConflict: 'member_id' })
+      .select()
+      .single();
+
     if (spouseResult.error) {
       setError(spouseResult.error.message);
       setBusy(false);
