@@ -30,10 +30,25 @@ export default function MemberDossierPage() {
   if (loading) return <RegistrarShell title="Loading Dossier..." subtitle="Preparing full record."><div style={center}>Preparing Member Dossier...</div></RegistrarShell>;
   if (!member) return <RegistrarShell title="Error" subtitle="Member not found."><div>Record not found.</div></RegistrarShell>;
 
-  const displayTitle = formatMemberTitle(member.title);
+  // Safe sorting function
+  const safeSort = (arr: any[], dateField: string) => {
+    return [...(arr || [])].sort((a, b) => {
+      const dateA = a[dateField] ? new Date(a[dateField]).getTime() : 0;
+      const dateB = b[dateField] ? new Date(b[dateField]).getTime() : 0;
+      return (isNaN(dateA) ? 0 : dateA) - (isNaN(dateB) ? 0 : dateB);
+    });
+  };
+
+  const sortedDegrees = safeSort(member.degrees, 'degree_date');
+  const sortedPositions = safeSort(member.positions, 'date_from');
+
+  const safeSplitYear = (dateStr: any) => {
+    if (!dateStr || typeof dateStr !== 'string') return '—';
+    return dateStr.split('-')[0] || '—';
+  };
 
   return (
-    <RegistrarShell title="Master Member Record" subtitle={`Full Dossier for ${displayTitle} ${member.surname}`}>
+    <RegistrarShell title="Master Member Record" subtitle={`Full Dossier for ${displayTitle} ${member.surname || ''}`}>
       <div style={container}>
         {/* ACTIONS */}
         <div className="no-print" style={actions}>
@@ -56,19 +71,19 @@ export default function MemberDossierPage() {
               <tbody>
                 <tr>
                   <th style={th}>Full Name</th>
-                  <td style={td} colSpan={3}>{displayTitle} {member.first_name} {member.other_names} {member.surname}</td>
+                  <td style={td} colSpan={3}>{displayTitle} {member.first_name || ''} {member.other_names || ''} {member.surname || ''}</td>
                 </tr>
                 <tr>
                   <th style={th}>Date of Birth</th>
                   <td style={td}>{member.date_of_birth || 'N/A'}</td>
                   <th style={th}>Place of Birth</th>
-                  <td style={td}>{member.birth_town} {member.birth_region ? `(${member.birth_region})` : ''}</td>
+                  <td style={td}>{member.birth_town || 'N/A'} {member.birth_region ? `(${member.birth_region})` : ''}</td>
                 </tr>
                 <tr>
                   <th style={th}>Nationality</th>
-                  <td style={td}>{member.nationality}</td>
+                  <td style={td}>{member.nationality || 'N/A'}</td>
                   <th style={th}>Home Town</th>
-                  <td style={td}>{member.home_town}</td>
+                  <td style={td}>{member.home_town || 'N/A'}</td>
                 </tr>
                 <tr>
                   <th style={th}>Email</th>
@@ -105,14 +120,14 @@ export default function MemberDossierPage() {
                 {member.spouse?.map((s: any, idx: number) => (
                   <tr key={idx}>
                     <td style={td}>Spouse</td>
-                    <td style={td}>{s.spouse_name}</td>
+                    <td style={td}>{s.spouse_name || 'N/A'}</td>
                     <td style={td}>{s.spouse_parish ? `Parish: ${s.spouse_parish}` : 'N/A'}</td>
                   </tr>
                 ))}
                 {member.children?.map((c: any, idx: number) => (
                   <tr key={idx}>
                     <td style={td}>Child</td>
-                    <td style={td}>{c.child_name}</td>
+                    <td style={td}>{c.child_name || 'N/A'}</td>
                     <td style={td}>{c.birth_date ? `Born: ${c.birth_date}` : 'N/A'}</td>
                   </tr>
                 ))}
@@ -135,14 +150,14 @@ export default function MemberDossierPage() {
                 </tr>
               </thead>
               <tbody>
-                {member.degrees?.sort((a: any, b: any) => new Date(a.degree_date || 0).getTime() - new Date(b.degree_date || 0).getTime()).map((d: any, idx: number) => (
+                {sortedDegrees.map((d: any, idx: number) => (
                   <tr key={idx}>
                     <td style={td}>{d.degree_date || '—'}</td>
-                    <td style={td}>{d.degree_type}</td>
+                    <td style={td}>{d.degree_type || 'N/A'}</td>
                     <td style={td}>{d.degree_place || 'N/A'}</td>
                   </tr>
                 ))}
-                {!member.degrees?.length && (
+                {sortedDegrees.length === 0 && (
                   <tr><td colSpan={3} style={{ ...td, textAlign: 'center', color: '#718096' }}>No exemplification history records on file.</td></tr>
                 )}
               </tbody>
@@ -162,15 +177,15 @@ export default function MemberDossierPage() {
                 </tr>
               </thead>
               <tbody>
-                {member.positions?.sort((a: any, b: any) => new Date(a.date_from || 0).getTime() - new Date(b.date_from || 0).getTime()).map((p: any, idx: number) => (
+                {sortedPositions.map((p: any, idx: number) => (
                   <tr key={idx}>
-                    <td style={td}>{p.date_from ? p.date_from.split('-')[0] : '—'} - {p.date_to ? p.date_to.split('-')[0] : 'Present'}</td>
-                    <td style={td}>{p.position_title}</td>
+                    <td style={td}>{safeSplitYear(p.date_from)} - {p.date_to ? safeSplitYear(p.date_to) : 'Present'}</td>
+                    <td style={td}>{p.position_title || 'N/A'}</td>
                     <td style={td}>{p.level || 'Local'}</td>
                     <td style={td}>{p.rank || 'N/A'}</td>
                   </tr>
                 ))}
-                {!member.positions?.length && (
+                {sortedPositions.length === 0 && (
                   <tr><td colSpan={4} style={{ ...td, textAlign: 'center', color: '#718096' }}>No position records on file.</td></tr>
                 )}
               </tbody>
