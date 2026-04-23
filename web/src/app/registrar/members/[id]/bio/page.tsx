@@ -83,21 +83,35 @@ ${degrees.map(d => `• ${formatDate(d.degree_date)}: ${d.degree_type || 'Exempl
   if (!member) return <RegistrarShell title="Error" subtitle="Member not found."><div>Record not found.</div></RegistrarShell>;
 
   const displayTitle = formatMemberTitle(member.title);
-  const joinedDate = member.date_joined ? new Date(member.date_joined).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : 'an unknown date';
+  const firstName = (member.first_name || '').trim();
+  const surname = (member.surname || '').trim();
   const childCount = member.children?.length || 0;
   const isMarried = member.spouse && member.spouse.length > 0;
   const spouseName = isMarried ? member.spouse[0].spouse_name : null;
   const isDeceased = !!member.is_deceased;
 
-  // Group positions by level
-  const positions = member.positions || [];
-  const sortedPositions = [...positions].sort((a, b) => new Date(a.date_from || 0).getTime() - new Date(b.date_from || 0).getTime());
+  const formatDate = (dateStr: any) => {
+    if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') return '—';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '—';
+      return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+    } catch (e) {
+      return '—';
+    }
+  };
+
+  const joinedDate = member.date_joined ? 
+    new Date(member.date_joined).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : 
+    'an unknown date';
+
   const degrees = [...(member.degrees || [])].sort((a, b) => new Date(a.degree_date || 0).getTime() - new Date(b.degree_date || 0).getTime());
+  const sortedPositions = [...(member.positions || [])].sort((a, b) => new Date(a.date_from || 0).getTime() - new Date(b.date_from || 0).getTime());
 
   return (
-    <RegistrarShell title="Service Bio & Testimonial" subtitle={`A formal summary of ${displayTitle} ${member.surname}'s journey.`}>
+    <RegistrarShell title="Service Bio & Testimonial" subtitle={`Biographical Record for ${displayTitle} ${surname}`}>
       <div style={container}>
-        {/* PRINT BUTTON */}
+        {/* ACTIONS */}
         <div className="no-print" style={printHeader}>
           <button onClick={() => window.print()} style={printButton}>Print Testimonial</button>
           <button onClick={exportToRTF} style={{ ...printButton, background: '#d4af37' }}>Export to Word</button>
@@ -107,14 +121,15 @@ ${degrees.map(d => `• ${formatDate(d.degree_date)}: ${d.degree_type || 'Exempl
         {/* THE BIO CARD */}
         <div id="bio-content" style={paper}>
           <div style={header}>
-            <h1 style={title}>{displayTitle} {member.first_name} {member.surname}</h1>
+            <div style={{ fontSize: 12, letterSpacing: 2, color: '#a0aec0', marginBottom: 10 }}>OFFICIAL KSJI TESTIMONIAL</div>
+            <h1 style={title}>{displayTitle.toUpperCase()} {firstName.toUpperCase()} {surname.toUpperCase()}</h1>
             <div style={divider} />
           </div>
 
           <section style={section}>
             <p style={narrative}>
-              {displayTitle} <strong>{member.first_name} {member.surname}</strong> joined the Knights of St. John International in <strong>{joinedDate}</strong>. 
-              Over the years, he has demonstrated unwavering commitment to the Order's values of Charity, Fraternity, and Service.
+              <strong>{displayTitle} {firstName} {surname}</strong> was exemplified into the Knights of St. John International in <strong>{joinedDate}</strong>. 
+              Throughout his service, he has remained a steadfast pillar of the Order, embodying the virtues of Charity, Fraternity, and Service.
             </p>
           </section>
 

@@ -31,17 +31,24 @@ export default function MemberDossierPage() {
   if (!member) return <RegistrarShell title="Error" subtitle="Member not found."><div>Record not found.</div></RegistrarShell>;
 
   const displayTitle = formatMemberTitle(member.title);
+  const firstName = (member.first_name || '').trim();
+  const otherNames = (member.other_names || '').trim();
+  const surname = (member.surname || '').trim();
 
   const formatDate = (dateStr: any) => {
-    if (!dateStr || typeof dateStr !== 'string') return '—';
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr; // Return raw if invalid
-    return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+    if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') return '—';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+    } catch (e) {
+      return '—';
+    }
   };
 
-  // Safe sorting function
   const safeSort = (arr: any[], dateField: string) => {
-    return [...(arr || [])].sort((a, b) => {
+    const validArr = Array.isArray(arr) ? arr : [];
+    return [...validArr].sort((a, b) => {
       const dateA = a[dateField] ? new Date(a[dateField]).getTime() : 0;
       const dateB = b[dateField] ? new Date(b[dateField]).getTime() : 0;
       return (isNaN(dateA) ? 0 : dateA) - (isNaN(dateB) ? 0 : dateB);
@@ -51,13 +58,8 @@ export default function MemberDossierPage() {
   const sortedDegrees = safeSort(member.degrees, 'degree_date');
   const sortedPositions = safeSort(member.positions, 'date_from');
 
-  const safeSplitYear = (dateStr: any) => {
-    if (!dateStr || typeof dateStr !== 'string') return '—';
-    return dateStr.split('-')[0] || '—';
-  };
-
   return (
-    <RegistrarShell title="Master Member Record" subtitle={`Full Dossier for ${displayTitle} ${member.surname || ''}`}>
+    <RegistrarShell title="Master Member Record" subtitle={`Full Dossier for ${displayTitle} ${surname}`}>
       <div style={container}>
         {/* ACTIONS */}
         <div className="no-print" style={actions}>
@@ -80,7 +82,7 @@ export default function MemberDossierPage() {
               <tbody>
                 <tr>
                   <th style={th}>Full Name</th>
-                  <td style={td} colSpan={3}>{displayTitle} {member.first_name || ''} {member.other_names || ''} {member.surname || ''}</td>
+                  <td style={td} colSpan={3}>{displayTitle} {firstName} {otherNames} {surname}</td>
                 </tr>
                 <tr>
                   <th style={th}>Date of Birth</th>
