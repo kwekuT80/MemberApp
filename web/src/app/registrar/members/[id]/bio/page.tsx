@@ -1,0 +1,155 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import RegistrarShell from '@/components/layout/RegistrarShell';
+import { getMemberById } from '@/services/memberService';
+import { createClient } from '@/lib/supabase/client';
+
+export default function MemberBioPage() {
+  const { id } = useParams();
+  const router = useRouter();
+  const [member, setMember] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('members')
+        .select('*, spouse(*), children(*), positions(*), degrees(*)')
+        .eq('id', id)
+        .single();
+      
+      if (data) setMember(data);
+      setLoading(false);
+    }
+    load();
+  }, [id]);
+
+  if (loading) return <RegistrarShell title="Loading Bio..." subtitle="Please wait."><div style={loadingStyle}>Preparing Testimonial...</div></RegistrarShell>;
+  if (!member) return <RegistrarShell title="Error" subtitle="Member not found."><div>Record not found.</div></RegistrarShell>;
+
+  const joinedDate = member.date_joined ? new Date(member.date_joined).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : 'an unknown date';
+  const childCount = member.children?.length || 0;
+  const isMarried = member.spouse && member.spouse.length > 0;
+  const spouseName = isMarried ? member.spouse[0].spouse_name : null;
+
+  // Group positions by level
+  const positions = member.positions || [];
+  const sortedPositions = [...positions].sort((a, b) => new Date(a.date_from || 0).getTime() - new Date(b.date_from || 0).getTime());
+
+  return (
+    <RegistrarShell title="Service Bio & Testimonial" subtitle={`A formal summary of Brother ${member.surname}'s journey.`}>
+      <div style={container}>
+        {/* PRINT BUTTON */}
+        <div className="no-print" style={printHeader}>
+          <button onClick={() => window.print()} style={printButton}>Print Testimonial</button>
+          <button onClick={() => router.back()} style={backButton}>Back</button>
+        </div>
+
+        {/* THE BIO CARD */}
+        <div id="bio-content" style={paper}>
+          <div style={header}>
+            <h1 style={title}>{member.title} {member.first_name} {member.surname}</h1>
+            <div style={divider} />
+          </div>
+
+          <section style={section}>
+            <p style={narrative}>
+              Brother <strong>{member.first_name} {member.surname}</strong> joined the Knights of St. John International in <strong>{joinedDate}</strong>. 
+              Over the years, he has demonstrated unwavering commitment to the Order's values of Charity, Fraternity, and Service.
+            </p>
+          </section>
+
+          <section style={section}>
+            <h2 style={sectionTitle}>Family & Personal Life</h2>
+            <p style={narrative}>
+              {isMarried ? (
+                <>He is happily married to <strong>{spouseName}</strong>. </>
+              ) : (
+                <>Regarding his personal life, </>
+              )}
+              {childCount > 0 ? (
+                <>The family is blessed with <strong>{childCount} {childCount === 1 ? 'child' : 'children'}</strong>.</>
+              ) : (
+                <>He is a dedicated member of his community and parish.</>
+              )}
+              {member.occupation && <> Professionally, he has served as a <strong>{member.occupation}</strong>{member.workplace ? ` at ${member.workplace}` : ''}.</>}
+            </p>
+          </section>
+
+          {sortedPositions.length > 0 && (
+            <section style={section}>
+              <h2 style={sectionTitle}>Record of Service</h2>
+              <div style={list}>
+                {sortedPositions.map((pos: any, idx: number) => (
+                  <div key={idx} style={listItem}>
+                    <span style={date}>{pos.date_from ? new Date(pos.date_from).getFullYear() : '—'}</span>
+                    <div style={content}>
+                      <strong>{pos.position_title}</strong>
+                      <div style={levelTag}>{pos.level || 'Local'} Level</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {member.degrees?.length > 0 && (
+            <section style={section}>
+              <h2 style={sectionTitle}>Degrees Attained</h2>
+              <p style={narrative}>
+                Throughout his progression in the Order, Brother {member.surname} has attained the following degrees:
+                <br />
+                <span style={degreeList}>
+                  {member.degrees.map((d: any) => d.degree_type).join(' • ')}
+                </span>
+              </p>
+            </section>
+          )}
+
+          <div style={footer}>
+            <p style={signatureLine}>Official Registrar Summary</p>
+            <p style={stamp}>Generated on {new Date().toLocaleDateString()}</p>
+          </div>
+        </div>
+      </div>
+
+      <style jsx>{`
+        @media print {
+          .no-print { display: none !important; }
+          body { background: white !important; }
+          #bio-content { box-shadow: none !important; border: 1px solid #eee !important; margin: 0 !important; width: 100% !important; }
+        }
+      `}</style>
+    </RegistrarShell>
+  );
+}
+
+const container: React.CSSProperties = { maxWidth: 850, margin: '0 auto', paddingBottom: 60 };
+const printHeader: React.CSSProperties = { display: 'flex', gap: 12, marginBottom: 20 };
+const printButton: React.CSSProperties = { background: '#10233f', color: 'white', border: 0, padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 700 };
+const backButton: React.CSSProperties = { background: '#fff', border: '1px solid #cfd8e3', padding: '10px 20px', borderRadius: 8, cursor: 'pointer' };
+
+const paper: React.CSSProperties = { background: '#fff', padding: '60px 80px', borderRadius: 2, boxShadow: '0 12px 40px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', minHeight: '1000px' };
+const header: React.CSSProperties = { textAlign: 'center', marginBottom: 40 };
+const title: React.CSSProperties = { fontSize: 32, color: '#10233f', margin: 0, letterSpacing: '-0.5px' };
+const divider: React.CSSProperties = { width: 80, height: 4, background: '#d4af37', margin: '20px auto' };
+
+const section: React.CSSProperties = { marginBottom: 32 };
+const sectionTitle: React.CSSProperties = { fontSize: 18, color: '#53657d', borderBottom: '1px solid #edf2f7', paddingBottom: 8, marginBottom: 16, textTransform: 'uppercase', letterSpacing: '1px' };
+const narrative: React.CSSProperties = { fontSize: 17, lineHeight: 1.8, color: '#2d3748' };
+
+const list: React.CSSProperties = { display: 'grid', gap: 12 };
+const listItem: React.CSSProperties = { display: 'flex', gap: 20, alignItems: 'flex-start' };
+const date: React.CSSProperties = { minWidth: 60, fontWeight: 700, color: '#d4af37', fontSize: 15 };
+const content: React.CSSProperties = { display: 'grid', gap: 2 };
+const levelTag: React.CSSProperties = { fontSize: 12, color: '#718096', fontWeight: 600 };
+
+const degreeList: React.CSSProperties = { display: 'inline-block', marginTop: 12, fontWeight: 700, color: '#10233f', fontSize: 16 };
+
+const footer: React.CSSProperties = { marginTop: 80, textAlign: 'center', borderTop: '1px solid #eee', paddingTop: 40 };
+const signatureLine: React.CSSProperties = { fontSize: 14, color: '#a0aec0', fontStyle: 'italic' };
+const stamp: React.CSSProperties = { fontSize: 11, color: '#cbd5e0', marginTop: 10 };
+const loadingStyle: React.CSSProperties = { padding: 40, textAlign: 'center', fontSize: 18, color: '#10233f' };
