@@ -17,7 +17,7 @@ const toInputDate = (value?: string | null) => {
 };
 
 const fromInputDate = (value?: string | null) => {
-  if (!value) return '';
+  if (!value) return null;
   return value;
 };
 
