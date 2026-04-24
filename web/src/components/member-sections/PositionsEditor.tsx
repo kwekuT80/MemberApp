@@ -29,7 +29,8 @@ const HIERARCHY_LEVELS = [
   'Grand Commandery',
   'Supreme Subordinate Commandery',
   'Supreme Commandery',
-  'Chevaliers (4th Degree)'
+  'Chevaliers (4th Degree)',
+  'Nobles Temple'
 ];
 
 const RANK_OPTIONS = [
@@ -153,6 +154,14 @@ const POSITION_DATA: Record<string, string[]> = {
     'Treasurer',
     '1st Inspector',
     '2nd Inspector',
+  ],
+  'Nobles Temple': [
+    'Noble Grand Master',
+    '1st Vice Grand Master',
+    '2nd Vice Grand Master',
+    'Noble Scribe',
+    'Noble Keeper of the Exchequer',
+    'Spiritual Director',
   ],
 };
 
