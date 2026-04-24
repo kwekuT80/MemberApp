@@ -207,7 +207,6 @@ export default function MemberDossierPage() {
               </tbody>
             </table>
           </section>
-tion>
 
           <div style={footer}>
             <p>End of Official Record</p>
