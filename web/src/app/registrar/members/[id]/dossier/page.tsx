@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { createClient } from '@/lib/supabase/client';
-import { formatMemberTitle, formatExemplification } from '@/lib/utils/ksji-logic';
+import { formatMemberTitle, formatExemplification, formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 export default function MemberDossierPage() {
   const { id } = useParams();
@@ -35,15 +35,7 @@ export default function MemberDossierPage() {
   const otherNames = String(member.other_names || '').trim();
   const surname = String(member.surname || '').trim();
 
-  // Extreme Safety Formatting
-  const formatDate = (dateStr: any) => {
-    if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') return '—';
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return '—';
-      return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
-    } catch (e) { return '—'; }
-  };
+  // Use formatDisplayDate from ksji-logic
 
   // Cast Iron Array Handling
   const safeDegrees = Array.isArray(member.degrees) ? [...member.degrees] : [];
@@ -91,7 +83,7 @@ export default function MemberDossierPage() {
                 </tr>
                 <tr>
                   <th style={th}>Date of Birth</th>
-                  <td style={td}>{formatDate(member.date_of_birth)}</td>
+                  <td style={td}>{formatDisplayDate(member.date_of_birth)}</td>
                   <th style={th}>Place of Birth</th>
                   <td style={td}>{member.birth_town || 'N/A'} {member.birth_region ? `(${member.birth_region})` : ''}</td>
                 </tr>
@@ -144,7 +136,7 @@ export default function MemberDossierPage() {
                   <tr key={idx}>
                     <td style={td}>Child</td>
                     <td style={td}>{c.child_name || 'N/A'}</td>
-                    <td style={td}>{c.birth_date ? `Born: ${formatDate(c.birth_date)}` : 'N/A'}</td>
+                    <td style={td}>{c.birth_date ? `Born: ${formatDisplayDate(c.birth_date)}` : 'N/A'}</td>
                   </tr>
                 ))}
                 {safeSpouse.length === 0 && safeChildren.length === 0 && (
@@ -168,7 +160,7 @@ export default function MemberDossierPage() {
               <tbody>
                 {sortedDegrees.map((d: any, idx: number) => (
                   <tr key={idx}>
-                    <td style={td}>{formatDate(d.degree_date)}</td>
+                    <td style={td}>{formatDisplayDate(d.degree_date)}</td>
                     <td style={td}>{d.degree_type || 'N/A'}</td>
                     <td style={td}>{d.degree_place || 'N/A'}</td>
                   </tr>
@@ -195,7 +187,7 @@ export default function MemberDossierPage() {
               <tbody>
                 {sortedPositions.map((p: any, idx: number) => (
                   <tr key={idx}>
-                    <td style={td}>{formatDate(p.date_from)} - {p.date_to ? formatDate(p.date_to) : 'Present'}</td>
+                    <td style={td}>{formatDisplayDate(p.date_from)} - {p.date_to ? formatDisplayDate(p.date_to) : 'Present'}</td>
                     <td style={td}>{p.position_title || 'N/A'}</td>
                     <td style={td}>{p.level || 'Local'}</td>
                     <td style={td}>{p.rank || 'N/A'}</td>

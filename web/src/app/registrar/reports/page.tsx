@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { createClient } from '@/lib/supabase/client';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
@@ -30,12 +31,7 @@ export default function ReportsPage() {
     setLoading(false);
   }
 
-  const formatDate = (date: Date) => {
-    const d = date.getDate().toString().padStart(2, '0');
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const y = date.getFullYear();
-    return `${d}/${m}/${y}`;
-  };
+  // Use formatDisplayDate from ksji-logic
 
   const downloadCSV = () => {
     if (!data.length) return;
@@ -176,7 +172,7 @@ export default function ReportsPage() {
             <div className="report-header" style={{ textAlign: 'center', marginBottom: 40, borderBottom: '3px solid var(--gold)', paddingBottom: 20 }}>
               <img src="/logo.png" alt="KSJI Logo" style={{ width: 80, height: 80, marginBottom: 15, objectFit: 'contain' }} />
               <h1 style={{ color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: 2, margin: 0 }}>Official Registrar Report</h1>
-              <p style={{ color: 'var(--gold)', fontWeight: 700, margin: '5px 0 0 0' }}>{reportType?.toUpperCase()} | Generated {formatDate(new Date())}</p>
+              <p style={{ color: 'var(--gold)', fontWeight: 700, margin: '5px 0 0 0' }}>{reportType?.toUpperCase()} | Generated {formatDisplayDate(new Date().toISOString())}</p>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -201,8 +197,8 @@ export default function ReportsPage() {
                     <td style={{ padding: 12, fontWeight: 600 }}>{m.title} {m.first_name} {m.surname}</td>
                     {reportType === 'final' ? (
                       <>
-                        <td style={{ padding: 12 }}>{m.date_of_death || '---'}</td>
-                        <td style={{ padding: 12 }}>{m.burial_date || '---'}</td>
+                        <td style={{ padding: 12 }}>{formatDisplayDate(m.date_of_death)}</td>
+                        <td style={{ padding: 12 }}>{formatDisplayDate(m.burial_date)}</td>
                       </>
                     ) : (
                       <>

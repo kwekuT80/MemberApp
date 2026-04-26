@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Member } from '@/types/member';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 export default function MemberSearchTable({ members, basePath='/registrar/members', emptyMessage='No member records found.' }: { members: any[]; basePath?: string; emptyMessage?: string }) {
   if (!members.length) {
@@ -67,7 +68,7 @@ export default function MemberSearchTable({ members, basePath='/registrar/member
                       {latestPos?.position_title || '—'}
                     </div>
                   </td>
-                  <td style={{ fontSize: 12 }}>{member.date_joined || '—'}</td>
+                  <td style={{ fontSize: 12 }}>{formatDisplayDate(member.date_joined)}</td>
                   <td align='center'>
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                       <Link href={`${basePath}/${member.id}`} className="tab tab-active" style={{ padding: '6px 12px', fontSize: 12 }}>

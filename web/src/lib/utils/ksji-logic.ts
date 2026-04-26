@@ -30,3 +30,17 @@ export function formatExemplification(degreeType: string, date?: string | null, 
     details: place ? `at ${place}` : null
   };
 }
+
+/**
+ * Formats a date string to DD-MMM-YYYY (e.g., 15-Apr-2023) to avoid confusion.
+ */
+export function formatDisplayDate(dateStr: string | null | undefined): string {
+  if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') return '—';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+  } catch (e) {
+    return '—';
+  }
+}
