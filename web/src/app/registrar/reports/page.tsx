@@ -64,7 +64,9 @@ export default function ReportsPage() {
         } else if (type === 'el_4th') {
           if (!has4th && uniformDate && uniformDate <= threeYearsAgo) return true;
         } else if (type === 'el_5th') {
-          if (!has5th && ((uniformDate && uniformDate <= tenYearsAgo) || (joinedDate && joinedDate <= fifteenYearsAgo))) return true;
+          const titleUpper = (member.title || '').toUpperCase();
+          const alreadyNoble = titleUpper.includes('N/B') || titleUpper.includes('NOBLE');
+          if (!has5th && !alreadyNoble && ((uniformDate && uniformDate <= tenYearsAgo) || (joinedDate && joinedDate <= fifteenYearsAgo))) return true;
         } else if (type === 'birthdays') {
           if (member.date_of_birth) {
             const dob = new Date(member.date_of_birth);
