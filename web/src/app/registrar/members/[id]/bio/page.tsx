@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { createClient } from '@/lib/supabase/client';
-import { formatMemberTitle, formatExemplification, formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { formatMemberTitle, formatExemplification, formatDisplayDate, buildServiceNarrative } from '@/lib/utils/ksji-logic';
 
 export default function MemberBioPage() {
   const { id } = useParams();
@@ -90,6 +90,19 @@ ${degrees.map(d => `• ${formatDisplayDate(d.degree_date)}: ${d.degree_type || 
   const degrees = [...(member.degrees || [])].sort((a, b) => new Date(a.degree_date || 0).getTime() - new Date(b.degree_date || 0).getTime());
   const sortedPositions = [...(member.positions || [])].sort((a, b) => new Date(a.date_from || 0).getTime() - new Date(b.date_from || 0).getTime());
 
+  const transferDate = member.transfer_date ? formatDisplayDate(member.transfer_date) : undefined;
+
+  const serviceNarrative = buildServiceNarrative({
+    member,
+    positions: sortedPositions,
+    degrees,
+    joinedDate,
+    displayTitle,
+    firstName,
+    surname,
+    transferDate,
+  });
+
   return (
     <RegistrarShell title="Service Bio & Testimonial" subtitle={`Biographical Record for ${displayTitle} ${surname}`}>
       <div style={container}>
@@ -110,8 +123,7 @@ ${degrees.map(d => `• ${formatDisplayDate(d.degree_date)}: ${d.degree_type || 
 
           <section style={section}>
             <p style={narrative}>
-              <strong>{displayTitle} {firstName} {surname}</strong> was initiated into the Knights of St. John International on <strong>{joinedDate}</strong>. 
-              Throughout his service, he has remained a steadfast pillar of the Order, embodying the virtues of Charity, Fraternity, and Service.
+              {serviceNarrative}
             </p>
           </section>
 
