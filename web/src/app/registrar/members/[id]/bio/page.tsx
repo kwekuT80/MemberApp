@@ -119,7 +119,7 @@ ${degrees.map(d => `• ${formatDisplayDate(d.degree_date)}: ${d.degree_type || 
             <h2 style={sectionTitle}>Family & Personal Life</h2>
             <p style={narrative}>
               {isMarried ? (
-                <>He is happily married to <strong>{spouseName}</strong>. </>
+                <>He is happily married to <strong>{spouseName}</strong>{member.spouse?.[0]?.spouse_denomination ? `, a ${member.spouse[0].spouse_denomination}` : ''}{member.spouse?.[0]?.spouse_parish ? ` of ${member.spouse[0].spouse_parish}` : ''}. </>
               ) : (
                 <>Regarding his personal life, </>
               )}
