@@ -78,27 +78,36 @@ const LEVEL_NARRATIVE_LABEL: Record<string, string> = {
   'Supreme Commandery': 'Supreme Commandery',
 };
 
-// Position titles that indicate a presidency at any level
-const PRESIDENT_TITLES = [
-  'President',
-  'Grand President',
-  'Supreme Subordinate President',
-  'Supreme President',
-  'Grand Master',       // Chevaliers chapter head
-  'Noble Grand Master', // Nobles Temple head
-];
+// Maps exact position titles to their leadership role label used in the narrative
+const LEADERSHIP_ROLE_MAP: Record<string, { role: 'President' | 'Commander' | 'Grand Master' | 'Noble Grand Master' }> = {
+  'President':                      { role: 'President' },
+  'Grand President':                { role: 'President' },
+  'Supreme Subordinate President':  { role: 'President' },
+  'Supreme President':              { role: 'President' },
+  'Grand Master':                   { role: 'Grand Master' },
+  'Noble Grand Master':             { role: 'Noble Grand Master' },
+  'Battalion Commander':            { role: 'Commander' },
+  'District Commander':             { role: 'Commander' },
+  'Regimental Commander':           { role: 'Commander' },
+};
 
-function isPresident(title: string | null | undefined): boolean {
+function isHeadLeader(title: string | null | undefined): boolean {
   if (!title) return false;
-  return PRESIDENT_TITLES.some((pt) => title === pt || title.toLowerCase().startsWith('past '));
+  // Strip 'Past ' prefix for past-office detection
+  const normalised = title.replace(/^Past\s+/i, '');
+  return normalised in LEADERSHIP_ROLE_MAP;
 }
 
-function presidencyLevel(pos: { position_title?: string | null; level?: string | null; date_to?: string | null }): string {
+function leadershipLabel(pos: { position_title?: string | null; level?: string | null }): { levelLabel: string; roleWord: string } {
   const level = pos.level || 'Local';
-  // Map stored level to display label
-  if (level === 'Chevaliers (4th Degree)') return 'Chapter of Chevaliers';
-  if (level === 'Nobles Temple') return "Nobles' Temple";
-  return level;
+  const title = (pos.position_title || '').replace(/^Past\s+/i, '');
+  const role = LEADERSHIP_ROLE_MAP[title]?.role || 'President';
+
+  let levelLabel = level;
+  if (level === 'Chevaliers (4th Degree)') levelLabel = 'Chapter of Chevaliers';
+  else if (level === 'Nobles Temple') levelLabel = "Nobles' Temple";
+
+  return { levelLabel, roleWord: role };
 }
 
 /**
@@ -157,14 +166,14 @@ export function buildServiceNarrative(params: {
   }
   // Case A — no positions: no service sentence appended
 
-  // ── 3. Presidential Recognition ───────────────────────────────────────────
-  const presidencies = positions.filter((p) => isPresident(p.position_title));
+  // ── 3. Leadership Recognition (President / Commander) ────────────────────
+  const leaderRoles = positions.filter((p) => isHeadLeader(p.position_title));
 
   let presidencyAdded = false;
-  if (presidencies.length > 0) {
+  if (leaderRoles.length > 0) {
     // Prefer current (date_to is null/empty) over former; prefer highest level
-    const current = presidencies.filter((p) => !p.date_to || p.date_to.trim() === '');
-    const pool = current.length > 0 ? current : presidencies;
+    const current = leaderRoles.filter((p) => !p.date_to || p.date_to.trim() === '');
+    const pool = current.length > 0 ? current : leaderRoles;
 
     // Pick highest level
     const best = pool.reduce((acc, p) => {
@@ -174,15 +183,15 @@ export function buildServiceNarrative(params: {
     });
 
     const isCurrent = !best.date_to || best.date_to.trim() === '';
-    const lvlLabel = presidencyLevel(best);
+    const { levelLabel, roleWord } = leadershipLabel(best);
 
     if (isCurrent) {
       sentences.push(
-        `He currently serves as President at the ${lvlLabel}, providing leadership and direction in the affairs of the Order.`
+        `He currently serves as ${roleWord} at the ${levelLabel}, providing leadership and direction in the affairs of the Order.`
       );
     } else {
       sentences.push(
-        `He has served as President at the ${lvlLabel}, demonstrating leadership and a strong commitment to the advancement of the Order.`
+        `He has served as ${roleWord} at the ${levelLabel}, demonstrating leadership and a strong commitment to the advancement of the Order.`
       );
     }
     presidencyAdded = true;
