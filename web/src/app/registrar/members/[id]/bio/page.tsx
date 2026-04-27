@@ -77,8 +77,10 @@ ${degrees.map(d => `• ${formatDisplayDate(d.degree_date)}: ${d.degree_type || 
   const firstName = (member.first_name || '').trim();
   const surname = (member.surname || '').trim();
   const childCount = member.children?.length || 0;
-  const isMarried = member.spouse && member.spouse.length > 0;
-  const spouseName = isMarried ? member.spouse[0].spouse_name : null;
+  const spouseRecord = member.spouse?.[0] ?? null;
+  const spouseName = spouseRecord?.spouse_name?.trim() || null;
+  const isMarried = !!spouseRecord; // has a spouse record regardless of name
+  const hasSpouseName = !!spouseName;
   const isDeceased = !!member.is_deceased;
 
   const firstDegreeObj = (member.degrees || []).find((d: any) => d.degree_type && (d.degree_type.toLowerCase().includes('1st') || d.degree_type.toLowerCase().includes('first')));
@@ -131,7 +133,11 @@ ${degrees.map(d => `• ${formatDisplayDate(d.degree_date)}: ${d.degree_type || 
             <h2 style={sectionTitle}>Family & Personal Life</h2>
             <p style={narrative}>
               {isMarried ? (
-                <>He is happily married to <strong>{spouseName}</strong>{member.spouse?.[0]?.spouse_denomination ? `, a ${member.spouse[0].spouse_denomination}` : ''}{member.spouse?.[0]?.spouse_parish ? ` of ${member.spouse[0].spouse_parish}` : ''}. </>
+                <>{hasSpouseName ? (
+                  <>He is happily married to <strong>{spouseName}</strong>{spouseRecord?.spouse_denomination ? `, a ${spouseRecord.spouse_denomination}` : ''}{spouseRecord?.spouse_parish ? ` of ${spouseRecord.spouse_parish}` : ''}. </>
+                ) : (
+                  <>He is a married gentleman. </>
+                )}</>
               ) : (
                 <>Regarding his personal life, </>
               )}
