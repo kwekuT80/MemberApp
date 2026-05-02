@@ -216,6 +216,12 @@ export default function ReportsScreen({ navigation }) {
         const posts = (m.positions || []).map(p => `<div style="margin-bottom:4px">• ${p.position_title} (${p.date_from} to ${p.date_to || 'Present'})</div>`).join('');
         html += `<tr><td style="font-weight:700">${m.first_name} ${m.surname}</td><td>${posts || 'No active positions'}</td></tr>`;
       });
+    } else if (reportType === 'family') {
+      html += `<tr><th>MEMBER</th><th>STATUS</th><th>SPOUSE</th><th>CHILDREN</th></tr></thead><tbody>`;
+      reportData.forEach(m => {
+        const spouseObj = Array.isArray(m.spouse) ? (m.spouse[0] || {}) : (m.spouse || {});
+        html += `<tr><td style="font-weight:700">${m.first_name} ${m.surname}</td><td>${m.marital_status || '—'}</td><td>${spouseObj.spouse_name || '—'}</td><td>${m.children?.[0]?.count || 0}</td></tr>`;
+      });
     } else {
       html += `<tr><th>NAME</th><th>STATUS</th><th>CONTACT</th></tr></thead><tbody>`;
       reportData.forEach(m => {
@@ -327,8 +333,13 @@ export default function ReportsScreen({ navigation }) {
               <View key={i} style={styles.reportRow}>
                 <Text style={styles.memberMain}>{m.first_name} {m.surname}</Text>
                 <Text style={styles.memberSub}>
-                  Status: {m.marital_status || 'Unknown'} • Child Count: {m.children?.[0]?.count || 0}
+                  Status: {m.marital_status || 'Unknown'} • Child: {m.children?.[0]?.count || 0}
                 </Text>
+                {m.spouse && (
+                  <Text style={[styles.memberSub, { color: Colors.navy, fontWeight: '600' }]}>
+                    Spouse: {Array.isArray(m.spouse) ? (m.spouse[0]?.spouse_name || '—') : (m.spouse?.spouse_name || '—')}
+                  </Text>
+                )}
               </View>
             ))}
             {reportType === 'final' && reportData.map((m, i) => (
