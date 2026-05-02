@@ -244,7 +244,7 @@ export default function MemberDossierPage() {
                     <td style={td}>{formatDisplayDate(p.date_from)} - {p.date_to ? formatDisplayDate(p.date_to) : 'Present'}</td>
                     <td style={td}>{p.position_title || 'N/A'}</td>
                     <td style={td}>{p.level || 'Local'}</td>
-                    <td style={td}>{p.rank || member.uniform_positions || 'N/A'}</td>
+                    <td style={td}>{p.rank || 'N/A'}</td>
                   </tr>
                 ))}
                 {sortedPositions.length === 0 && (
