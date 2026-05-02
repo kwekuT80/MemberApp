@@ -17,7 +17,7 @@ export default function MemberDossierPage() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from('members')
-        .select('*, spouse(*), children(*), positions(*), degrees(*)')
+        .select('*, spouse(*), children(*), positions(*), degrees(*), military(*), uniformed_rank_records(*)')
         .eq('id', id)
         .single();
       
@@ -40,8 +40,10 @@ export default function MemberDossierPage() {
   // Cast Iron Array Handling
   const safeDegrees = Array.isArray(member.degrees) ? [...member.degrees] : [];
   const safePositions = Array.isArray(member.positions) ? [...member.positions] : [];
-  const safeSpouse = Array.isArray(member.spouse) ? member.spouse : [];
+  const safeSpouse = Array.isArray(member.spouse) ? member.spouse : (member.spouse ? [member.spouse] : []);
   const safeChildren = Array.isArray(member.children) ? member.children : [];
+  const safeMilitary = Array.isArray(member.military) ? member.military : [];
+  const safeRanks = Array.isArray(member.uniformed_rank_records) ? member.uniformed_rank_records : [];
 
   const sortedDegrees = safeDegrees.sort((a, b) => {
     const da = a.degree_date ? new Date(a.degree_date).getTime() : 0;
@@ -90,8 +92,18 @@ export default function MemberDossierPage() {
                 <tr>
                   <th style={th}>Nationality</th>
                   <td style={td}>{member.nationality || 'N/A'}</td>
-                  <th style={th}>Home Town</th>
-                  <td style={td}>{member.home_town || 'N/A'}</td>
+                  <th style={th}>Home Town / Region</th>
+                  <td style={td}>{member.home_town || 'N/A'} {member.home_region ? `(${member.home_region})` : ''}</td>
+                </tr>
+                <tr>
+                  <th style={th}>Postal Address</th>
+                  <td style={td} colSpan={3}>{member.postal_address || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <th style={th}>Father's Name</th>
+                  <td style={td}>{member.fathers_name || 'N/A'}</td>
+                  <th style={th}>Mother's Name</th>
+                  <td style={td}>{member.mothers_name || 'N/A'}</td>
                 </tr>
                 <tr>
                   <th style={th}>Email</th>
@@ -109,6 +121,48 @@ export default function MemberDossierPage() {
                   <th style={th}>Workplace</th>
                   <td style={td}>{member.workplace || 'N/A'}</td>
                 </tr>
+                <tr>
+                  <th style={th}>Employment Status</th>
+                  <td style={td}>{member.emp_status || 'N/A'}</td>
+                  <th style={th}>Job Role / Status</th>
+                  <td style={td}>{member.job_status || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <th style={th}>Work Address</th>
+                  <td colSpan={3} style={td}>{member.work_address || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <th style={th}>Marital Status</th>
+                  <td colSpan={3} style={td}>{member.marital_status || 'N/A'}</td>
+                </tr>
+                {(member.status === 'Deceased' || member.is_deceased) && (
+                  <>
+                    <tr>
+                      <th style={{ ...th, background: '#fff5f5' }}>Date of Death</th>
+                      <td style={td}>{formatDisplayDate(member.date_of_death)}</td>
+                      <th style={{ ...th, background: '#fff5f5' }}>Burial Date</th>
+                      <td style={td}>{formatDisplayDate(member.burial_date)}</td>
+                    </tr>
+                    <tr>
+                      <th style={{ ...th, background: '#fff5f5' }}>Place of Burial</th>
+                      <td colSpan={3} style={td}>{member.burial_place || 'N/A'}</td>
+                    </tr>
+                  </>
+                )}
+                {(member.transfer_from || member.transfer_to) && (
+                  <>
+                    <tr>
+                      <th style={{ ...th, background: '#f0fff4' }}>Transfer From</th>
+                      <td style={td}>{member.transfer_from || 'N/A'}</td>
+                      <th style={{ ...th, background: '#f0fff4' }}>Transfer To</th>
+                      <td style={td}>{member.transfer_to || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                      <th style={{ ...th, background: '#f0fff4' }}>Transfer Date</th>
+                      <td colSpan={3} style={td}>{formatDisplayDate(member.transfer_date)}</td>
+                    </tr>
+                  </>
+                )}
               </tbody>
             </table>
           </section>
@@ -181,7 +235,7 @@ export default function MemberDossierPage() {
                   <th style={tableH}>Period</th>
                   <th style={tableH}>Position Title</th>
                   <th style={tableH}>Level</th>
-                  <th style={tableH}>Rank</th>
+                  <th style={tableH}>Rank / Uniformed Position</th>
                 </tr>
               </thead>
               <tbody>
@@ -190,15 +244,68 @@ export default function MemberDossierPage() {
                     <td style={td}>{formatDisplayDate(p.date_from)} - {p.date_to ? formatDisplayDate(p.date_to) : 'Present'}</td>
                     <td style={td}>{p.position_title || 'N/A'}</td>
                     <td style={td}>{p.level || 'Local'}</td>
-                    <td style={td}>{p.rank || 'N/A'}</td>
+                    <td style={td}>{p.rank || member.uniform_positions || 'N/A'}</td>
                   </tr>
                 ))}
                 {sortedPositions.length === 0 && (
-                  <tr><td colSpan={4} style={{ ...td, textAlign: 'center', color: '#718096' }}>No position records on file.</td></tr>
+                  <tr><td colSpan={4} style={{ ...td, textAlign: 'center', color: '#718096' }}>{member.uniform_positions ? `Uniformed Position: ${member.uniform_positions}` : 'No position records on file.'}</td></tr>
                 )}
               </tbody>
             </table>
           </section>
+
+          {/* MILITARY & RANKS */}
+          {(safeMilitary.length > 0 || safeRanks.length > 0) && (
+            <section style={section}>
+              <h2 style={sectionLabel}>V. Military & Uniformed Rank Records</h2>
+              {safeMilitary.length > 0 && (
+                <div style={{ marginBottom: 20 }}>
+                  <h3 style={{ fontSize: 14, color: '#53657d', marginBottom: 8 }}>Military Service</h3>
+                  <table style={table}>
+                    <thead>
+                      <tr>
+                        <th style={tableH}>Service Branch</th>
+                        <th style={tableH}>Service Number</th>
+                        <th style={tableH}>Rank</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {safeMilitary.map((m: any, idx: number) => (
+                        <tr key={idx}>
+                          <td style={td}>{m.branch || 'N/A'}</td>
+                          <td style={td}>{m.service_number || 'N/A'}</td>
+                          <td style={td}>{m.rank || 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {safeRanks.length > 0 && (
+                <div>
+                  <h3 style={{ fontSize: 14, color: '#53657d', marginBottom: 8 }}>KSJI Uniformed Ranks</h3>
+                  <table style={table}>
+                    <thead>
+                      <tr>
+                        <th style={tableH}>Date</th>
+                        <th style={tableH}>Rank Title</th>
+                        <th style={tableH}>Commission Type</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {safeRanks.map((r: any, idx: number) => (
+                        <tr key={idx}>
+                          <td style={td}>{formatDisplayDate(r.rank_date)}</td>
+                          <td style={td}>{r.rank_title || 'N/A'}</td>
+                          <td style={td}>{r.commission_type || 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
 
           <div style={footer}>
             <p>End of Official Record</p>

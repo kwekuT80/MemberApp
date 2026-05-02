@@ -34,7 +34,8 @@ export default function MemberBioPage() {
     const firstDegree = (member.degrees || []).find((d: any) => d.degree_type && (d.degree_type.toLowerCase().includes('1st') || d.degree_type.toLowerCase().includes('first')));
     const joinedDateValue = member.date_joined || (firstDegree ? firstDegree.degree_date : null);
     const joined = joinedDateValue ? formatDisplayDate(joinedDateValue) : 'an unknown date';
-    const spouse = member.spouse?.[0]?.spouse_name || 'N/A';
+    const spouseRec = Array.isArray(member.spouse) ? (member.spouse[0] ?? null) : (member.spouse ?? null);
+    const spouse = spouseRec?.spouse_name || 'N/A';
     
     const rtfContent = `{\\rtf1\\ansi\\deff0
 {\\fonttbl{\\f0 Times New Roman;}}
@@ -48,7 +49,7 @@ export default function MemberBioPage() {
 ${titleText} ${member.first_name || ''} ${member.surname || ''} was initiated into the Knights of St. John International on ${joined}. Over the years, he has demonstrated unwavering commitment to the Order's values of Charity, Fraternity, and Service. \\par
 \\par
 \\sb200 \\b \\fs32 Family & Personal Life \\b0 \\fs28 \\par
-${member.spouse?.length ? `He is happily married to ${spouse}.` : 'Regarding his personal life,'} The family is blessed with ${member.children?.length || 0} children. \\par
+${spouseRec?.spouse_name ? `He is happily married to ${spouse}.` : 'Regarding his personal life,'} The family is blessed with ${member.children?.length || 0} children. \\par
 \\par
 \\sb200 \\b \\fs32 Record of Service \\b0 \\fs28 \\par
 ${sortedPositions.map(p => `• ${p.date_from ? p.date_from.split('-')[0] : '—'}: ${p.position_title || 'Untitled'} (${p.level || 'Local'} Level)`).join('\\par ')} \\par
@@ -77,9 +78,11 @@ ${degrees.map(d => `• ${formatDisplayDate(d.degree_date)}: ${d.degree_type || 
   const firstName = (member.first_name || '').trim();
   const surname = (member.surname || '').trim();
   const childCount = member.children?.length || 0;
-  const spouseRecord = member.spouse?.[0] ?? null;
+  const spouseRecord = Array.isArray(member.spouse) ? (member.spouse[0] ?? null) : (member.spouse ?? null);
   const spouseName = spouseRecord?.spouse_name?.trim() || null;
-  const isMarried = !!spouseRecord; // has a spouse record regardless of name
+  // Use marital_status as the definitive married check — the FamilyEditor always
+  // creates a spouse row even when blank, so spouse record presence is unreliable.
+  const isMarried = (member.marital_status || '').toLowerCase().includes('married');
   const hasSpouseName = !!spouseName;
   const isDeceased = !!member.is_deceased;
 
