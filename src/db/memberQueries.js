@@ -9,15 +9,25 @@ import { supabase } from './supabase';
  */
 export async function uploadPhoto(uri) {
   const user = await getCurrentUser();
-  if (!user) throw new Error('Not logged in');
+  if (!user) throw new Error('You must be logged in to upload photos.');
 
-  // We use a unique name for each upload to avoid caching issues
   const fileName = `portraits/${user.id}-${Date.now()}.jpg`;
 
   try {
-    // 1. Fetch file as blob (Universal approach for Web/Mobile)
-    const response = await fetch(uri);
-    const blob = await response.blob();
+    // 1. Fetch file as blob using XMLHttpRequest (more robust for Android/iOS)
+    const blob = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.onload = function () {
+        resolve(xhr.response);
+      };
+      xhr.onerror = function (e) {
+        console.error('XHR Fetch Error:', e);
+        reject(new TypeError("Could not read the image file from your device."));
+      };
+      xhr.responseType = "blob";
+      xhr.open("GET", uri, true);
+      xhr.send(null);
+    });
 
     // 2. Upload to Storage
     const { data, error } = await supabase.storage
@@ -30,6 +40,8 @@ export async function uploadPhoto(uri) {
 
     if (error) {
       console.error('Supabase Storage Error:', error);
+      if (error.message?.includes('size')) throw new Error('The photo is too large to upload.');
+      if (error.message?.includes('bucket')) throw new Error('Storage system is misconfigured (bucket not found).');
       throw new Error(`Storage Error: ${error.message}`);
     }
 
@@ -41,7 +53,11 @@ export async function uploadPhoto(uri) {
     return publicUrl;
   } catch (e) {
     console.error('Photo Upload Failed:', e);
-    throw new Error('Failed to save photo. Please check your connection.');
+    const msg = e.message || 'Unknown upload error';
+    if (msg.includes('Network request failed')) {
+      throw new Error('Network error: Please check your internet connection and try again.');
+    }
+    throw new Error(msg);
   }
 }
 
