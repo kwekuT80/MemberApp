@@ -19,10 +19,12 @@ const MARITAL = ['Married', 'Single', 'Widowed', 'Religious', 'Separated'];
 const EMP_STATUS = ['Employed', 'Self-employed', 'Unemployed', 'Student', 'Retired'];
 const STATUSES = ['Active', 'Suspended', 'Dismissed', 'Transfer-In', 'Transfer-Out', 'Deceased'];
 
-const TABS = ['Bio', 'Family', 'Employment', 'Degrees', 'Military', 'Lifecycle'];
-
 export default function MemberMainForm({ initialMember, mode, redirectTo }: Props) {
   const supabase = createClient();
+  const TABS = mode === 'registrar' 
+    ? ['Bio', 'Family', 'Employment', 'Degrees', 'Military', 'Lifecycle']
+    : ['Bio', 'Family', 'Employment'];
+    
   const [activeTab, setActiveTab] = useState(0);
   const [form, setForm] = useState<any>(initialMember || { status: 'Active' });
   const [regions, setRegions] = useState<string[]>([]);
@@ -168,7 +170,7 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
                </div>
                {form.id ? (
                  <div style={{ display: 'flex', gap: 8 }}>
-                   <Link href={`/registrar/members/${form.id}/family`} className="tab tab-active">Manage Family →</Link>
+                    <Link href={mode === 'self' ? '/me/family' : `/registrar/members/${form.id}/family`} className="tab tab-active">Manage Family →</Link>
                  </div>
                ) : <span style={{ fontSize: 12, fontStyle: 'italic' }}>Save member first to manage family.</span>}
             </div>
@@ -199,7 +201,7 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
                  <div style={{ fontSize: 12, opacity: 0.7 }}>Manage exemplification history and certificate details.</div>
                </div>
                {form.id ? (
-                 <Link href={`/registrar/members/${form.id}/education`} className="tab tab-active">Manage Degrees →</Link>
+                 <Link href={mode === 'self' ? '/me/education' : `/registrar/members/${form.id}/education`} className="tab tab-active">Manage Degrees →</Link>
                ) : <span style={{ fontSize: 12, fontStyle: 'italic' }}>Save member first to manage degrees.</span>}
             </div>
             <InputField label="1st Degree Exemplification" value={form.degree1_place} onChange={(v: string) => updateField('degree1_place', v)} />
@@ -217,7 +219,7 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
                  <div style={{ fontSize: 12, opacity: 0.7 }}>Manage commissions, promotions, and service history.</div>
                </div>
                {form.id ? (
-                 <Link href={`/registrar/members/${form.id}/military`} className="tab tab-active">Manage Military →</Link>
+                 <Link href={mode === 'self' ? '/me/military' : `/registrar/members/${form.id}/military`} className="tab tab-active">Manage Military →</Link>
                ) : <span style={{ fontSize: 12, fontStyle: 'italic' }}>Save member first to manage military.</span>}
             </div>
             <InputField label="Uniformed Position" value={form.uniform_positions} onChange={(v: string) => updateField('uniform_positions', v)} />

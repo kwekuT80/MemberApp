@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { createClient } from '@/lib/supabase/client';
-import { formatMemberTitle, formatExemplification, formatDisplayDate, buildServiceNarrative } from '@/lib/utils/ksji-logic';
+import { formatMemberTitle, formatExemplification, formatDisplayDate, buildServiceNarrative, buildFormalCitation } from '@/lib/utils/ksji-logic';
 
 export default function MemberBioPage() {
   const { id } = useParams();
@@ -108,6 +108,15 @@ ${degrees.map(d => `• ${formatDisplayDate(d.degree_date)}: ${d.degree_type || 
     transferDate,
   });
 
+  const formalCitation = buildFormalCitation({
+    displayTitle,
+    firstName,
+    surname,
+    joinedDate,
+    degrees,
+    positions: sortedPositions,
+  });
+
   return (
     <RegistrarShell title="Service Bio & Testimonial" subtitle={`Biographical Record for ${displayTitle} ${surname}`}>
       <div style={container}>
@@ -129,6 +138,14 @@ ${degrees.map(d => `• ${formatDisplayDate(d.degree_date)}: ${d.degree_type || 
           <section style={section}>
             <p style={narrative}>
               {serviceNarrative}
+            </p>
+          </section>
+
+          {/* FORMAL CITATION */}
+          <section style={{ ...section, backgroundColor: '#fdfcf0', padding: '30px', borderRadius: '12px', border: '1px solid #f1e4bc' }}>
+            <h2 style={{ ...sectionTitle, borderBottom: '1px solid #f1e4bc' }}>Formal Citation</h2>
+            <p style={{ ...narrative, fontStyle: 'italic', color: '#5f4b1b' }}>
+              {formalCitation}
             </p>
           </section>
 

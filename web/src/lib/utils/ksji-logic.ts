@@ -98,16 +98,24 @@ function isHeadLeader(title: string | null | undefined): boolean {
   return normalised in LEADERSHIP_ROLE_MAP;
 }
 
-function leadershipLabel(pos: { position_title?: string | null; level?: string | null }): { levelLabel: string; roleWord: string } {
+function leadershipLabel(pos: { position_title?: string | null; level?: string | null }): { levelLabel: string; roleWord: string; preposition: string } {
   const level = pos.level || 'Local';
   const title = (pos.position_title || '').replace(/^Past\s+/i, '');
   const role = LEADERSHIP_ROLE_MAP[title]?.role || 'President';
 
   let levelLabel = level;
-  if (level === 'Chevaliers (4th Degree)') levelLabel = 'Chapter of Chevaliers';
-  else if (level === 'Nobles Temple') levelLabel = "Nobles' Temple";
+  let preposition = 'at the';
 
-  return { levelLabel, roleWord: role };
+  if (level === 'Local') {
+    levelLabel = 'his local commandery';
+    preposition = 'of';
+  } else if (level === 'Chevaliers (4th Degree)') {
+    levelLabel = 'Chapter of Chevaliers';
+  } else if (level === 'Nobles Temple') {
+    levelLabel = "Nobles' Temple";
+  }
+
+  return { levelLabel, roleWord: role, preposition };
 }
 
 /**
@@ -225,3 +233,29 @@ export function buildServiceNarrative(params: {
   return sentences.join(' ');
 }
 
+/**
+ * Builds a formal citation/commendation for a member's service.
+ * This is more flowery and ceremonial than the standard narrative.
+ */
+export function buildFormalCitation(params: {
+  displayTitle: string;
+  firstName: string;
+  surname: string;
+  joinedDate: string;
+  degrees: Array<{ degree_type?: string | null }>;
+  positions: Array<{ position_title?: string | null; level?: string | null }>;
+}): string {
+  const { displayTitle, firstName, surname, joinedDate, degrees, positions } = params;
+  const fullName = `${displayTitle} ${firstName} ${surname}`;
+
+  const has5th = degrees.some(d => d.degree_type?.toLowerCase().includes('5th'));
+  const has4th = degrees.some(d => d.degree_type?.toLowerCase().includes('4th'));
+  
+  let rankTerm = 'distinguished brother';
+  if (has5th) rankTerm = 'Noble Brother';
+  else if (has4th) rankTerm = 'Chevalier';
+
+  const highestPos = positions[0]?.position_title || 'devoted member';
+  
+  return `This citation is proudly presented in recognition of ${fullName}, a ${rankTerm} of the Knights of St. John International. Having been initiated on ${joinedDate}, he has since exemplified the highest ideals of our Order through his dedicated service as ${highestPos} and beyond. His journey through the degrees of exemplification stands as a testament to his faith, fraternity, and unwavering commitment to the growth of the Commandery. In witness of his exemplary character and leadership, we hereby certify his standing as a true Knight of the Order.`;
+}

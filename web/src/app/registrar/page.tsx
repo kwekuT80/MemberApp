@@ -22,8 +22,9 @@ export default async function RegistrarPage() {
 
   return (
     <RegistrarShell title='Registrar Dashboard' subtitle='Official Membership Registry & Commandery Records'>
-      <div className="grid-cols-2" style={{ marginBottom: 32 }}>
+      <div className="grid-cols-3" style={{ marginBottom: 32 }}>
         <SummaryCard title='Total Registry' value={String(memberCount)} icon="👥" />
+        <SummaryCard title='Onboarding' value='Bulk Import' link='/registrar/import' icon="📥" />
         <SummaryCard title='Registration' value='Create New' link='/registrar/members/new' icon="➕" />
       </div>
 
