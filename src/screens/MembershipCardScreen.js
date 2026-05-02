@@ -113,8 +113,12 @@ export default function MembershipCardScreen({ route, navigation }) {
             <View style={s.cardFooter}>
             <View style={s.qrStub}>
               <View style={[s.qrBox, { marginBottom: 10 }]}>
+                {/* 
+                  IMPORTANT: Replace 'ksji-members.vercel.app' with your actual production domain 
+                  so that the QR code takes scanners to the official verification page.
+                */}
                 <Image 
-                  source={{ uri: `https://quickchart.io/qr?text=${encodeURIComponent('KSJI:MEMBER:' + member.id)}&size=150&margin=1` }} 
+                  source={{ uri: `https://quickchart.io/qr?text=${encodeURIComponent('https://ksji-members.vercel.app/verify/' + member.id)}&size=150&margin=1` }} 
                   style={{ width: '100%', height: '100%' }} 
                   resizeMode="contain"
                 />

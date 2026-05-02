@@ -3,6 +3,43 @@
 // FIXED: All subform saves now look up member_id automatically if not provided.
 
 import { supabase } from './supabase';
+import { dbRun, dbQuery } from './database';
+
+/**
+ * CACHE SERVICE: Saves a member record to the local SQLite database.
+ */
+async function cacheMemberLocally(m) {
+  if (!m || !m.id) return;
+  const sql = `
+    INSERT OR REPLACE INTO tblMembers (
+      id, user_id, title, surname, first_name, other_names, date_of_birth,
+      birth_town, birth_region, nationality, home_town, home_region,
+      residential_address, postal_address, phone, mobile, email,
+      fathers_name, mothers_name, marital_status, emp_status, occupation,
+      workplace, job_status, work_address, uniform_positions,
+      degree1_place, degree23_place, degree4_place, degree_noble_place,
+      date_joined, status, is_deceased, date_of_death, burial_date,
+      burial_place, transfer_from, transfer_to, transfer_date, photo_url,
+      last_synced
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);
+  `;
+  const params = [
+    m.id, m.user_id, m.title, m.surname, m.first_name, m.other_names, m.date_of_birth,
+    m.birth_town, m.birth_region, m.nationality, m.home_town, m.home_region,
+    m.residential_address, m.postal_address, m.phone, m.mobile, m.email,
+    m.fathers_name, m.mothers_name, m.marital_status, m.emp_status, m.occupation,
+    m.workplace, m.job_status, m.work_address, m.uniform_positions,
+    m.degree1_place, m.degree23_place, m.degree4_place, m.degree_noble_place,
+    m.date_joined, m.status, m.is_deceased ? 1 : 0, m.date_of_death, m.burial_date,
+    m.burial_place, m.transfer_from, m.transfer_to, m.transfer_date, m.photo_url,
+    new Date().toISOString()
+  ];
+  try {
+    await dbRun(sql, params);
+  } catch (e) {
+    console.warn('Local cache failed:', e);
+  }
+}
 
 /**
  * PHOTO SERVICE: Uploads member portraits to Supabase Storage.
@@ -206,23 +243,43 @@ function cleanMemberDates(m) {
 export async function getMyMemberRecord() {
   const user = await getCurrentUser();
   if (!user) return null;
-  const { data, error } = await supabase
-    .from('members')
-    .select('*')
-    .eq('user_id', user.id)
-    .single();
-  if (error && error.code !== 'PGRST116') throw error;
-  return cleanMemberDates(data);
+  try {
+    const { data, error } = await supabase
+      .from('members')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    if (data) {
+      await cacheMemberLocally(data);
+      return cleanMemberDates(data);
+    }
+  } catch (e) {
+    console.log('Network fetch failed, trying local cache...');
+    const res = await dbQuery(`SELECT * FROM tblMembers WHERE user_id = ? LIMIT 1`, [user.id]);
+    if (res.rows.length > 0) return cleanMemberDates(res.rows.item(0));
+  }
+  return null;
 }
 
 export async function getMemberRecord(id) {
-  const { data, error } = await supabase
-    .from('members')
-    .select('*')
-    .eq('id', id)
-    .single();
-  if (error && error.code !== 'PGRST116') throw error;
-  return cleanMemberDates(data);
+  try {
+    const { data, error } = await supabase
+      .from('members')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    if (data) {
+      await cacheMemberLocally(data);
+      return cleanMemberDates(data);
+    }
+  } catch (e) {
+    console.log('Network fetch failed, trying local cache...');
+    const res = await dbQuery(`SELECT * FROM tblMembers WHERE id = ?`, [id]);
+    if (res.rows.length > 0) return cleanMemberDates(res.rows.item(0));
+  }
+  return null;
 }
 
 export async function saveMember(form) {
