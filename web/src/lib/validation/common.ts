@@ -2,8 +2,23 @@ export function isBlank(value: string | null | undefined): boolean {
   return !value || value.trim() === '';
 }
 
+/**
+ * Strips HTML tags, escapes special characters to prevent XSS.
+ * Converts < > & " ' / to their HTML entity equivalents.
+ */
 export function cleanText(value: string | null | undefined): string {
-  return (value ?? '').trim();
+  const raw = (value ?? '').trim();
+  if (!raw) return '';
+
+  // Strip HTML tags first, then escape special characters
+  const stripped = raw.replace(/<[^>]*>/g, '');
+  return stripped
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\//g, '&#x2F;');
 }
 
 export function isValidEmail(value: string | null | undefined): boolean {
