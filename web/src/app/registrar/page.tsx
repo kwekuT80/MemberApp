@@ -50,7 +50,7 @@ export default async function RegistrarPage() {
 
       <div className="card">
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-          <h2 className="main-title" style={{ fontSize: 20 }}>Registry Registry</h2>
+          <h2 className="main-title" style={{ fontSize: 20 }}>Member Registry</h2>
           <Link href='/registrar/members' className="tab tab-active">View All</Link>
         </div>
         <MemberSearchTable members={members.slice(0,10)} />
