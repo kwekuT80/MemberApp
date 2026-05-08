@@ -752,6 +752,7 @@ export async function deleteUniformedRankRecord(id, memberId) {
 
   await syncCurrentUniformedRank(memberId);
 }
+
 // ── Analytics & Insights ────────────────────────────────────────────────────────
 /**
  * Aggregates membership data for dashboard charts.

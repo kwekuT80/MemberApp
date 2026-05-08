@@ -1,0 +1,16 @@
+.git/          # Keeps Claude from reading your entire history
+node_modules/  # Stops it from reading thousands of web libraries
+android/.gradle/ # Stops it from reading Android cache files
+android/.idea/
+android/app/build/
+web/.next/
+web/out/
+build/         # Stops it from reading compiled code
+dist/
+.next/         # (If using Next.js) Stops it from reading web cache
+*.png          # No need for the AI to "read" binary image data
+*.jpg
+*.jpeg
+*.gif
+*.pdf
+*.zip

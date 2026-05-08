@@ -64,14 +64,24 @@ export default function DashboardScreen({ navigation }) {
             <Text style={styles.headerEyebrow}>Membership Register</Text>
             <Text style={styles.headerTitle}>Members</Text>
           </View>
-          <TouchableOpacity
-            style={styles.newBtn}
-            onPress={() => navigation.navigate('MemberForm', { memberId: null })}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.newBtnIcon}>＋</Text>
-            <Text style={styles.newBtnText}>New</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row' }}>
+            <TouchableOpacity
+              style={[styles.newBtn, { backgroundColor: Colors.navyLight, marginRight: 8, borderColor: Colors.navySubtle, borderWidth: 1 }]}
+              onPress={() => navigation.navigate('ScanVerification')}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.newBtnIcon, { color: Colors.gold }]}>🔍</Text>
+              <Text style={[styles.newBtnText, { color: Colors.white }]}>Scan</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.newBtn}
+              onPress={() => navigation.navigate('MemberForm', { memberId: null })}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.newBtnIcon}>＋</Text>
+              <Text style={styles.newBtnText}>New</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Stats pill */}

@@ -224,12 +224,20 @@ export default function MemberFormScreen({ route, navigation }) {
         </View>
         <View style={s.headerRight}>
           {memberId && (
-            <TouchableOpacity 
-              style={[s.saveChip, { backgroundColor: 'rgba(212, 175, 55, 0.15)', marginRight: 8, borderColor: Colors.gold, borderWidth: 1 }]} 
-              onPress={() => navigation.navigate('MembershipCard', { memberId })}
-            >
-              <Text style={[s.saveChipText, { color: Colors.gold }]}>🪪 ID</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity 
+                style={[s.saveChip, { backgroundColor: 'rgba(212, 175, 55, 0.15)', marginRight: 8, borderColor: Colors.gold, borderWidth: 1 }]} 
+                onPress={() => navigation.navigate('MembershipCard', { memberId })}
+              >
+                <Text style={[s.saveChipText, { color: Colors.gold }]}>🪪 ID</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[s.saveChip, { backgroundColor: 'rgba(10, 22, 40, 0.1)', marginRight: 8, borderColor: Colors.navyLight, borderWidth: 1 }]} 
+                onPress={() => navigation.navigate('Dossier', { memberId })}
+              >
+                <Text style={[s.saveChipText, { color: Colors.white }]}>📜 Dossier</Text>
+              </TouchableOpacity>
+            </>
           )}
           {dirty && (
             <TouchableOpacity style={s.saveChip} onPress={handleSave} disabled={saving}>
@@ -291,7 +299,8 @@ export default function MemberFormScreen({ route, navigation }) {
   );
 }
 
-function BioTab({ form, set, regions, military, setMilitaryField }) {
+  const [photoLoading, setPhotoLoading] = useState(false);
+
   return (
     <>
       <SectionHeader title="Personal Information" />
@@ -302,7 +311,9 @@ function BioTab({ form, set, regions, military, setMilitaryField }) {
       <SectionHeader title="Profile Portrait" />
       <View style={s.photoContainer}>
         <View style={s.photoFrame}>
-          {form.photo_url ? (
+          {photoLoading ? (
+            <ActivityIndicator size="small" color={Colors.gold} />
+          ) : form.photo_url ? (
             <Image 
               source={{ uri: form.photo_url }} 
               style={{ width: '100%', height: '100%' }}
@@ -315,6 +326,7 @@ function BioTab({ form, set, regions, military, setMilitaryField }) {
         <View style={s.photoActions}>
           <TouchableOpacity 
             style={s.photoBtn} 
+            disabled={photoLoading}
             onPress={async () => {
               const perm = await ImagePicker.requestCameraPermissionsAsync();
               if (!perm.granted) {
@@ -325,14 +337,17 @@ function BioTab({ form, set, regions, military, setMilitaryField }) {
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
                 aspect: [1, 1],
-                quality: 0.7,
+                quality: 0.8,
               });
               if (!res.canceled) {
+                setPhotoLoading(true);
                 try {
                   const url = await uploadPhoto(res.assets[0].uri);
                   set('photo_url')(url);
                 } catch (e) {
                   Alert.alert('Upload Failed', e.message);
+                } finally {
+                  setPhotoLoading(false);
                 }
               }
             }}
@@ -341,6 +356,7 @@ function BioTab({ form, set, regions, military, setMilitaryField }) {
           </TouchableOpacity>
           <TouchableOpacity 
             style={[s.photoBtn, { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.gold }]}
+            disabled={photoLoading}
             onPress={async () => {
               const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
               if (!perm.granted) {
@@ -351,14 +367,17 @@ function BioTab({ form, set, regions, military, setMilitaryField }) {
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
                 aspect: [1, 1],
-                quality: 0.7,
+                quality: 0.8,
               });
               if (!res.canceled) {
+                setPhotoLoading(true);
                 try {
                   const url = await uploadPhoto(res.assets[0].uri);
                   set('photo_url')(url);
                 } catch (e) {
                   Alert.alert('Upload Failed', e.message);
+                } finally {
+                  setPhotoLoading(false);
                 }
               }
             }}
@@ -590,6 +609,7 @@ function DegreesTab({ memberId, navigation }) {
     </>
   );
 }
+
 
 function MilitaryTab({ memberId, navigation, military }) {
   if (!memberId) {

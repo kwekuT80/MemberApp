@@ -784,7 +784,7 @@ export function SpouseScreen({ route, navigation }) {
 // SHARED LAYOUT COMPONENTS
 // ════════════════════════════════════════════════════════════════════
 
-function SubformList({ title, icon, onBack, onAdd, loading, emptyIcon, emptyTitle, emptyMessage, children }) {
+export function SubformList({ title, icon, onBack, onAdd, loading, emptyIcon, emptyTitle, emptyMessage, children }) {
   const count = React.Children.count(children);
   return (
     <View style={s.screenWrapper}>
@@ -825,7 +825,7 @@ function SubformList({ title, icon, onBack, onAdd, loading, emptyIcon, emptyTitl
   );
 }
 
-function SubformEditor({ title, onBack, onSave, onDelete, children }) {
+export function SubformEditor({ title, onBack, onSave, onDelete, children }) {
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -875,7 +875,7 @@ function SubformEditor({ title, onBack, onSave, onDelete, children }) {
   );
 }
 
-function SubformHeader({ title, icon, onBack, rightAction }) {
+export function SubformHeader({ title, icon, onBack, rightAction }) {
   return (
     <View style={s.subHeader}>
       <TouchableOpacity
@@ -904,7 +904,7 @@ function SubformHeader({ title, icon, onBack, rightAction }) {
   );
 }
 
-function LoadingView() {
+export function LoadingView() {
   return (
     <View style={s.loadingWrap}>
       <ActivityIndicator size="large" color={Colors.navy} />
@@ -914,7 +914,7 @@ function LoadingView() {
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+export const s = StyleSheet.create({
   screenWrapper: {
     flex: 1,
     backgroundColor: Colors.offWhite,

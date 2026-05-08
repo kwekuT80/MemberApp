@@ -21,6 +21,8 @@ import {
 } from '../screens/SubformScreens';
 import MembershipCardScreen  from '../screens/MembershipCardScreen';
 import ReportsScreen        from '../screens/ReportsScreen';
+import DossierScreen       from '../screens/DossierScreen';
+import ScanVerificationScreen from '../screens/ScanVerificationScreen';
 import { Colors } from '../styles/theme';
 
 const Stack = createNativeStackNavigator();
@@ -141,6 +143,8 @@ export default function AppNavigator() {
               <Stack.Screen name="Degrees"           component={DegreesScreen} />
               <Stack.Screen name="Spouse"            component={SpouseScreen} />
               <Stack.Screen name="MembershipCard"   component={MembershipCardScreen} />
+              <Stack.Screen name="Dossier"          component={DossierScreen} />
+              <Stack.Screen name="ScanVerification" component={ScanVerificationScreen} options={{ headerShown: false }} />
             </>
           )}
         </Stack.Navigator>

@@ -193,8 +193,11 @@ export default function ReportsScreen({ navigation }) {
             <img src="${logoUri}" style="width: 80px; height: 80px;" alt="KSJI Logo" />
           </div>
           <div class="header-banner">
-            <h1>OFFICIALLY CERTIFIED REGISTRAR REPORT</h1>
-            <div class="meta">COMMANDERY RECORDS | TYPE: ${reportType?.toUpperCase()} | GENERATED: ${new Date().toLocaleDateString('en-GB')}</div>
+            <h1>OFFICIAL COMMANDERY REPORT</h1>
+            <div class="meta">KNIGHTS OF ST. JOHN INTERNATIONAL | TYPE: ${reportType?.toUpperCase()} | ${new Date().toLocaleDateString('en-GB')}</div>
+          </div>
+          <div style="margin-bottom: 20px; font-size: 11px; color: #64748b; font-style: italic;">
+            This report is generated from the official digital membership registry of the Order.
           </div>
           <table>
             <thead>
@@ -250,7 +253,10 @@ export default function ReportsScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Reporting Hub</Text>
+        <View>
+          <Text style={styles.headerEyebrow}>Registrar Toolkit</Text>
+          <Text style={styles.title}>Reporting Hub</Text>
+        </View>
       </View>
 
       <View style={styles.optionsWrap}>
@@ -393,9 +399,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.lg,
   },
-  backBtn: { paddingRight: 15 },
+  backBtn: { paddingRight: 15, paddingTop: 4 },
   backIcon: { color: Colors.gold, fontSize: 32, fontWeight: '300' },
-  title: { color: Colors.white, fontSize: 22, fontWeight: '800' },
+  headerEyebrow: { color: Colors.gold, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 },
+  title: { color: Colors.white, fontSize: 24, fontWeight: '800' },
   
   optionsWrap: {
     paddingBottom: Spacing.md,
