@@ -21,9 +21,9 @@ export function formatMemberTitle(title: string | null) {
  * Formats a degree entry using official KSJI language
  */
 export function formatExemplification(degreeType: string, date?: string | null, place?: string | null) {
-  const year = date ? new Date(date).getFullYear() : '—';
+  const year = date ? new Date(date).getFullYear() : 'â€”';
   const action = KSJI_TERMINOLOGY.EXEMPLIFIED;
-  
+
   return {
     year,
     narrative: `${action} ${degreeType}`,
@@ -32,20 +32,61 @@ export function formatExemplification(degreeType: string, date?: string | null, 
 }
 
 /**
- * Formats a date string to DD-MMM-YYYY (e.g., 15-Apr-2023) to avoid confusion.
+ * Month names for formatting (index = month number, 0-indexed).
  */
-export function formatDisplayDate(dateStr: string | null | undefined): string {
-  if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') return '—';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return '—';
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
-  } catch (e) {
-    return '—';
-  }
+const MONTHS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+];
+
+// Helper to safely access month by index (bypasses strict TS indexing)
+function getMonth(idx: number): string {
+  return MONTHS[idx] ?? '';
 }
 
-// Level hierarchy order (lowest → highest) for comparing service levels
+// Level hierarchy order (lowest â†’ highest) for comparing service levels
+
+/**
+ * Pads a number with leading zero if needed (e.g., "5" â†’ "05").
+ */
+function pad(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+/**
+ * Formats a date string to DD-MM-YYYY or DD-MMM-YYYY.
+ *
+ * Parses ISO dates manually to avoid UTC timezone shifts that would shift the displayed day.
+ * Accepts YYYY-MM-DD (ISO) or DD/MM/YYYY; always outputs DD-MM-YYYY.
+ */
+export function formatDisplayDate(dateStr: string | null | undefined): string {
+  if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') return 'â€”';
+
+  // Parse ISO YYYY-MM-DD manually to avoid UTC timezone shifts
+  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch;
+    const m = Number(month);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    return `${pad(Number(day))}-${(MONTHS as any)[m]}-${year}`;
+  }
+
+  const parts = dateStr.split('/');
+  if (parts.length === 3 && /^\d{2}$/.test(parts[0]) && /\d{2}/.test(parts[1])) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    return `${pad(Number(parts[0]))}-${(MONTHS as any)[Number(parts[1])]}-${parts[2]}`;
+  }
+
+  // Fallback: DD/MM/YYYY
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  return 'â€”';
+}
+
+// Level hierarchy order (lowest â†’ highest) for comparing service levels
 const LEVEL_ORDER = [
   'Local',
   'Battalion',
@@ -144,7 +185,7 @@ export function buildServiceNarrative(params: {
 
   const sentences: string[] = [];
 
-  // ── 1. Base Narrative ──────────────────────────────────────────────────────
+  // â”€â”€ 1. Base Narrative â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let base = `${displayTitle} ${firstName} ${surname} was initiated into the Knights of St. John International on ${joinedDate}.`;
   if (member.transfer_from && transferDate) {
     base += ` He subsequently transferred to and joined the St. Margaret-Mary Commandery #500 on ${transferDate}.`;
@@ -152,7 +193,7 @@ export function buildServiceNarrative(params: {
   base += ' Since then, he has remained a committed member of the Order, embodying the virtues of Charity, Fraternity, and Service.';
   sentences.push(base);
 
-  // ── 2. Service Narrative ───────────────────────────────────────────────────
+  // â”€â”€ 2. Service Narrative â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const hasPositions = positions.length > 0;
   if (hasPositions) {
     const levelsServed = positions.map((p) => p.level || 'Local');
@@ -161,20 +202,20 @@ export function buildServiceNarrative(params: {
       .find((lvl) => levelsServed.includes(lvl));
 
     if (highestAbove) {
-      // Case C — served above commandery level
+      // Case C â€” served above commandery level
       sentences.push(
         `Beginning at the Commandery level, he has extended his service through the ${LEVEL_NARRATIVE_LABEL[highestAbove]}, contributing to the work and leadership of the Order across multiple Commanderies.`
       );
     } else {
-      // Case B — commandery level only
+      // Case B â€” commandery level only
       sentences.push(
         'His service has been rooted at the Commandery level, where he has contributed to the strength and vitality of his local Commandery.'
       );
     }
   }
-  // Case A — no positions: no service sentence appended
+  // Case A â€” no positions: no service sentence appended
 
-  // ── 3. Leadership Recognition (President / Commander) ────────────────────
+  // â”€â”€ 3. Leadership Recognition (President / Commander) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const leaderRoles = positions.filter((p) => isHeadLeader(p.position_title));
 
   let presidencyAdded = false;
@@ -205,14 +246,14 @@ export function buildServiceNarrative(params: {
     presidencyAdded = true;
   }
 
-  // ── 4. Positions Emphasis (only if no presidency) ─────────────────────────
+  // â”€â”€ 4. Positions Emphasis (only if no presidency) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (hasPositions && !presidencyAdded) {
     sentences.push(
       'The positions of trust he has held, outlined below, attest to the confidence reposed in him over the years.'
     );
   }
 
-  // ── 5. Honours / Degree Narrative ─────────────────────────────────────────
+  // â”€â”€ 5. Honours / Degree Narrative â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const has5th = degrees.some(
     (d) => d.degree_type?.toLowerCase().includes('5th') || d.degree_type?.toLowerCase().includes('fifth')
   );
@@ -250,12 +291,12 @@ export function buildFormalCitation(params: {
 
   const has5th = degrees.some(d => d.degree_type?.toLowerCase().includes('5th'));
   const has4th = degrees.some(d => d.degree_type?.toLowerCase().includes('4th'));
-  
+
   let rankTerm = 'distinguished brother';
   if (has5th) rankTerm = 'Noble Brother';
   else if (has4th) rankTerm = 'Chevalier';
 
   const highestPos = positions[0]?.position_title || 'devoted member';
-  
+
   return `This citation is proudly presented in recognition of ${fullName}, a ${rankTerm} of the Knights of St. John International. Having been initiated on ${joinedDate}, he has since exemplified the highest ideals of our Order through his dedicated service as ${highestPos} and beyond. His journey through the degrees of exemplification stands as a testament to his faith, fraternity, and unwavering commitment to the growth of the Commandery. In witness of his exemplary character and leadership, we hereby certify his standing as a true Knight of the Order.`;
 }
