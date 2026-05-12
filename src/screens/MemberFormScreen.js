@@ -235,7 +235,7 @@ export default function MemberFormScreen({ route, navigation }) {
                 style={[s.saveChip, { backgroundColor: 'rgba(10, 22, 40, 0.1)', marginRight: 8, borderColor: Colors.navyLight, borderWidth: 1 }]} 
                 onPress={() => navigation.navigate('Dossier', { memberId })}
               >
-                <Text style={[s.saveChipText, { color: Colors.white }]}>📜 Dossier</Text>
+                <Text style={[s.saveChipText, { color: Colors.white }]}>📜 Master Record</Text>
               </TouchableOpacity>
             </>
           )}
@@ -298,7 +298,7 @@ export default function MemberFormScreen({ route, navigation }) {
     </SafeAreaView>
   );
 }
-
+function BioTab({ form, set, regions, military, setMilitaryField }) {
   const [photoLoading, setPhotoLoading] = useState(false);
 
   return (

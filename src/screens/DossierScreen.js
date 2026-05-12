@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Alert,
-  StyleSheet, ActivityIndicator, Image, Platform,
+  StyleSheet, ActivityIndicator, Image, Platform, StatusBar,
 } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -138,8 +138,15 @@ export default function DossierScreen({ route, navigation }) {
               </table>
             </div>
 
+            <div class="section" style="margin-top: 30px;">
+              <div class="section-title">Official Testimonial / Citation</div>
+              <div class="narrative" style="text-align: center; font-size: 15px; font-weight: 600; font-family: serif;">
+                ${buildFormalCitation({ displayTitle, firstName: member.first_name, surname: member.surname, joinedDate, degrees, positions })}
+              </div>
+            </div>
+
             <div style="margin-top: 50px; text-align: center; font-size: 10px; color: #94a3b8;">
-              Generated via KSJI Registrar Suite • ${new Date().toLocaleDateString()}
+              Generated via KSJI Registrar Suite • Master Record • ${new Date().toLocaleDateString()}
             </div>
           </body>
         </html>
@@ -177,7 +184,7 @@ export default function DossierScreen({ route, navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
           <Text style={s.backText}>‹ Back</Text>
         </TouchableOpacity>
-        <Text style={s.headerTitle}>Member Dossier</Text>
+        <Text style={s.headerTitle}>Master Record</Text>
         <TouchableOpacity onPress={generatePDF} disabled={printing} style={s.printBtn}>
           {printing ? <ActivityIndicator size="small" color={Colors.gold} /> : <Text style={s.printText}>PDF</Text>}
         </TouchableOpacity>
@@ -205,6 +212,18 @@ export default function DossierScreen({ route, navigation }) {
                 joinedDate: formatDisplayDate(member.date_joined),
                 displayTitle, firstName: member.first_name, surname: member.surname,
                 transferDate: member.transfer_date ? formatDisplayDate(member.transfer_date) : ''
+              })}
+            </Text>
+          </View>
+        </View>
+
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Official Testimonial</Text>
+          <View style={[s.narrativeCard, { backgroundColor: '#fff', borderColor: Colors.gold }]}>
+            <Text style={[s.narrativeText, { textAlign: 'center', fontWeight: '600' }]}>
+              {buildFormalCitation({
+                displayTitle, firstName: member.first_name, surname: member.surname,
+                joinedDate: formatDisplayDate(member.date_joined), degrees, positions
               })}
             </Text>
           </View>

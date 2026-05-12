@@ -65,6 +65,10 @@ export function ChildrenScreen({ route, navigation }) {
   useEffect(() => { load(); }, [load]);
 
   async function handleSave() {
+    if (!editing.child_name?.trim()) {
+      Alert.alert('Validation Error', 'Please enter a child name.');
+      return;
+    }
     try {
       await saveChild({ ...editing, member_id: memberId });
       setEditing(null);
@@ -194,6 +198,10 @@ export function PositionsScreen({ route, navigation }) {
   useEffect(() => { load(); }, [load]);
 
   async function handleSave() {
+    if (!editing.position_title?.trim()) {
+      Alert.alert('Validation Error', 'Please select a position title.');
+      return;
+    }
     try {
       await savePosition({ ...editing, member_id: memberId });
       setEditing(null);
@@ -325,6 +333,10 @@ export function EmergencyContactsScreen({ route, navigation }) {
   useEffect(() => { load(); }, [load]);
 
   async function handleSave() {
+    if (!editing.contact_name?.trim()) {
+      Alert.alert('Validation Error', 'Please enter a contact name.');
+      return;
+    }
     try {
       await saveEmergencyContact({ ...editing, member_id: memberId });
       setEditing(null);
@@ -477,6 +489,10 @@ export function MilitaryScreen({ route, navigation }) {
   }
 
   async function handleSaveRecord() {
+    if (!editing.rank_title?.trim()) {
+      Alert.alert('Validation Error', 'Please enter a rank title.');
+      return;
+    }
     try {
       await saveUniformedRankRecord({ ...editing, member_id: memberId });
       setEditing(null);
@@ -632,6 +648,10 @@ export function DegreesScreen({ route, navigation }) {
   useEffect(() => { load(); }, [load]);
 
   async function handleSave() {
+    if (!editing.degree_type?.trim()) {
+      Alert.alert('Validation Error', 'Please select a degree type.');
+      return;
+    }
     try {
       await saveDegree({ ...editing, member_id: memberId });
       setEditing(null);
