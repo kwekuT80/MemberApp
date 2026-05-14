@@ -2,10 +2,37 @@
 import React, { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { EmergencyContactRecord } from '@/types/emergencyContact';
+import { saveEmergencyContacts } from '@/services/emergencyContactsService';
+
 export default function EmergencyContactsEditor({ memberId, initialContacts }: { memberId:string; initialContacts: EmergencyContactRecord[] }) {
-  const supabase=createClient(); const [contacts, setContacts]=useState<EmergencyContactRecord[]>(initialContacts.length ? initialContacts : [{ contact_name:'', relationship:'', phone1:'', phone2:'' }]); const [busy,setBusy]=useState(false); const [message,setMessage]=useState<string|null>(null); const [error,setError]=useState<string|null>(null);
-  function update(index:number,key:keyof EmergencyContactRecord,value:string){ setContacts(items=>items.map((item,i)=>i===index?{...item,[key]:value}:item)); }
-  async function handleSave(){ setBusy(true); setError(null); setMessage(null); const existingIds=initialContacts.filter(c=>c.id).map(c=>c.id) as string[]; const currentIds=contacts.filter(c=>c.id).map(c=>c.id) as string[]; const toDelete=existingIds.filter(id=>!currentIds.includes(id)); if(toDelete.length) await supabase.from('emergency_contacts').delete().in('id', toDelete); for(const contact of contacts){ if (!(contact.contact_name || contact.relationship || contact.phone1 || contact.phone2)) continue; const payload={ member_id:memberId, contact_name:contact.contact_name||null, relationship:contact.relationship||null, phone1:contact.phone1||null, phone2:contact.phone2||null }; const result = contact.id ? await supabase.from('emergency_contacts').update(payload).eq('id', contact.id).select().single() : await supabase.from('emergency_contacts').insert(payload).select().single(); if(result.error){ setError(result.error.message); setBusy(false); return; } } setMessage('Emergency contacts saved.'); setBusy(false); window.location.reload(); }
+  const [contacts, setContacts]=useState<EmergencyContactRecord[]>(initialContacts.length ? initialContacts : [{ contact_name:'', relationship:'', phone1:'', phone2:'' }]); 
+  const [busy,setBusy]=useState(false); 
+  const [message,setMessage]=useState<string|null>(null); 
+  const [error,setError]=useState<string|null>(null);
+  
+  function update(index:number,key:keyof EmergencyContactRecord,value:string){ 
+    setContacts(items=>items.map((item,i)=>i===index?{...item,[key]:value}:item)); 
+  }
+  
+  async function handleSave(){ 
+    setBusy(true); 
+    setError(null); 
+    setMessage(null); 
+    
+    const existingIds=initialContacts.filter(c=>c.id).map(c=>c.id) as string[]; 
+    const currentIds=contacts.filter(c=>c.id).map(c=>c.id) as string[]; 
+    const toDelete=existingIds.filter(id=>!currentIds.includes(id)); 
+    
+    try {
+      await saveEmergencyContacts(memberId, contacts, toDelete);
+      setMessage('Emergency contacts saved.'); 
+      setBusy(false); 
+      window.location.reload(); 
+    } catch (e: any) {
+      setError(e.message || 'An error occurred while saving.');
+      setBusy(false);
+    }
+  }
   return <div style={cardStyle}><div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}><h2 style={{ margin:0 }}>Emergency contacts</h2><button type='button' onClick={()=>setContacts(items=>[...items,{ contact_name:'', relationship:'', phone1:'', phone2:'' }])} style={secondaryButton}>Add contact</button></div>{contacts.map((contact,index)=><div key={contact.id || index} style={subCardStyle}><div style={gridStyle}><Field label='Name' value={contact.contact_name || ''} onChange={v=>update(index,'contact_name',v)} /><Field label='Relationship' value={contact.relationship || ''} onChange={v=>update(index,'relationship',v)} /><Field label='Phone 1' value={contact.phone1 || ''} onChange={v=>update(index,'phone1',v)} /><Field label='Phone 2' value={contact.phone2 || ''} onChange={v=>update(index,'phone2',v)} /></div><button type='button' onClick={()=>setContacts(items=>items.filter((_,i)=>i!==index))} style={dangerButton}>Remove</button></div>)}<div style={{ display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}><button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save emergency contacts'}</button>{message?<span style={{ color:'#1f6f43' }}>{message}</span>:null}{error?<span style={{ color:'crimson' }}>{error}</span>:null}</div></div>;
 }
 function Field({ label, value, onChange }: { label:string; value:string; onChange:(value:string)=>void }) { return <label style={{ display:'grid', gap:6 }}><span style={labelStyle}>{label}</span><input value={value} onChange={e=>onChange(e.target.value)} style={inputStyle} /></label>; }
