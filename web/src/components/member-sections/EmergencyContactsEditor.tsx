@@ -24,7 +24,12 @@ export default function EmergencyContactsEditor({ memberId, initialContacts }: {
     const toDelete=existingIds.filter(id=>!currentIds.includes(id)); 
     
     try {
-      await saveEmergencyContacts(memberId, contacts, toDelete);
+      const result = await saveEmergencyContacts(memberId, contacts, toDelete);
+      if (!result.success) {
+        setError(result.error || 'An error occurred while saving.');
+        setBusy(false);
+        return;
+      }
       setMessage('Emergency contacts saved.'); 
       setBusy(false); 
       window.location.reload(); 
