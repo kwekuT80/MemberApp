@@ -174,6 +174,16 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
               const checkIn = attendance.find(a => a.meeting_id === meeting.id);
               const excuse = excuses.find(e => e.meeting_id === meeting.id);
 
+              // Time active window calculations
+              const meetingTime = new Date(meeting.date).getTime();
+              const nowTime = new Date().getTime();
+              
+              const checkInOpenTime = meetingTime - 60 * 60 * 1000; // 1 hour before
+              const checkInCloseTime = meetingTime + 24 * 60 * 60 * 1000; // 24 hours after
+              
+              const isTooEarly = nowTime < checkInOpenTime;
+              const isExpired = nowTime > checkInCloseTime;
+
               // Proximity calculations
               let distanceMeters: number | null = null;
               let isWithinRadius = false;
@@ -213,26 +223,48 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
                         <span style={{ display: 'inline-block', background: excuse.status === 'approved' ? '#e0f2fe' : '#fef3c7', color: excuse.status === 'approved' ? '#0369a1' : '#b45309', padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 800 }}>
                           ℹ️ EXCUSE: {excuse.status.toUpperCase()} ({excuse.reason})
                         </span>
+                      ) : isExpired ? (
+                        <span style={{ display: 'inline-block', background: '#fdeaea', color: 'crimson', padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 800 }}>
+                          🔒 CLOSED (Ended)
+                        </span>
                       ) : (
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                          <button
-                            disabled={!isWithinRadius || checkingInId === meeting.id || !coords}
-                            onClick={() => handleCheckIn(meeting)}
-                            style={{
-                              padding: '10px 20px',
-                              background: isWithinRadius ? '#16a34a' : '#cbd5e1',
-                              color: '#fff',
-                              border: 0,
-                              borderRadius: 8,
-                              fontWeight: 800,
-                              fontSize: 13,
-                              cursor: isWithinRadius ? 'pointer' : 'not-allowed',
-                              transition: 'all 0.2s',
-                              boxShadow: isWithinRadius ? '0 4px 10px rgba(22, 163, 74, 0.2)' : 'none'
-                            }}
-                          >
-                            {checkingInId === meeting.id ? 'Verifying GPS…' : 'Check In'}
-                          </button>
+                          {isTooEarly ? (
+                            <button
+                              disabled={true}
+                              style={{
+                                padding: '10px 20px',
+                                background: '#f1f5f9',
+                                color: '#64748b',
+                                border: '1px dashed #cbd5e1',
+                                borderRadius: 8,
+                                fontWeight: 800,
+                                fontSize: 13,
+                                cursor: 'not-allowed'
+                              }}
+                            >
+                              ⌛ Opens 1hr Before
+                            </button>
+                          ) : (
+                            <button
+                              disabled={!isWithinRadius || checkingInId === meeting.id || !coords}
+                              onClick={() => handleCheckIn(meeting)}
+                              style={{
+                                padding: '10px 20px',
+                                background: isWithinRadius ? '#16a34a' : '#cbd5e1',
+                                color: '#fff',
+                                border: 0,
+                                borderRadius: 8,
+                                fontWeight: 800,
+                                fontSize: 13,
+                                cursor: isWithinRadius ? 'pointer' : 'not-allowed',
+                                transition: 'all 0.2s',
+                                boxShadow: isWithinRadius ? '0 4px 10px rgba(22, 163, 74, 0.2)' : 'none'
+                              }}
+                            >
+                              {checkingInId === meeting.id ? 'Verifying GPS…' : 'Check In'}
+                            </button>
+                          )}
                           
                           <button
                             onClick={() => setActiveExcuseMeetingId(meeting.id)}
@@ -254,10 +286,20 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
                     </div>
                   </div>
 
-                  {/* Proximity Panel */}
+                  {/* Proximity & Status Panel */}
                   {!checkIn && !excuse && (
                     <div style={{ padding: 14, borderRadius: 10, background: '#f8fafc', border: '1px dashed #cbd5e1', fontSize: 13 }}>
-                      {coords ? (
+                      {isExpired ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#b91c1c', fontWeight: 700 }}>
+                          <span>🔒</span>
+                          <span>This meeting has concluded. Check-in and excuse submissions are no longer active.</span>
+                        </div>
+                      ) : isTooEarly ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#64748b' }}>
+                          <span>⌛</span>
+                          <span>Check-in is not yet active. It will open on <strong>{new Date(checkInOpenTime).toLocaleString()}</strong> (1 hour before start time). You can still submit an excuse ahead of time if needed.</span>
+                        </div>
+                      ) : coords ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <span style={{ fontSize: 18 }}>{isWithinRadius ? '✅' : '⚠️'}</span>
                           <span style={{ color: isWithinRadius ? '#16a34a' : '#9a3412', fontWeight: 700 }}>
