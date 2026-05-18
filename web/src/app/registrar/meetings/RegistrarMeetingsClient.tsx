@@ -18,6 +18,16 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const [absenceRequests, setAbsenceRequests] = useState<any[]>([]);
   const [loadingReport, setLoadingReport] = useState(false);
 
+  // Stats for the selected meeting
+  const totalRoster = attendanceReport.length;
+  const presentCount = attendanceReport.filter(m => m.status.startsWith('Present')).length;
+  const excusedCount = attendanceReport.filter(m => m.status === 'Excused').length;
+  const absentCount = attendanceReport.filter(m => m.status === 'Absent').length;
+  
+  const presentPct = totalRoster > 0 ? Math.round((presentCount / totalRoster) * 100) : 0;
+  const excusedPct = totalRoster > 0 ? Math.round((excusedCount / totalRoster) * 100) : 0;
+  const absentPct = totalRoster > 0 ? Math.round((absentCount / totalRoster) * 100) : 0;
+
   // New Meeting Form States
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
@@ -228,149 +238,136 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
 
       {/* Right Column: Details & Manual Overrides */}
       <div style={{ display: 'grid', gap: 24, alignContent: 'start' }}>
-        {selectedMeeting ? (() => {
-          const totalRoster = attendanceReport.length;
-          const presentCount = attendanceReport.filter(m => m.status.startsWith('Present')).length;
-          const excusedCount = attendanceReport.filter(m => m.status === 'Excused').length;
-          const absentCount = attendanceReport.filter(m => m.status === 'Absent').length;
-          
-          const presentPct = totalRoster > 0 ? Math.round((presentCount / totalRoster) * 100) : 0;
-          const excusedPct = totalRoster > 0 ? Math.round((excusedCount / totalRoster) * 100) : 0;
-          const absentPct = totalRoster > 0 ? Math.round((absentCount / totalRoster) * 100) : 0;
+        {selectedMeeting ? (
+          <>
+            {/* Header Detail Card */}
+            <div className="card" style={{ borderLeft: '4px solid var(--gold)', background: 'linear-gradient(135deg, #ffffff 0%, #fffdf9 100%)' }}>
+              <h2 style={{ margin: '0 0 4px', color: 'var(--navy)', fontWeight: 800 }}>{selectedMeeting.title}</h2>
+              <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+                📆 <strong>Date:</strong> {new Date(selectedMeeting.date).toLocaleString()} | 🎯 <strong>Geofence:</strong> {selectedMeeting.radius_meters}m radius
+              </p>
+            </div>
 
-          return (
-            <>
-              {/* Header Detail Card */}
-              <div className="card" style={{ borderLeft: '4px solid var(--gold)', background: 'linear-gradient(135deg, #ffffff 0%, #fffdf9 100%)' }}>
-                <h2 style={{ margin: '0 0 4px', color: 'var(--navy)', fontWeight: 800 }}>{selectedMeeting.title}</h2>
-                <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
-                  📆 <strong>Date:</strong> {new Date(selectedMeeting.date).toLocaleString()} | 🎯 <strong>Geofence:</strong> {selectedMeeting.radius_meters}m radius
-                </p>
+            {/* Visual Attendance Insights Graph */}
+            <div className="card" style={{ background: '#fff', display: 'grid', gap: 16 }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: 15, color: 'var(--navy)', fontWeight: 800 }}>📊 Meeting Attendance Analysis</h3>
+                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Visual breakdown of presence, excuses, and absences.</p>
               </div>
 
-              {/* Visual Attendance Insights Graph */}
-              <div className="card" style={{ background: '#fff', display: 'grid', gap: 16 }}>
-                <div>
-                  <h3 style={{ margin: '0 0 4px', fontSize: 15, color: 'var(--navy)', fontWeight: 800 }}>📊 Meeting Attendance Analysis</h3>
-                  <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Visual breakdown of presence, excuses, and absences.</p>
-                </div>
-
-                {loadingReport ? (
-                  <div style={{ padding: 12, textAlign: 'center', color: '#64748b', fontSize: 13 }}>⌛ Loading statistics...</div>
-                ) : (
-                  <div style={{ display: 'grid', gap: 16 }}>
-                    {/* Grid of stats */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                      <div style={{ padding: '12px 6px', borderRadius: 10, background: 'rgba(34, 197, 94, 0.04)', border: '1px solid rgba(34, 197, 94, 0.08)', textAlign: 'center' }}>
-                        <div style={{ fontSize: 18, marginBottom: 4 }}>✅</div>
-                        <div style={{ fontSize: 20, fontWeight: 800, color: '#16a34a' }}>{presentCount}</div>
-                        <div style={{ fontSize: 10, color: '#15803d', fontWeight: 700 }}>Present ({presentPct}%)</div>
-                      </div>
-                      <div style={{ padding: '12px 6px', borderRadius: 10, background: 'rgba(3, 105, 161, 0.04)', border: '1px solid rgba(3, 105, 161, 0.08)', textAlign: 'center' }}>
-                        <div style={{ fontSize: 18, marginBottom: 4 }}>✉️</div>
-                        <div style={{ fontSize: 20, fontWeight: 800, color: '#0284c7' }}>{excusedCount}</div>
-                        <div style={{ fontSize: 10, color: '#0369a1', fontWeight: 700 }}>Excused ({excusedPct}%)</div>
-                      </div>
-                      <div style={{ padding: '12px 6px', borderRadius: 10, background: 'rgba(239, 68, 68, 0.04)', border: '1px solid rgba(239, 68, 68, 0.08)', textAlign: 'center' }}>
-                        <div style={{ fontSize: 18, marginBottom: 4 }}>❌</div>
-                        <div style={{ fontSize: 20, fontWeight: 800, color: '#ef4444' }}>{absentCount}</div>
-                        <div style={{ fontSize: 10, color: '#b91c1c', fontWeight: 700 }}>Absent ({absentPct}%)</div>
-                      </div>
+              {loadingReport ? (
+                <div style={{ padding: 12, textAlign: 'center', color: '#64748b', fontSize: 13 }}>⌛ Loading statistics...</div>
+              ) : (
+                <div style={{ display: 'grid', gap: 16 }}>
+                  {/* Grid of stats */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                    <div style={{ padding: '12px 6px', borderRadius: 10, background: 'rgba(34, 197, 94, 0.04)', border: '1px solid rgba(34, 197, 94, 0.08)', textAlign: 'center' }}>
+                      <div style={{ fontSize: 18, marginBottom: 4 }}>✅</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: '#16a34a' }}>{presentCount}</div>
+                      <div style={{ fontSize: 10, color: '#15803d', fontWeight: 700 }}>Present ({presentPct}%)</div>
                     </div>
-
-                    {/* Horizontal Bar Graph */}
-                    <div style={{ height: 24, borderRadius: 12, overflow: 'hidden', background: '#f1f5f9', display: 'flex', width: '100%' }}>
-                      {presentCount > 0 && (
-                        <div 
-                          style={{ width: `${presentPct}%`, background: 'linear-gradient(90deg, #22c55e, #16a34a)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontWeight: 800 }}
-                          title={`Present: ${presentPct}%`}
-                        >
-                          {presentPct >= 10 ? `${presentPct}%` : ''}
-                        </div>
-                      )}
-                      {excusedCount > 0 && (
-                        <div 
-                          style={{ width: `${excusedPct}%`, background: 'linear-gradient(90deg, #38bdf8, #0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontWeight: 800 }}
-                          title={`Excused: ${excusedPct}%`}
-                        >
-                          {excusedPct >= 10 ? `${excusedPct}%` : ''}
-                        </div>
-                      )}
-                      {absentCount > 0 && (
-                        <div 
-                          style={{ width: `${absentPct}%`, background: 'linear-gradient(90deg, #f87171, #ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontWeight: 800 }}
-                          title={`Absent: ${absentPct}%`}
-                        >
-                          {absentPct >= 10 ? `${absentPct}%` : ''}
-                        </div>
-                      )}
+                    <div style={{ padding: '12px 6px', borderRadius: 10, background: 'rgba(3, 105, 161, 0.04)', border: '1px solid rgba(3, 105, 161, 0.08)', textAlign: 'center' }}>
+                      <div style={{ fontSize: 18, marginBottom: 4 }}>✉️</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: '#0284c7' }}>{excusedCount}</div>
+                      <div style={{ fontSize: 10, color: '#0369a1', fontWeight: 700 }}>Excused ({excusedPct}%)</div>
+                    </div>
+                    <div style={{ padding: '12px 6px', borderRadius: 10, background: 'rgba(239, 68, 68, 0.04)', border: '1px solid rgba(239, 68, 68, 0.08)', textAlign: 'center' }}>
+                      <div style={{ fontSize: 18, marginBottom: 4 }}>❌</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: '#ef4444' }}>{absentCount}</div>
+                      <div style={{ fontSize: 10, color: '#b91c1c', fontWeight: 700 }}>Absent ({absentPct}%)</div>
                     </div>
                   </div>
-                )}
-              </div>
 
-              {/* Excuse Excuse & Permission Requests Panel */}
-              <div className="card" style={{ border: '1px solid rgba(3, 105, 161, 0.1)', background: 'rgba(3, 105, 161, 0.005)', display: 'grid', gap: 16 }}>
-                <div>
-                  <h3 style={{ margin: '0 0 4px', fontSize: 15, color: '#0369a1', fontWeight: 800 }}>✉️ Excuse & Permission Requests</h3>
-                  <p style={{ margin: 0, fontSize: 12, color: '#0284c7' }}>Review absence permission excuses submitted by members.</p>
-                </div>
-
-                {absenceRequests.length === 0 ? (
-                  <div style={{ padding: '16px', textAlign: 'center', color: '#0284c7', fontSize: 12, fontStyle: 'italic', background: '#fff', borderRadius: 10, border: '1px dashed #bae6fd' }}>
-                    No pending excuses or permissions submitted for this meeting.
-                  </div>
-                ) : (
-                  <div style={{ display: 'grid', gap: 10 }}>
-                    {absenceRequests.map((req) => (
+                  {/* Horizontal Bar Graph */}
+                  <div style={{ height: 24, borderRadius: 12, overflow: 'hidden', background: '#f1f5f9', display: 'flex', width: '100%' }}>
+                    {presentCount > 0 && (
                       <div 
-                        key={req.id} 
-                        style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center', 
-                          padding: 14, 
-                          background: '#fff', 
-                          borderRadius: 10, 
-                          border: '1px solid #e0f2fe' 
-                        }}
+                        style={{ width: `${presentPct}%`, background: 'linear-gradient(90deg, #22c55e, #16a34a)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontWeight: 800 }}
+                        title={`Present: ${presentPct}%`}
                       >
-                        <div>
-                          <strong style={{ fontSize: 14, color: 'var(--navy)' }}>
-                            {req.members?.title || 'Bro.'} {req.members?.first_name} {req.members?.surname}
-                          </strong>
-                          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#334155' }}>
-                            ✍️ <em>"{req.reason}"</em>
-                          </p>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: req.status === 'pending' ? '#b45309' : '#0369a1', display: 'block', marginTop: 4 }}>
-                            Status: {req.status.toUpperCase()}
-                          </span>
-                        </div>
-
-                        {req.status === 'pending' && (
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            <button
-                              onClick={() => handleReviewExcuse(req.id, 'approved')}
-                              style={{ padding: '6px 12px', background: '#0284c7', color: '#fff', border: 0, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleReviewExcuse(req.id, 'declined')}
-                              style={{ padding: '6px 12px', background: '#ef4444', color: '#fff', border: 0, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                            >
-                              Decline
-                            </button>
-                          </div>
-                        )}
+                        {presentPct >= 10 ? `${presentPct}%` : ''}
                       </div>
-                    ))}
+                    )}
+                    {excusedCount > 0 && (
+                      <div 
+                        style={{ width: `${excusedPct}%`, background: 'linear-gradient(90deg, #38bdf8, #0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontWeight: 800 }}
+                        title={`Excused: ${excusedPct}%`}
+                      >
+                        {excusedPct >= 10 ? `${excusedPct}%` : ''}
+                      </div>
+                    )}
+                    {absentCount > 0 && (
+                      <div 
+                        style={{ width: `${absentPct}%`, background: 'linear-gradient(90deg, #f87171, #ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontWeight: 800 }}
+                        title={`Absent: ${absentPct}%`}
+                      >
+                        {absentPct >= 10 ? `${absentPct}%` : ''}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+              )}
+            </div>
+
+            {/* Excuse & Permission Requests Panel */}
+            <div className="card" style={{ border: '1px solid rgba(3, 105, 161, 0.1)', background: 'rgba(3, 105, 161, 0.005)', display: 'grid', gap: 16 }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: 15, color: '#0369a1', fontWeight: 800 }}>✉️ Excuse & Permission Requests</h3>
+                <p style={{ margin: 0, fontSize: 12, color: '#0284c7' }}>Review absence permission excuses submitted by members.</p>
               </div>
-            </>
-          );
-        })()) : (
+
+              {absenceRequests.length === 0 ? (
+                <div style={{ padding: '16px', textAlign: 'center', color: '#0284c7', fontSize: 12, fontStyle: 'italic', background: '#fff', borderRadius: 10, border: '1px dashed #bae6fd' }}>
+                  No pending excuses or permissions submitted for this meeting.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {absenceRequests.map((req) => (
+                    <div 
+                      key={req.id} 
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        padding: 14, 
+                        background: '#fff', 
+                        borderRadius: 10, 
+                        border: '1px solid #e0f2fe' 
+                      }}
+                    >
+                      <div>
+                        <strong style={{ fontSize: 14, color: 'var(--navy)' }}>
+                          {req.members?.title || 'Bro.'} {req.members?.first_name} {req.members?.surname}
+                        </strong>
+                        <p style={{ margin: '4px 0 0', fontSize: 13, color: '#334155' }}>
+                          ✍️ <em>"{req.reason}"</em>
+                        </p>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: req.status === 'pending' ? '#b45309' : '#0369a1', display: 'block', marginTop: 4 }}>
+                          Status: {req.status.toUpperCase()}
+                        </span>
+                      </div>
+
+                      {req.status === 'pending' && (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            onClick={() => handleReviewExcuse(req.id, 'approved')}
+                            style={{ padding: '6px 12px', background: '#0284c7', color: '#fff', border: 0, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleReviewExcuse(req.id, 'declined')}
+                            style={{ padding: '6px 12px', background: '#ef4444', color: '#fff', border: 0, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Attendance List & Manual Overrides */}
             <div className="card" style={{ display: 'grid', gap: 16 }}>
