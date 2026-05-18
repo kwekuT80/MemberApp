@@ -1,6 +1,7 @@
 export interface Member {
   id?: string;
   user_id?: string | null;
+  commandery_id?: string | null;
   title?: string | null;
   surname?: string | null;
   first_name?: string | null;
