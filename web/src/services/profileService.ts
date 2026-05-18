@@ -23,16 +23,32 @@ export async function getPendingProfilesWithMatches(): Promise<any[]> {
 
   const profilesWithMatches = await Promise.all(
     profiles.map(async (profile) => {
+      // If a member_id is already linked to the profile, fetch it directly
+      if (profile.member_id) {
+        const { data: directMember } = await supabase
+          .from('members')
+          .select('*')
+          .eq('id', profile.member_id)
+          .maybeSingle();
+        if (directMember) {
+          return {
+            ...profile,
+            match: directMember
+          };
+        }
+      }
+
       const email = profile.email || '';
       const phone = profile.phone || '';
       const commanderyId = profile.commandery_id;
 
       if (!commanderyId) return { ...profile, match: null };
 
+      // Search for members belonging to selected commandery OR whose commandery is null/unassigned
       let memberQuery = supabase
         .from('members')
         .select('*')
-        .eq('commandery_id', commanderyId);
+        .or(`commandery_id.eq.${commanderyId},commandery_id.is.null`);
 
       if (email && phone) {
         memberQuery = memberQuery.or(`email.eq.${email},phone.eq.${phone},mobile.eq.${phone}`);
@@ -69,9 +85,22 @@ export async function approveProfileLink(profileId: string, memberId: string): P
     .single();
   if (profileErr || !profile) throw new Error('Profile not found');
 
+  // Fetch member first to check commandery_id
+  const { data: member, error: getMemberErr } = await supabase
+    .from('members')
+    .select('commandery_id')
+    .eq('id', memberId)
+    .single();
+  if (getMemberErr) throw getMemberErr;
+
+  const memberUpdate: any = { user_id: profileId };
+  if (!member.commandery_id && profile.commandery_id) {
+    memberUpdate.commandery_id = profile.commandery_id;
+  }
+
   const { error: memberErr } = await supabase
     .from('members')
-    .update({ user_id: profileId })
+    .update(memberUpdate)
     .eq('id', memberId);
   if (memberErr) throw memberErr;
 
