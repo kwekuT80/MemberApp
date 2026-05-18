@@ -2,7 +2,7 @@
 // Login and sign-up screen. Users register with email + password.
 // After login the app loads their own member record.
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   SafeAreaView, ScrollView, ActivityIndicator,
@@ -11,6 +11,7 @@ import {
 import { supabase } from '../db/supabase';
 import { linkMemberRecord, isUserAuthorized } from '../db/memberQueries';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
+import { FormPicker } from '../components/FormComponents';
 
 export default function AuthScreen() {
   const [mode, setMode]         = useState('login'); // 'login' | 'register' | 'forgot'
@@ -23,6 +24,24 @@ export default function AuthScreen() {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
   const [message, setMessage]   = useState('');
+  const [commanderies, setCommanderies] = useState([]);
+  const [selectedCommanderyId, setSelectedCommanderyId] = useState('');
+
+  useEffect(() => {
+    async function loadCommanderies() {
+      try {
+        const { data, error } = await supabase
+          .from('commanderies')
+          .select('id, name, number')
+          .order('name');
+        if (error) throw error;
+        setCommanderies(data || []);
+      } catch (e) {
+        console.warn('Failed to load commanderies:', e);
+      }
+    }
+    loadCommanderies();
+  }, []);
 
   function clearState() {
     setError('');
@@ -43,33 +62,37 @@ export default function AuthScreen() {
   }
 
   async function handleRegister() {
-    if (mode === 'register' && (!email || !password || !confirm || !firstName || !surname)) { 
-      setError('Please fill in all fields, including your name.'); return; 
+    if (mode === 'register' && (!email || !password || !confirm || !firstName || !surname || !selectedCommanderyId)) { 
+      setError('Please fill in all fields, including your name and Commandery.'); return; 
     }
     if (password !== confirm) { setError('Passwords do not match.'); return; }
     if (password.length < 6)  { setError('Password must be at least 6 characters.'); return; }
     
     setLoading(true); clearState();
 
-    // STEP 1: Strictly Prioritized check: Email > Phone > Name
-    const authorized = await isUserAuthorized(email.trim(), phone.trim(), firstName.trim(), surname.trim());
-    
-    if (!authorized) {
-      setError('No record found matching your Email, Phone, or Name on the masterlist. Please contact your Registrar.');
-      setLoading(false);
-      return;
-    }
-
-    // STEP 2: Proceed with Supabase Auth registration
+    // STEP 1: Proceed with Supabase Auth registration
     const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
     if (error) {
       setError(error.message);
     } else {
       if (data?.user) {
-        // STEP 3: Prioritized Data Linking
-        await linkMemberRecord(data.user.email, data.user.id, phone.trim(), firstName.trim(), surname.trim());
+        // STEP 2: Save metadata to user's new profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            commandery_id: selectedCommanderyId,
+            status: 'pending',
+            first_name: firstName.trim(),
+            surname: surname.trim(),
+            phone: phone.trim()
+          })
+          .eq('id', data.user.id);
+
+        if (profileError) {
+          console.warn('Profile update error:', profileError.message);
+        }
       }
-      setMessage('Account created! Your member profile has been linked and you can now log in.');
+      setMessage('Account created! Your registration is pending approval by the Commandery Registrar.');
       setMode('login');
     }
     setLoading(false);
@@ -172,6 +195,18 @@ export default function AuthScreen() {
                   placeholder="024 123 4567"
                   placeholderTextColor={Colors.grey300}
                   keyboardType="phone-pad"
+                />
+
+                <FormPicker
+                  label="Commandery"
+                  value={selectedCommanderyId}
+                  onValueChange={setSelectedCommanderyId}
+                  items={commanderies.map(c => ({
+                    label: `${c.name} (No. ${c.number})`,
+                    value: c.id
+                  }))}
+                  required
+                  placeholder="Select your Commandery..."
                 />
               </>
             )}
