@@ -1,6 +1,7 @@
 /**
- * KSJI Attendance Matrix XLSX Importer
- * Automatically parses the attendance matrix spreadsheet and syncs with Supabase.
+ * KSJI Attendance Matrix XLSX Importer (Auto-Create Missing Members Version)
+ * Automatically parses the attendance matrix spreadsheet, creates minimal member records 
+ * for unmatched names, and syncs all historical logs with Supabase.
  */
 
 const fs = require('fs');
@@ -157,10 +158,58 @@ async function main() {
   }
   console.log(`✅ All meetings prepared & mapped in Supabase.\n`);
 
-  // --- Step 2: Parse and Upsert Attendance Matrix ---
+  // --- Step 2: Auto-create missing members dynamically ---
+  console.log(`🔍 Checking for Excel names missing from registry...`);
+  let createdMembersCount = 0;
+  
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const excelName = row[1];
+    if (!excelName) continue;
+
+    let matchedMember = findMatchingMember(excelName, dbMembers);
+    if (!matchedMember) {
+      console.log(`📌 Auto-creating minimal profile for missing brother: "${excelName}"`);
+      
+      const words = excelName.trim().split(/\s+/);
+      let surname = words[words.length - 1];
+      let first_name = words.slice(0, -1).join(' ');
+      if (words.length === 1) {
+        surname = excelName;
+        first_name = 'Brother';
+      }
+
+      const { data: newMem, error: insertMemErr } = await supabase
+        .from('members')
+        .insert({
+          first_name,
+          surname,
+          commandery_id: COMMANDERY_ID,
+          status: 'Active'
+        })
+        .select()
+        .single();
+
+      if (insertMemErr) {
+        console.error(`❌ Failed to auto-create member "${excelName}":`, insertMemErr.message);
+        process.exit(1);
+      }
+
+      // Add to local list so future lookups match it instantly
+      dbMembers.push(newMem);
+      createdMembersCount++;
+    }
+  }
+  
+  if (createdMembersCount > 0) {
+    console.log(`✅ Dynamically created and registered ${createdMembersCount} missing brothers in Supabase.\n`);
+  } else {
+    console.log(`✅ All sheet names already exist in your members directory.\n`);
+  }
+
+  // --- Step 3: Parse and Sync Attendance Matrix ---
   let attendanceCount = 0;
   let excuseCount = 0;
-  let skippedMembers = [];
   let matchedMembersCount = 0;
   
   const checkInRows = []; // To insert into tblAttendance
@@ -174,7 +223,7 @@ async function main() {
 
     const matchedMember = findMatchingMember(excelName, dbMembers);
     if (!matchedMember) {
-      skippedMembers.push(excelName);
+      console.error(`⚠️ Critical: Failed to find or match "${excelName}" even after creation check!`);
       continue;
     }
     
@@ -202,14 +251,6 @@ async function main() {
         });
       }
     }
-  }
-
-  console.log(`⚡ Matchmaking Summary:`);
-  console.log(`   - Matched and linked: ${matchedMembersCount} brothers.`);
-  console.log(`   - Unmatched registry names: ${skippedMembers.length} (listed below)`);
-  
-  if (skippedMembers.length > 0) {
-    console.log(`   🚨 Unmatched names list: [ ${skippedMembers.join(', ')} ]\n`);
   }
 
   // --- Clean Up Existing Records for these meetings to prevent duplicates ---
@@ -260,10 +301,11 @@ async function main() {
   console.log(`\n======================================================`);
   console.log(`🎉  3-YEAR MATRIX MIGRATION COMPLETED SUCCESSFULLY  🎉`);
   console.log(`======================================================`);
-  console.log(`✅ Matched Brothers:        ${matchedMembersCount}`);
-  console.log(`📅 Meetings Processed:     ${dateColumns.length}`);
-  console.log(`📊 Logged 'Present' Rows:  ${attendanceCount}`);
-  console.log(`📝 Logged 'Excused' Rows:  ${excuseCount}`);
+  console.log(`✅ Total Brothers Logged:   ${matchedMembersCount}`);
+  console.log(`📌 Auto-Created Members:    ${createdMembersCount}`);
+  console.log(`📅 Meetings Processed:      ${dateColumns.length}`);
+  console.log(`📊 Logged 'Present' Rows:   ${attendanceCount}`);
+  console.log(`📝 Logged 'Excused' Rows:   ${excuseCount}`);
   console.log(`======================================================\n`);
 }
 
