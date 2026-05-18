@@ -237,6 +237,9 @@ function cleanMemberDates(m) {
     date_of_death: fromPgDate(m.date_of_death),
     burial_date:   fromPgDate(m.burial_date),
     transfer_date: fromPgDate(m.transfer_date),
+    date_of_suspension: fromPgDate(m.date_of_suspension),
+    date_of_dismissal: fromPgDate(m.date_of_dismissal),
+    date_of_reinstatement: fromPgDate(m.date_of_reinstatement),
   };
 }
 
@@ -341,6 +344,9 @@ export async function saveMember(form) {
     transfer_to:         form.transfer_to         || null,
     transfer_date:       toPgDate(form.transfer_date),
     photo_url:           form.photo_url           || null,
+    date_of_suspension:  toPgDate(form.date_of_suspension),
+    date_of_dismissal:   toPgDate(form.date_of_dismissal),
+    date_of_reinstatement: toPgDate(form.date_of_reinstatement),
   };
 
   if (form.id) {

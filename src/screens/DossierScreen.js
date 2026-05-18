@@ -110,6 +110,9 @@ export default function DossierScreen({ route, navigation }) {
                 <div class="field"><span class="label">Initiation Date</span><span class="value">${joinedDate}</span></div>
                 <div class="field"><span class="label">Current Status</span><span class="value">${member.status}</span></div>
                 <div class="field"><span class="label">Occupation</span><span class="value">${member.occupation || '—'}</span></div>
+                ${member.date_of_suspension ? `<div class="field"><span class="label">Date of Suspension</span><span class="value">${formatDisplayDate(member.date_of_suspension)}</span></div>` : ''}
+                ${member.date_of_dismissal ? `<div class="field"><span class="label">Date of Dismissal</span><span class="value">${formatDisplayDate(member.date_of_dismissal)}</span></div>` : ''}
+                ${member.date_of_reinstatement ? `<div class="field"><span class="label">Date of Reinstatement</span><span class="value">${formatDisplayDate(member.date_of_reinstatement)}</span></div>` : ''}
               </div>
             </div>
 
@@ -247,6 +250,35 @@ export default function DossierScreen({ route, navigation }) {
             </View>
           ))}
         </DossierSection>
+
+        {(member.date_joined || member.date_of_suspension || member.date_of_dismissal || member.date_of_reinstatement) ? (
+          <DossierSection title="Status & History" icon="🧬">
+            {member.date_joined ? (
+              <View style={s.listItem}>
+                <Text style={s.itemTitle}>Initiation Date (Joined)</Text>
+                <Text style={s.itemSub}>{formatDisplayDate(member.date_joined)}</Text>
+              </View>
+            ) : null}
+            {member.date_of_suspension ? (
+              <View style={s.listItem}>
+                <Text style={[s.itemTitle, { color: Colors.danger }]}>Date of Suspension</Text>
+                <Text style={s.itemSub}>{formatDisplayDate(member.date_of_suspension)}</Text>
+              </View>
+            ) : null}
+            {member.date_of_dismissal ? (
+              <View style={s.listItem}>
+                <Text style={[s.itemTitle, { color: Colors.danger }]}>Date of Dismissal</Text>
+                <Text style={s.itemSub}>{formatDisplayDate(member.date_of_dismissal)}</Text>
+              </View>
+            ) : null}
+            {member.date_of_reinstatement ? (
+              <View style={s.listItem}>
+                <Text style={[s.itemTitle, { color: Colors.navy }]}>Date of Reinstatement</Text>
+                <Text style={s.itemSub}>{formatDisplayDate(member.date_of_reinstatement)}</Text>
+              </View>
+            ) : null}
+          </DossierSection>
+        ) : null}
 
         <DossierSection title="Family" icon="👨‍👩‍👧">
           {spouse && (

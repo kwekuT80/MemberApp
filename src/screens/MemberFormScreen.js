@@ -46,7 +46,8 @@ const INITIAL_FORM_STATE = {
   marital_status: '', emp_status: '', occupation: '', workplace: '',
   job_status: '', work_address: '', uniform_positions: '', date_joined: '',
   status: 'Active', is_deceased: false, date_of_death: '', burial_date: '', burial_place: '',
-  transfer_from: '', transfer_to: '', transfer_date: ''
+  transfer_from: '', transfer_to: '', transfer_date: '',
+  date_of_suspension: '', date_of_dismissal: '', date_of_reinstatement: ''
 };
 
 const TABS = [
@@ -721,12 +722,43 @@ function LifecycleTab({ form, set }) {
         label="Status" 
         value={form.status} 
         onValueChange={(v) => {
+          const oldStatus = form.status;
           set('status')(v);
-          if (v === 'Deceased') set('is_deceased')(true);
-          else set('is_deceased')(false);
+          if (v === 'Deceased') {
+            set('is_deceased')(true);
+          } else {
+            set('is_deceased')(false);
+          }
+
+          // Intelligent lifecycle status transitions matching the Web portal
+          const todayStr = new Date().toLocaleDateString('en-GB'); // Formats to DD/MM/YYYY for the standard input mask!
+          if (v === 'Suspended') {
+            set('date_of_suspension')(todayStr);
+            set('date_of_dismissal')('');
+            set('date_of_reinstatement')('');
+          } else if (v === 'Dismissed') {
+            set('date_of_dismissal')(todayStr);
+            set('date_of_reinstatement')('');
+          } else if (v === 'Active') {
+            if (oldStatus === 'Suspended' || oldStatus === 'Dismissed') {
+              set('date_of_reinstatement')(todayStr);
+            }
+          }
         }} 
         items={STATUSES} 
       />
+
+      {form.status === 'Suspended' && (
+        <DateInput label="Date of Suspension" value={form.date_of_suspension} onChangeText={set('date_of_suspension')} />
+      )}
+
+      {form.status === 'Dismissed' && (
+        <DateInput label="Date of Dismissal" value={form.date_of_dismissal} onChangeText={set('date_of_dismissal')} />
+      )}
+
+      {form.date_of_reinstatement ? (
+        <DateInput label="Date of Reinstatement" value={form.date_of_reinstatement} onChangeText={set('date_of_reinstatement')} />
+      ) : null}
 
       {form.status === 'Deceased' && (
         <>
