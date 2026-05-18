@@ -133,3 +133,14 @@ export async function approveAsNewMember(profileId: string): Promise<void> {
     .eq('id', profileId);
   if (updateErr) throw updateErr;
 }
+
+export async function getUnlinkedMembers(): Promise<any[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('members')
+    .select('id, first_name, surname, commandery_id, email, phone')
+    .is('user_id', null)
+    .order('surname');
+  if (error) throw error;
+  return data || [];
+}

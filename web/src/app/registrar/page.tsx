@@ -5,14 +5,15 @@ import RegistrarSearchBar from '@/components/members/RegistrarSearchBar';
 import { requireRegistrar } from '@/lib/auth/requireRegistrar';
 import { getMemberCount, searchMembers } from '@/services/memberService';
 import WaitingRoom from '@/components/auth/WaitingRoom';
-import { getPendingProfilesWithMatches } from '@/services/profileService';
+import { getPendingProfilesWithMatches, getUnlinkedMembers } from '@/services/profileService';
 
 export default async function RegistrarPage() { 
   await requireRegistrar(); 
-  const [members, memberCount, pending] = await Promise.all([
+  const [members, memberCount, pending, unlinkedMembers] = await Promise.all([
     searchMembers(''),
     getMemberCount(),
-    getPendingProfilesWithMatches()
+    getPendingProfilesWithMatches(),
+    getUnlinkedMembers()
   ]); 
 
   // Status Breakdown Calculation
@@ -28,7 +29,7 @@ export default async function RegistrarPage() {
 
   return (
     <RegistrarShell title='Registrar Dashboard' subtitle='Official Membership Registry & Commandery Records'>
-      <WaitingRoom initialPending={pending} />
+      <WaitingRoom initialPending={pending} unlinkedMembers={unlinkedMembers} />
 
       <div className="grid-cols-3" style={{ marginBottom: 32 }}>
         <SummaryCard title='Total Registry' value={String(memberCount)} icon="👥" />
