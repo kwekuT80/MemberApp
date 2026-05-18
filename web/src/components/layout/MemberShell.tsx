@@ -9,6 +9,7 @@ const memberNav = [
   { href: '/me/military', label: 'Military' },
   { href: '/me/emergency', label: 'Emergency' },
   { href: '/me/attendance', label: 'Attendance' },
+  { href: '/registrar', label: '🛡️ Registrar Portal (If Officer)' },
 ];
 
 export default function MemberShell({ children, title = 'Member Portal', subtitle }: { children: React.ReactNode; title?: string; subtitle?: string }) {
