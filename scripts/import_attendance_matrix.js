@@ -129,7 +129,7 @@ async function main() {
       .select('id')
       .eq('commandery_id', COMMANDERY_ID)
       .eq('title', meetingTitle)
-      .eq('date', `${dateCol.pgDate}T00:00:00Z`)
+      .eq('date', `${dateCol.pgDate}T10:00:00Z`)
       .maybeSingle();
 
     if (extMtg) {
