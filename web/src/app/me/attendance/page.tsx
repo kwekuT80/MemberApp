@@ -1,5 +1,7 @@
 'use server';
 
+export const dynamic = 'force-dynamic';
+
 import React from 'react';
 import MemberShell from '@/components/layout/MemberShell';
 import { requireUser } from '@/lib/auth/requireUser';

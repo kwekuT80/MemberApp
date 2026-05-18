@@ -1,5 +1,7 @@
 'use server';
 
+export const dynamic = 'force-dynamic';
+
 import React from 'react';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { requireRegistrar } from '@/lib/auth/requireRegistrar';

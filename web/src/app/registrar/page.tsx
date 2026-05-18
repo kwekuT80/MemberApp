@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import Link from 'next/link';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import MemberSearchTable from '@/components/members/MemberSearchTable';
