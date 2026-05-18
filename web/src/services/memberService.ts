@@ -18,9 +18,32 @@ export async function getMyMember(): Promise<any | null> {
   const supabase = await createClient();
   const { data:{ user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data, error } = await supabase.from('members').select(FULL_SELECT).eq('user_id', user.id).maybeSingle();
+
+  // 1. Fetch profile to see if they have a linked member_id
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('member_id')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profile?.member_id) {
+    const { data, error } = await supabase
+      .from('members')
+      .select(FULL_SELECT)
+      .eq('id', profile.member_id)
+      .maybeSingle();
+    if (!error && data) return data;
+  }
+
+  // 2. Fallback to user_id match with limit to avoid PGRST116 multiple rows exception
+  const { data, error } = await supabase
+    .from('members')
+    .select(FULL_SELECT)
+    .eq('user_id', user.id)
+    .limit(1);
+
   if (error) throw error;
-  return data || null;
+  return data && data.length > 0 ? data[0] : null;
 }
 
 export async function getMemberById(id: string): Promise<any | null> {

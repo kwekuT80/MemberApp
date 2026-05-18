@@ -104,12 +104,13 @@ export async function approveProfileLink(profileId: string, memberId: string): P
     .eq('id', memberId);
   if (memberErr) throw memberErr;
 
+  const newRole = profile.role === 'registrar' ? 'registrar' : 'member';
   const { error: updateErr } = await supabase
     .from('profiles')
     .update({
       status: 'approved',
       member_id: memberId,
-      role: 'member'
+      role: newRole
     })
     .eq('id', profileId);
   if (updateErr) throw updateErr;
