@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { approveProfileLink, rejectProfile } from '@/services/profileService';
+import { approveProfileLink, rejectProfile, approveAsNewMember } from '@/services/profileService';
 
 interface PendingRegistration {
   id: string;
@@ -40,6 +40,20 @@ export default function WaitingRoom({ initialPending }: WaitingRoomProps) {
       setMessage('Account linked and approved successfully!');
     } catch (e: any) {
       setMessage(`Error: ${e.message || 'Failed to approve'}`);
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
+  async function handleApproveAsNew(profileId: string) {
+    setProcessingId(profileId);
+    setMessage(null);
+    try {
+      await approveAsNewMember(profileId);
+      setPending(prev => prev.filter(p => p.id !== profileId));
+      setMessage('New member record created and account approved successfully!');
+    } catch (e: any) {
+      setMessage(`Error: ${e.message || 'Failed to approve as new'}`);
     } finally {
       setProcessingId(null);
     }
@@ -100,7 +114,7 @@ export default function WaitingRoom({ initialPending }: WaitingRoomProps) {
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  {hasMatch && item.match && (
+                  {hasMatch && item.match ? (
                     <button
                       disabled={processingId === item.id}
                       onClick={() => handleApprove(item.id, item.match!.id)}
@@ -108,6 +122,15 @@ export default function WaitingRoom({ initialPending }: WaitingRoomProps) {
                       style={{ background: 'var(--gold)', color: 'var(--navy)', border: 0, padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
                     >
                       {processingId === item.id ? 'Processing…' : 'Approve & Link'}
+                    </button>
+                  ) : (
+                    <button
+                      disabled={processingId === item.id}
+                      onClick={() => handleApproveAsNew(item.id)}
+                      className="tab tab-active"
+                      style={{ background: 'var(--gold)', color: 'var(--navy)', border: 0, padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
+                    >
+                      {processingId === item.id ? 'Processing…' : 'Approve as New'}
                     </button>
                   )}
                   <button

@@ -94,3 +94,42 @@ export async function rejectProfile(profileId: string): Promise<void> {
     .eq('id', profileId);
   if (error) throw error;
 }
+
+export async function approveAsNewMember(profileId: string): Promise<void> {
+  const supabase = await createClient();
+  
+  // 1. Fetch profile metadata
+  const { data: profile, error: profileErr } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', profileId)
+    .single();
+  if (profileErr || !profile) throw new Error('Profile not found');
+
+  // 2. Insert new member in the members table
+  const { data: newMember, error: memberErr } = await supabase
+    .from('members')
+    .insert({
+      first_name: profile.first_name || '',
+      surname: profile.surname || '',
+      email: profile.email,
+      phone: profile.phone || null,
+      commandery_id: profile.commandery_id,
+      user_id: profileId,
+      status: 'Active'
+    })
+    .select()
+    .single();
+  if (memberErr) throw memberErr;
+
+  // 3. Update profile to approved and link new member ID
+  const { error: updateErr } = await supabase
+    .from('profiles')
+    .update({
+      status: 'approved',
+      member_id: newMember.id,
+      role: 'member'
+    })
+    .eq('id', profileId);
+  if (updateErr) throw updateErr;
+}

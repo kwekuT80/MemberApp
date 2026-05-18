@@ -1,4 +1,5 @@
 import Sidebar, { SidebarItem } from './Sidebar';
+import SignOutButton from '@/components/auth/SignOutButton';
 
 export default function AppShell({ children, title, subtitle, navItems }: { children: React.ReactNode; title: string; subtitle?: string; navItems: SidebarItem[]; }) {
   return (
@@ -16,6 +17,9 @@ export default function AppShell({ children, title, subtitle, navItems }: { chil
           <div className="card" style={{ padding: 20 }}>
             <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 24, color: 'var(--navy)' }}>KSJI Registry</div>
             <Sidebar items={navItems} />
+            <div style={{ borderTop: '1px solid #eef3f9', paddingTop: 20, marginTop: 20, display: 'flex', justifyContent: 'center' }}>
+              <SignOutButton />
+            </div>
           </div>
         </aside>
 
