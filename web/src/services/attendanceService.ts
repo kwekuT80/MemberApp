@@ -116,12 +116,12 @@ export async function reviewAbsenceRequest(payload: {
 export async function getAttendanceReport(meetingId: string, commanderyId: string) {
   const supabase = await createClient();
 
-  // 1. Fetch all members in this commandery
+  // 1. Fetch all members in this commandery who are on the active roll
   const { data: members, error: memError } = await supabase
     .from('members')
     .select('*')
     .eq('commandery_id', commanderyId)
-    .eq('status', 'Active');
+    .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")');
   if (memError) throw memError;
 
   // 2. Fetch all verified check-ins for this meeting

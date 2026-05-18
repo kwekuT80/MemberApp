@@ -29,9 +29,9 @@ export default async function RegistrarMeetingsPage() {
   // 1. Fetch meetings for the Commandery
   const meetings = await getMeetings(profile.commandery_id);
 
-  // 2. Fetch all active members in the Commandery
+  // 2. Fetch all active members on the roll for this Commandery
   const allMembers = await searchMembers('');
-  const commanderyMembers = allMembers.filter(m => m.commandery_id === profile.commandery_id && m.status === 'Active');
+  const commanderyMembers = allMembers.filter(m => m.commandery_id === profile.commandery_id && !['Dismissed', 'Transfer-Out', 'Deceased'].includes(m.status || ''));
 
   return (
     <RegistrarShell title="Meeting & Attendance" subtitle="Schedule geofenced meetings, review excuses, and trigger manual check-in overrides.">
