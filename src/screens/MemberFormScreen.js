@@ -433,9 +433,10 @@ function ContactTab({ form, set, memberId, navigation }) {
 }
 
 function FamilyTab({ form, set, memberId, navigation }) {
-  const [spouse, setSpouse]     = useState(null);
-  const [children, setChildren] = useState([]);
-  const [loading, setLoading]   = useState(false);
+  const [spouse, setSpouse]         = useState(null);
+  const [children, setChildren]     = useState([]);
+  const [dependents, setDependents] = useState([]);
+  const [loading, setLoading]       = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -443,10 +444,11 @@ function FamilyTab({ form, set, memberId, navigation }) {
         if (!memberId) return;
         setLoading(true);
         try {
-          const { getSpouse, getChildren } = require('../db/memberQueries');
-          const [s, c] = await Promise.all([getSpouse(memberId), getChildren(memberId)]);
+          const { getSpouse, getChildren, getDependents } = require('../db/memberQueries');
+          const [s, c, d] = await Promise.all([getSpouse(memberId), getChildren(memberId), getDependents(memberId)]);
           setSpouse(s);
           setChildren(c);
+          setDependents(d);
         } catch (e) {
           console.warn('Family load failed', e);
         } finally {
@@ -507,6 +509,30 @@ function FamilyTab({ form, set, memberId, navigation }) {
             </View>
           )}
           <SubformLink icon="👶" label="Manage Children" onPress={() => navigation.navigate('Children', { memberId })} />
+
+          <SectionHeader title="Dependents" />
+          {dependents.length > 0 ? (
+            dependents.map(d => (
+              <View key={d.id} style={s.degreeSummaryCard}>
+                <Text style={s.degreeSummaryTitle}>{d.dependent_name}</Text>
+                <View style={s.degreeSummaryRow}>
+                  <Text style={s.degreeSummaryLabel}>Relationship:</Text>
+                  <Text style={s.degreeSummaryValue}>{d.relationship || '—'}</Text>
+                </View>
+                {d.birth_date ? (
+                  <View style={s.degreeSummaryRow}>
+                    <Text style={s.degreeSummaryLabel}>DOB:</Text>
+                    <Text style={s.degreeSummaryValue}>{d.birth_date}</Text>
+                  </View>
+                ) : null}
+              </View>
+            ))
+          ) : (
+            <View style={s.summaryEmptyCard}>
+              <Text style={s.summaryEmptyText}>No dependents recorded (parents, in-laws, etc.).</Text>
+            </View>
+          )}
+          <SubformLink icon="👨‍👩‍👦" label="Manage Dependents" onPress={() => navigation.navigate('Dependents', { memberId })} />
         </>
       ) : <SaveFirstNote />}
     </>

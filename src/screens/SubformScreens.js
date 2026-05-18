@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import {
   getChildren, saveChild, deleteChild,
+  getDependents, saveDependent, deleteDependent,
   getPositions, savePosition, deletePosition,
   getEmergencyContacts, saveEmergencyContact, deleteEmergencyContact,
   getMilitary, saveMilitary,
@@ -797,6 +798,108 @@ export function SpouseScreen({ route, navigation }) {
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════
+// DEPENDENTS (Parents, In-Laws, etc.)
+// ════════════════════════════════════════════════════════════════════
+
+const RELATIONSHIP_OPTIONS = ['Dependant', 'Parent', 'In-Law', 'Child', 'Other'];
+
+export function DependentsScreen({ route, navigation }) {
+  const { memberId } = route.params;
+  const [items, setItems]     = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setItems(await getDependents(memberId));
+    setLoading(false);
+  }, [memberId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleSave() {
+    if (!editing.dependent_name?.trim()) {
+      Alert.alert('Validation Error', 'Please enter the dependent\'s name.');
+      return;
+    }
+    try {
+      await saveDependent({ ...editing, member_id: memberId });
+      setEditing(null);
+      load();
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    }
+  }
+
+  async function handleDelete() {
+    Alert.alert('Remove Dependent', 'Remove this dependent record?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: async () => {
+        await deleteDependent(editing.id);
+        setEditing(null);
+        load();
+      }},
+    ]);
+  }
+
+  if (editing !== null) {
+    return (
+      <SubformEditor
+        title={editing.id ? 'Edit Dependent' : 'New Dependent'}
+        onBack={() => setEditing(null)}
+        onSave={handleSave}
+        onDelete={editing.id ? handleDelete : null}
+      >
+        <FormInput
+          label="Name"
+          value={editing.dependent_name}
+          onChangeText={v => setEditing(e => ({ ...e, dependent_name: v }))}
+          required
+        />
+        <FormPicker
+          label="Relationship"
+          value={editing.relationship || 'Dependant'}
+          onValueChange={v => setEditing(e => ({ ...e, relationship: v }))}
+          items={RELATIONSHIP_OPTIONS}
+        />
+        <DateInput
+          label="Date of Birth"
+          value={editing.birth_date}
+          onChangeText={v => setEditing(e => ({ ...e, birth_date: v }))}
+        />
+      </SubformEditor>
+    );
+  }
+
+  return (
+    <SubformList
+      title="Dependents"
+      icon="👨‍👩‍👦"
+      onBack={() => navigation.goBack()}
+      onAdd={() => setEditing({ dependent_name: '', relationship: 'Dependant', birth_date: '' })}
+      loading={loading}
+      emptyIcon="👨‍👩‍👦"
+      emptyTitle="No dependents recorded"
+      emptyMessage="Tap '+ Add New' to add a parent, in-law, or other dependent."
+    >
+      {items.map(item => (
+        <ListCard key={item.id} onPress={() => setEditing({ ...item })}>
+          <Text style={s.itemTitle}>{item.dependent_name || '(No Name)'}</Text>
+          <View style={s.itemRow}>
+            {item.relationship
+              ? <Text style={s.itemBadge}>{item.relationship}</Text>
+              : null}
+            {item.birth_date
+              ? <Text style={s.itemSub}>{item.birth_date}</Text>
+              : null}
+          </View>
+        </ListCard>
+      ))}
+    </SubformList>
   );
 }
 

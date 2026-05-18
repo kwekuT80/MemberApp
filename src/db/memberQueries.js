@@ -420,6 +420,54 @@ export async function deleteChild(id) {
   if (error) throw error;
 }
 
+// ── Dependents ─────────────────────────────────────────────────────────────────
+
+export async function getDependents(memberId) {
+  const { data, error } = await supabase
+    .from('dependents')
+    .select('*')
+    .eq('member_id', memberId)
+    .order('created_at');
+  if (error && error.code === 'PGRST205') return []; // table not yet created
+  if (error) throw error;
+  return (data || []).map(d => ({
+    ...d,
+    birth_date: fromPgDate(d.birth_date)
+  }));
+}
+
+export async function saveDependent(item) {
+  const memberId = item.member_id || await getMyMemberId();
+  const payload = {
+    dependent_name: item.dependent_name || null,
+    relationship:   item.relationship   || null,
+    birth_date:     toPgDate(item.birth_date),
+  };
+  let result;
+  if (item.id) {
+    const { data, error } = await supabase
+      .from('dependents')
+      .update(payload)
+      .eq('id', item.id)
+      .select().single();
+    if (error) throw error;
+    result = data;
+  } else {
+    const { data, error } = await supabase
+      .from('dependents')
+      .insert({ member_id: memberId, ...payload })
+      .select().single();
+    if (error) throw error;
+    result = data;
+  }
+  return { ...result, birth_date: fromPgDate(result.birth_date) };
+}
+
+export async function deleteDependent(id) {
+  const { error } = await supabase.from('dependents').delete().eq('id', id);
+  if (error) throw error;
+}
+
 // ── Positions ──────────────────────────────────────────────────────────────────
 
 export async function getPositions(memberId) {

@@ -18,6 +18,7 @@ import {
   MilitaryScreen,
   DegreesScreen,
   SpouseScreen,
+  DependentsScreen,
 } from '../screens/SubformScreens';
 import MembershipCardScreen  from '../screens/MembershipCardScreen';
 import ReportsScreen        from '../screens/ReportsScreen';
@@ -142,6 +143,7 @@ export default function AppNavigator() {
               <Stack.Screen name="Military"          component={MilitaryScreen} />
               <Stack.Screen name="Degrees"           component={DegreesScreen} />
               <Stack.Screen name="Spouse"            component={SpouseScreen} />
+              <Stack.Screen name="Dependents"        component={DependentsScreen} />
               <Stack.Screen name="MembershipCard"   component={MembershipCardScreen} />
               <Stack.Screen name="Dossier"          component={DossierScreen} />
               <Stack.Screen name="ScanVerification" component={ScanVerificationScreen} options={{ headerShown: false }} />
