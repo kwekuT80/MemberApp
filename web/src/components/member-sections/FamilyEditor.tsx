@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { SpouseRecord } from '@/types/spouse';
 import { ChildRecord } from '@/types/child';
+import { DependentRecord } from '@/types/dependent';
 
 const toInputDate = (value?: string | null) => {
   if (!value) return '';
@@ -22,7 +23,17 @@ const fromInputDate = (value?: string | null) => {
 };
 
 
-export default function FamilyEditor({ memberId, initialSpouse, initialChildren }: { memberId: string; initialSpouse: SpouseRecord | null; initialChildren: ChildRecord[] }) {
+export default function FamilyEditor({
+  memberId,
+  initialSpouse,
+  initialChildren,
+  initialDependents = []
+}: {
+  memberId: string;
+  initialSpouse: SpouseRecord | null;
+  initialChildren: ChildRecord[];
+  initialDependents?: DependentRecord[];
+}) {
   const supabase = createClient();
   const [spouse, setSpouse] = useState<SpouseRecord>(
     initialSpouse ? { ...initialSpouse, spouse_dob: toInputDate(initialSpouse.spouse_dob) } : {
@@ -37,7 +48,19 @@ export default function FamilyEditor({ memberId, initialSpouse, initialChildren 
       spouse_notes: '',
     },
   );
-  const [children, setChildren] = useState<ChildRecord[]>(initialChildren.length ? initialChildren.map((c) => ({ ...c, birth_date: toInputDate(c.birth_date) })) : [{ child_name: '', birth_date: '', birth_place: '' }]);
+  
+  const [children, setChildren] = useState<ChildRecord[]>(
+    initialChildren.length
+      ? initialChildren.map((c) => ({ ...c, birth_date: toInputDate(c.birth_date) }))
+      : [{ child_name: '', birth_date: '', birth_place: '' }]
+  );
+
+  const [dependents, setDependents] = useState<DependentRecord[]>(
+    initialDependents.length
+      ? initialDependents.map((d) => ({ ...d, birth_date: toInputDate(d.birth_date) }))
+      : [{ dependent_name: '', relationship: 'Dependant', birth_date: '' }]
+  );
+
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +70,7 @@ export default function FamilyEditor({ memberId, initialSpouse, initialChildren 
     setMessage(null);
     setError(null);
 
+    // 1. Save Spouse
     const spousePayload = { ...spouse, member_id: memberId, spouse_dob: fromInputDate(spouse.spouse_dob) };
     const spouseResult = await supabase
       .from('spouse')
@@ -60,6 +84,7 @@ export default function FamilyEditor({ memberId, initialSpouse, initialChildren 
       return;
     }
 
+    // 2. Save Children
     const existingIds = initialChildren.filter((c) => c.id).map((c) => c.id) as string[];
     const currentIds = children.filter((c) => c.id).map((c) => c.id) as string[];
     const toDelete = existingIds.filter((id) => !currentIds.includes(id));
@@ -78,14 +103,49 @@ export default function FamilyEditor({ memberId, initialSpouse, initialChildren 
       }
     }
 
-    setMessage('Family records saved.');
+    // 3. Save Dependents (If table is available)
+    const existingDepIds = initialDependents.filter((d) => d.id).map((d) => d.id) as string[];
+    const currentDepIds = dependents.filter((d) => d.id).map((d) => d.id) as string[];
+    const depToDelete = existingDepIds.filter((id) => !currentDepIds.includes(id));
+    
+    // Check if table is available by writing a select test first to handle grace cases
+    const { error: tableCheck } = await supabase.from('dependents').select('id').limit(1);
+    if (!tableCheck) {
+      if (depToDelete.length) {
+        await supabase.from('dependents').delete().in('id', depToDelete);
+      }
+
+      for (const dep of dependents) {
+        if (!(dep.dependent_name || dep.relationship || dep.birth_date)) continue;
+        const payload = {
+          ...dep,
+          member_id: memberId,
+          birth_date: fromInputDate(dep.birth_date)
+        };
+        const result = dep.id
+          ? await supabase.from('dependents').update(payload).eq('id', dep.id).select().single()
+          : await supabase.from('dependents').insert(payload).select().single();
+          
+        if (result.error) {
+          setError(result.error.message);
+          setBusy(false);
+          return;
+        }
+      }
+    } else {
+      console.warn("Skipping dependents save because the table dependents is not yet created in the DB.");
+    }
+
+    setMessage('Family and dependent records saved.');
     setBusy(false);
     window.location.reload();
   }
 
   return (
     <div style={card}>
-      <h2 style={{ margin: 0 }}>Family</h2>
+      <h2 style={{ margin: 0 }}>Family & Dependents</h2>
+      
+      {/* Spouse Section */}
       <div style={subCard}>
         <h3 style={{ margin: '0 0 12px' }}>Spouse</h3>
         <div style={grid}>
@@ -101,6 +161,7 @@ export default function FamilyEditor({ memberId, initialSpouse, initialChildren 
         {textareaField('Notes', spouse.spouse_notes || '', (v) => setSpouse((cur) => ({ ...cur, spouse_notes: v })))}
       </div>
 
+      {/* Children Section */}
       <div style={subCard}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0 }}>Children</h3>
@@ -118,8 +179,26 @@ export default function FamilyEditor({ memberId, initialSpouse, initialChildren 
         ))}
       </div>
 
+      {/* Dependents Section */}
+      <div style={subCard}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0 }}>Dependents (Parents, In-Laws, etc.)</h3>
+          <button type='button' onClick={() => setDependents((items) => [...items, { dependent_name: '', relationship: 'Dependant', birth_date: '' }])} style={secondaryButton}>Add dependent</button>
+        </div>
+        {dependents.map((dep, index) => (
+          <div key={dep.id || index} style={{ ...subCard, marginTop: 12 }}>
+            <div style={grid}>
+              {field('Dependent name', dep.dependent_name || '', (v) => setDependents((items) => items.map((item, i) => (i === index ? { ...item, dependent_name: v } : item))))}
+              {selectField('Relationship', dep.relationship || 'Dependant', ['Dependant', 'Parent', 'In-Law', 'Child', 'Other'], (v) => setDependents((items) => items.map((item, i) => (i === index ? { ...item, relationship: v } : item))))}
+              {dateField('Birth date', dep.birth_date || '', (v) => setDependents((items) => items.map((item, i) => (i === index ? { ...item, birth_date: v } : item))))}
+            </div>
+            <button type='button' onClick={() => setDependents((items) => items.filter((_, i) => i !== index))} style={dangerButton}>Remove</button>
+          </div>
+        ))}
+      </div>
+
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        <button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save family records'}</button>
+        <button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save all records'}</button>
         {message ? <span style={{ color: '#1f6f43' }}>{message}</span> : null}
         {error ? <span style={{ color: 'crimson' }}>{error}</span> : null}
       </div>
@@ -139,6 +218,19 @@ function checkboxField(label: string, checked: boolean, onChange: (checked: bool
   return <label style={{ display: 'grid', gap: 6 }}><span style={labelStyle}>{label}</span><input type='checkbox' checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ width: 18, height: 18 }} /></label>;
 }
 
+function selectField(label: string, value: string, options: string[], onChange: (value: string) => void) {
+  return (
+    <label style={{ display: 'grid', gap: 6 }}>
+      <span style={labelStyle}>{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)} style={inputStyle}>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 function textareaField(label: string, value: string, onChange: (value: string) => void) {
   return <label style={{ display: 'grid', gap: 6 }}><span style={labelStyle}>{label}</span><textarea value={value} onChange={(e) => onChange(e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></label>;
 }
@@ -147,7 +239,7 @@ const card: React.CSSProperties = { background: '#fff', padding: 20, borderRadiu
 const subCard: React.CSSProperties = { padding: 14, border: '1px solid #dce4ee', borderRadius: 12, display: 'grid', gap: 12 };
 const grid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12 };
 const labelStyle: React.CSSProperties = { fontSize: 12, color: '#53657d', fontWeight: 700 };
-const inputStyle: React.CSSProperties = { padding: '11px 12px', borderRadius: 10, border: '1px solid #cfd8e3', fontSize: 14 };
+const inputStyle: React.CSSProperties = { padding: '11px 12px', borderRadius: 10, border: '1px solid #cfd8e3', fontSize: 14, background: '#fff', outline: 'none' };
 const primaryButton: React.CSSProperties = { padding: '12px 16px', borderRadius: 10, border: 0, background: '#10233f', color: '#fff', fontWeight: 700, cursor: 'pointer' };
-const secondaryButton: React.CSSProperties = { padding: '10px 14px', borderRadius: 10, border: '1px solid #cfd8e3', background: '#fff', cursor: 'pointer' };
+const secondaryButton: React.CSSProperties = { padding: '10px 14px', borderRadius: 10, border: '1px solid #cfd8e3', background: '#fff', cursor: 'pointer', outline: 'none' };
 const dangerButton: React.CSSProperties = { padding: '9px 12px', borderRadius: 10, border: '1px solid #f0c9c9', color: '#8a1f1f', background: '#fff5f5', cursor: 'pointer', justifySelf: 'start' };

@@ -6,4 +6,40 @@ import { requireRegistrar } from '@/lib/auth/requireRegistrar';
 import { getMemberById } from '@/services/memberService';
 import { getSpouseByMemberId } from '@/services/spouseService';
 import { getChildrenByMemberId } from '@/services/childrenService';
-export default async function RegistrarMemberFamilyPage({ params }: { params: Promise<{ id: string }> }) { await requireRegistrar(); const { id } = await params; const member = await getMemberById(id); if (!member?.id) return <RegistrarShell title='Family' subtitle='Member not found.'><EmptyState message='This member record could not be loaded.' /></RegistrarShell>; const [spouse, children] = await Promise.all([getSpouseByMemberId(member.id), getChildrenByMemberId(member.id)]); return <RegistrarShell title='Family' subtitle='Manage spouse and children records for the selected member.'><div style={{ display:'grid', gap:18 }}><Link href={`/registrar/members/${id}`} style={{ textDecoration:'none', color:'#10233f', fontWeight:700 }}>Back to member</Link><FamilyEditor memberId={member.id} initialSpouse={spouse} initialChildren={children} /></div></RegistrarShell>; }
+import { getDependentsByMemberId } from '@/services/dependentsService';
+
+export default async function RegistrarMemberFamilyPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireRegistrar();
+  const { id } = await params;
+  const member = await getMemberById(id);
+
+  if (!member?.id) {
+    return (
+      <RegistrarShell title='Family' subtitle='Member not found.'>
+        <EmptyState message='This member record could not be loaded.' />
+      </RegistrarShell>
+    );
+  }
+
+  const [spouse, children, dependents] = await Promise.all([
+    getSpouseByMemberId(member.id),
+    getChildrenByMemberId(member.id),
+    getDependentsByMemberId(member.id)
+  ]);
+
+  return (
+    <RegistrarShell title='Family & Dependents' subtitle='Manage spouse, children, and dependent records for the selected member.'>
+      <div style={{ display: 'grid', gap: 18 }}>
+        <Link href={`/registrar/members/${id}`} style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>
+          Back to member
+        </Link>
+        <FamilyEditor 
+          memberId={member.id} 
+          initialSpouse={spouse} 
+          initialChildren={children} 
+          initialDependents={dependents}
+        />
+      </div>
+    </RegistrarShell>
+  );
+}
