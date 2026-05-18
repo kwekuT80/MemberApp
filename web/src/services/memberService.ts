@@ -88,7 +88,8 @@ export async function saveMember(form: any): Promise<Member> {
     'job_status', 'work_address', 'uniform_positions', 'date_joined',
     'degree1_place', 'degree23_place', 'degree4_place', 'degree_noble_place',
     'status', 'is_deceased', 'date_of_death', 'burial_date', 'burial_place',
-    'transfer_from', 'transfer_to', 'transfer_date'
+    'transfer_from', 'transfer_to', 'transfer_date',
+    'date_of_suspension', 'date_of_dismissal', 'date_of_reinstatement'
   ];
 
   const payload: any = {};

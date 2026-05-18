@@ -234,11 +234,54 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
               value={form.status} 
               options={STATUSES} 
               onChange={(v: string) => {
+                const today = new Date().toISOString().split('T')[0];
+                const prevStatus = form.status;
                 updateField('status', v);
                 if (v === 'Deceased') updateField('is_deceased', true);
                 else updateField('is_deceased', false);
+
+                if (v === 'Suspended') {
+                  if (!form.date_of_suspension) {
+                    updateField('date_of_suspension', today);
+                  }
+                  updateField('date_of_reinstatement', null);
+                  updateField('date_of_dismissal', null);
+                } else if (v === 'Dismissed') {
+                  if (!form.date_of_dismissal) {
+                    updateField('date_of_dismissal', today);
+                  }
+                  updateField('date_of_reinstatement', null);
+                } else if (v === 'Active') {
+                  if (prevStatus === 'Suspended' || prevStatus === 'Dismissed') {
+                    updateField('date_of_reinstatement', today);
+                  }
+                }
               }} 
             />
+            {form.status === 'Suspended' && (
+              <InputField 
+                label="Date of Suspension" 
+                type="date" 
+                value={form.date_of_suspension} 
+                onChange={(v: string) => updateField('date_of_suspension', v)} 
+              />
+            )}
+            {form.status === 'Dismissed' && (
+              <InputField 
+                label="Date of Dismissal" 
+                type="date" 
+                value={form.date_of_dismissal} 
+                onChange={(v: string) => updateField('date_of_dismissal', v)} 
+              />
+            )}
+            {form.date_of_reinstatement && (
+              <InputField 
+                label="Date of Reinstatement" 
+                type="date" 
+                value={form.date_of_reinstatement} 
+                onChange={(v: string) => updateField('date_of_reinstatement', v)} 
+              />
+            )}
             {form.status === 'Deceased' && (
               <>
                 <InputField label="Date of Death" type="date" value={form.date_of_death} onChange={(v: string) => updateField('date_of_death', v)} />

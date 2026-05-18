@@ -4,7 +4,7 @@ import { cleanText, compactErrors, isValidEmail, isValidPhone, isLikelyDate, isB
 export function sanitizeMember(member: Member): Member {
   const cleaned: Member = { ...member };
   const textKeys: Array<keyof Member> = [
-    'title','surname','first_name','other_names','date_of_birth','birth_town','birth_region','nationality','home_town','home_region','residential_address','postal_address','phone','mobile','email','fathers_name','mothers_name','marital_status','emp_status','occupation','workplace','job_status','work_address','uniform_positions','degree1_place','degree23_place','degree4_place','degree_noble_place','date_joined'
+    'title','surname','first_name','other_names','date_of_birth','birth_town','birth_region','nationality','home_town','home_region','residential_address','postal_address','phone','mobile','email','fathers_name','mothers_name','marital_status','emp_status','occupation','workplace','job_status','work_address','uniform_positions','degree1_place','degree23_place','degree4_place','degree_noble_place','date_joined','date_of_suspension','date_of_dismissal','date_of_reinstatement'
   ];
   for (const key of textKeys) {
     const value = (cleaned as any)[key];

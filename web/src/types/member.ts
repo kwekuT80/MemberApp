@@ -38,6 +38,9 @@ export interface Member {
   transfer_from?: string | null;
   transfer_to?: string | null;
   transfer_date?: string | null;
+  date_of_suspension?: string | null;
+  date_of_dismissal?: string | null;
+  date_of_reinstatement?: string | null;
   created_at?: string | null;
   photo_url?: string | null;
 }
