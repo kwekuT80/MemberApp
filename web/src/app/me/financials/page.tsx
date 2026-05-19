@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import MemberShell from '@/components/layout/MemberShell';
-import { FaMoneyBillWave, FaHistory, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 
 export default function FinancialsPage() {
   const supabase = createClient();
@@ -72,28 +71,28 @@ export default function FinancialsPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div className="text-gray-500 text-sm font-semibold uppercase mb-1 flex items-center">
-               <FaHistory className="mr-2 text-primary-500" /> Arrears B/F
+               ⏳ Arrears B/F
             </div>
             <div className="text-2xl font-bold text-gray-900">{currencyFormat(arrears)}</div>
           </div>
           
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div className="text-gray-500 text-sm font-semibold uppercase mb-1 flex items-center">
-               <FaMoneyBillWave className="mr-2 text-primary-500" /> {currentYear} Assessment
+               💰 {currentYear} Assessment
             </div>
             <div className="text-2xl font-bold text-gray-900">{currencyFormat(annual)}</div>
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div className="text-gray-500 text-sm font-semibold uppercase mb-1 flex items-center">
-               <FaCheckCircle className="mr-2 text-green-500" /> Total Paid
+               ✅ Total Paid
             </div>
             <div className="text-2xl font-bold text-green-700">{currencyFormat(totalPaid)}</div>
           </div>
 
           <div className={`rounded-xl p-6 shadow-sm border ${outstanding > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
             <div className={`text-sm font-semibold uppercase mb-1 flex items-center ${outstanding > 0 ? 'text-red-700' : 'text-green-700'}`}>
-               <FaExclamationCircle className="mr-2" /> Outstanding Balance
+               {outstanding > 0 ? '⚠️' : '🎉'} Outstanding Balance
             </div>
             <div className={`text-2xl font-bold ${outstanding > 0 ? 'text-red-700' : 'text-green-700'}`}>
               {currencyFormat(outstanding)}
