@@ -9,6 +9,7 @@ export default function FinancialsPage() {
   const [assessment, setAssessment] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [debugMsg, setDebugMsg] = useState('');
 
   useEffect(() => {
     async function loadData() {
@@ -29,22 +30,30 @@ export default function FinancialsPage() {
       const currentYear = new Date().getFullYear();
 
       // Fetch assessment for current year
-      const { data: assData } = await supabase
+      const { data: assData, error: assErr } = await supabase
         .from('financial_assessments')
         .select('*')
         .eq('member_id', member.id)
         .eq('year', currentYear)
         .single();
 
+      if (assErr && assErr.code !== 'PGRST116') {
+         setDebugMsg(prev => prev + ` AssErr: ${assErr.message}`);
+      }
+
       if (assData) setAssessment(assData);
 
       // Fetch payments for current year
-      const { data: payData } = await supabase
+      const { data: payData, error: payErr } = await supabase
         .from('financial_payments')
         .select('*')
         .eq('member_id', member.id)
         .eq('assessment_year', currentYear)
         .order('payment_date', { ascending: true });
+
+      if (payErr) {
+         setDebugMsg(prev => prev + ` PayErr: ${payErr.message}`);
+      }
 
       if (payData) setPayments(payData);
 
@@ -76,7 +85,7 @@ export default function FinancialsPage() {
 
   return (
     <MemberShell title="Financial Ledger" subtitle={`Your ${currentYear} dues and assessments`}>
-      
+      {debugMsg && <div style={{background:'red', color:'white', padding: 10}}>{debugMsg}</div>}
       {/* Summary Cards */}
       <div className="grid-cols-2">
         <div className="summary-card" style={{ background: '#fff' }}>
