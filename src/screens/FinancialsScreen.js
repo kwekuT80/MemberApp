@@ -16,7 +16,21 @@ export default function FinancialsScreen({ navigation }) {
   async function fetchFinancials() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const { data: member } = await supabase
+      .from('members')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+      
+    if (!member) {
+      setLoading(false);
+      return;
+    }
 
     const currentYear = new Date().getFullYear();
 
@@ -24,7 +38,7 @@ export default function FinancialsScreen({ navigation }) {
     const { data: assData } = await supabase
       .from('financial_assessments')
       .select('*')
-      .eq('member_id', user.id)
+      .eq('member_id', member.id)
       .eq('year', currentYear)
       .single();
 
@@ -34,7 +48,7 @@ export default function FinancialsScreen({ navigation }) {
     const { data: payData } = await supabase
       .from('financial_payments')
       .select('*')
-      .eq('member_id', user.id)
+      .eq('member_id', member.id)
       .eq('assessment_year', currentYear)
       .order('payment_date', { ascending: true });
 

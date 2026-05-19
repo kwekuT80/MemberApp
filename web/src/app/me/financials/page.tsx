@@ -15,13 +15,24 @@ export default function FinancialsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      const { data: member } = await supabase
+        .from('members')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (!member) {
+        setLoading(false);
+        return;
+      }
+
       const currentYear = new Date().getFullYear();
 
       // Fetch assessment for current year
       const { data: assData } = await supabase
         .from('financial_assessments')
         .select('*')
-        .eq('member_id', user.id)
+        .eq('member_id', member.id)
         .eq('year', currentYear)
         .single();
 
@@ -31,7 +42,7 @@ export default function FinancialsPage() {
       const { data: payData } = await supabase
         .from('financial_payments')
         .select('*')
-        .eq('member_id', user.id)
+        .eq('member_id', member.id)
         .eq('assessment_year', currentYear)
         .order('payment_date', { ascending: true });
 
@@ -65,7 +76,7 @@ export default function FinancialsPage() {
 
   return (
     <MemberShell title="Financial Ledger" subtitle={`Your ${currentYear} dues and assessments`}>
-      <div className="space-y-6">
+      <div className="space-y-6 pt-6">
         
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
