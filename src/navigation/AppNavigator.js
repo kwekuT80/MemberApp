@@ -20,10 +20,12 @@ import {
   SpouseScreen,
   DependentsScreen,
 } from '../screens/SubformScreens';
+import FinancialsScreen from '../screens/FinancialsScreen';
 import MembershipCardScreen  from '../screens/MembershipCardScreen';
 import ReportsScreen        from '../screens/ReportsScreen';
 import DossierScreen       from '../screens/DossierScreen';
 import ScanVerificationScreen from '../screens/ScanVerificationScreen';
+import MeetingsScreen       from '../screens/MeetingsScreen';
 import { Colors } from '../styles/theme';
 
 const Stack = createNativeStackNavigator();
@@ -134,6 +136,7 @@ export default function AppNavigator() {
                 <>
                   <Stack.Screen name="RegistrarDashboard" component={RegistrarDashboard} />
                   <Stack.Screen name="Reports"            component={ReportsScreen} />
+                  <Stack.Screen name="Meetings"           component={MeetingsScreen} />
                 </>
               )}
               <Stack.Screen name="MemberForm"        component={MemberFormScreen} />
@@ -144,6 +147,7 @@ export default function AppNavigator() {
               <Stack.Screen name="Degrees"           component={DegreesScreen} />
               <Stack.Screen name="Spouse"            component={SpouseScreen} />
               <Stack.Screen name="Dependents"        component={DependentsScreen} />
+              <Stack.Screen name="Financials"        component={FinancialsScreen} />
               <Stack.Screen name="MembershipCard"   component={MembershipCardScreen} />
               <Stack.Screen name="Dossier"          component={DossierScreen} />
               <Stack.Screen name="ScanVerification" component={ScanVerificationScreen} options={{ headerShown: false }} />

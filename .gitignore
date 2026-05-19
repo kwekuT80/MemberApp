@@ -11,3 +11,4 @@ tmp/
 .vercel
 android/
 ios/
+.aider*

@@ -1,0 +1,43 @@
+Mobile App (What's Missing)
+The mobile RegistrarDashboard.tsx currently only has:
+•
+Member List tab - full functionality
+•
+Commandery Insights tab - statistics overview
+Missing entirely on mobile:
+I'll create a proper implementation plan for you. Let me first research the current codebase to understand what exists and what needs to be built.
+1.
+❌ Meetings scheduling with geofencing
+2.
+❌ Attendance checking/reporting
+3.
+❌ Absence request management (approval/rejection)
+Planning Mobile Meeting Screen Implementation
+4.
+❌ Live attendance roster viewing
+Researching existing mobile screens and web meeting implementation to create an implementation plan for MobileMeetingScreen.tsx and RegistrarDashboard navigation updates.
+5.
+❌ Manual check-in overrides
+Required Mobile Components to Create
+New Screen: src/screens/MeetingsScreen.js
+•
+Meeting schedule form with geofencing fields
+•
+GPS location pinning using React Native Geolocation API
+•
+Meetings list view
+•
+Attendance statistics display (present/excused/absent counts)
+•
+Visual attendance bar chart
+•
+Absence requests panel with approve/reject buttons
+•
+Live attendance roster table
+•
+Manual check-in functionality
+Required Dependencies:
+•
+react-native-geolocation-service or Expo's built-in Geolocation API
+•
+No additional packages needed - Expo provides geolocation out of the box

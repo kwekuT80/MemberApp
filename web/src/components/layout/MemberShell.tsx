@@ -9,6 +9,7 @@ const memberNav = [
   { href: '/me/military', label: 'Military' },
   { href: '/me/emergency', label: 'Emergency' },
   { href: '/me/attendance', label: 'Attendance' },
+  { href: '/me/financials', label: 'Financials' },
   { href: '/registrar', label: '🛡️ Registrar Portal (If Officer)' },
 ];
 

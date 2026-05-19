@@ -6,33 +6,21 @@ const config = getDefaultConfig(__dirname);
 const emptyModule = path.resolve(__dirname, 'shims', 'empty.js');
 
 config.resolver.extraNodeModules = {
-  stream:           emptyModule,
-  zlib:             emptyModule,
+  stream:           require.resolve('readable-stream'),
+  zlib:             require.resolve('browserify-zlib'),
+  buffer:           require.resolve('buffer/'),
   crypto:           emptyModule,
   net:              emptyModule,
   tls:              emptyModule,
   ws:               emptyModule,
   http:             emptyModule,
   https:            emptyModule,
-  events:           emptyModule,
+  events:           require.resolve('events/'),
   'websocket-server': emptyModule,
 };
 
-// Block the entire ws package folder
-const { BlockList } = require('net');
-config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (
-    moduleName === 'ws' ||
-    moduleName.startsWith('ws/') ||
-    moduleName.includes('/ws/lib/')
-  ) {
-    return { type: 'sourceFile', filePath: emptyModule };
-  }
-  return context.resolveRequest(context, moduleName, platform);
-};
-
 // Exclude the android and .gradle directories from being watched to prevent ENOENT errors
-config.watcher.blockList = [
+config.resolver.blockList = [
   /android\/.*/,
   /node_modules\/.*\/node_modules\/react-native\/.*/,
 ];

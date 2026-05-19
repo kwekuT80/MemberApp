@@ -1,0 +1,238 @@
+{
+  "version": 3,
+  "pages404": true,
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/registrar/members/[id]",
+      "regex": "^/registrar/members/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/registrar/members/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/registrar/members/[id]/bio",
+      "regex": "^/registrar/members/([^/]+?)/bio(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/registrar/members/(?<nxtPid>[^/]+?)/bio(?:/)?$"
+    },
+    {
+      "page": "/registrar/members/[id]/dossier",
+      "regex": "^/registrar/members/([^/]+?)/dossier(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/registrar/members/(?<nxtPid>[^/]+?)/dossier(?:/)?$"
+    },
+    {
+      "page": "/registrar/members/[id]/edit",
+      "regex": "^/registrar/members/([^/]+?)/edit(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/registrar/members/(?<nxtPid>[^/]+?)/edit(?:/)?$"
+    },
+    {
+      "page": "/registrar/members/[id]/education",
+      "regex": "^/registrar/members/([^/]+?)/education(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/registrar/members/(?<nxtPid>[^/]+?)/education(?:/)?$"
+    },
+    {
+      "page": "/registrar/members/[id]/emergency",
+      "regex": "^/registrar/members/([^/]+?)/emergency(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/registrar/members/(?<nxtPid>[^/]+?)/emergency(?:/)?$"
+    },
+    {
+      "page": "/registrar/members/[id]/family",
+      "regex": "^/registrar/members/([^/]+?)/family(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/registrar/members/(?<nxtPid>[^/]+?)/family(?:/)?$"
+    },
+    {
+      "page": "/registrar/members/[id]/id-card",
+      "regex": "^/registrar/members/([^/]+?)/id\\-card(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/registrar/members/(?<nxtPid>[^/]+?)/id\\-card(?:/)?$"
+    },
+    {
+      "page": "/registrar/members/[id]/military",
+      "regex": "^/registrar/members/([^/]+?)/military(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/registrar/members/(?<nxtPid>[^/]+?)/military(?:/)?$"
+    },
+    {
+      "page": "/registrar/members/[id]/positions",
+      "regex": "^/registrar/members/([^/]+?)/positions(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/registrar/members/(?<nxtPid>[^/]+?)/positions(?:/)?$"
+    },
+    {
+      "page": "/verify/[id]",
+      "regex": "^/verify/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/verify/(?<nxtPid>[^/]+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/forgot-password",
+      "regex": "^/forgot\\-password(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/forgot\\-password(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/me",
+      "regex": "^/me(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/me(?:/)?$"
+    },
+    {
+      "page": "/me/attendance",
+      "regex": "^/me/attendance(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/me/attendance(?:/)?$"
+    },
+    {
+      "page": "/me/edit",
+      "regex": "^/me/edit(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/me/edit(?:/)?$"
+    },
+    {
+      "page": "/me/education",
+      "regex": "^/me/education(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/me/education(?:/)?$"
+    },
+    {
+      "page": "/me/emergency",
+      "regex": "^/me/emergency(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/me/emergency(?:/)?$"
+    },
+    {
+      "page": "/me/family",
+      "regex": "^/me/family(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/me/family(?:/)?$"
+    },
+    {
+      "page": "/me/military",
+      "regex": "^/me/military(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/me/military(?:/)?$"
+    },
+    {
+      "page": "/me/positions",
+      "regex": "^/me/positions(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/me/positions(?:/)?$"
+    },
+    {
+      "page": "/registrar",
+      "regex": "^/registrar(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar(?:/)?$"
+    },
+    {
+      "page": "/registrar/import",
+      "regex": "^/registrar/import(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/import(?:/)?$"
+    },
+    {
+      "page": "/registrar/meetings",
+      "regex": "^/registrar/meetings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/meetings(?:/)?$"
+    },
+    {
+      "page": "/registrar/members",
+      "regex": "^/registrar/members(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/members(?:/)?$"
+    },
+    {
+      "page": "/registrar/members/new",
+      "regex": "^/registrar/members/new(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/members/new(?:/)?$"
+    },
+    {
+      "page": "/registrar/reports",
+      "regex": "^/registrar/reports(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/reports(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSuffix": ".prefetch.rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments"
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

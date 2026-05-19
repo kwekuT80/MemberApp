@@ -58,6 +58,7 @@ const TABS = [
   { key: 'degrees',    label: 'Degrees',    icon: '🎓' },
   { key: 'military',   label: 'Military',   icon: '🪖' },
   { key: 'positions',  label: 'Positions',  icon: '📋' },
+  { key: 'financials', label: 'Financials', icon: '💰' },
   { key: 'lifecycle',  label: 'Lifecycle',  icon: '🧬' },
 ];
 
@@ -285,7 +286,8 @@ export default function MemberFormScreen({ route, navigation }) {
         {activeTab === 4 && <DegreesTab memberId={memberId} navigation={navigation} />}
         {activeTab === 5 && <MilitaryTab memberId={memberId} navigation={navigation} military={military} />}
         {activeTab === 6 && <PositionsTab memberId={memberId} navigation={navigation} />}
-        {activeTab === 7 && <LifecycleTab form={form} set={set} />}
+        {activeTab === 7 && <FinancialsTab memberId={memberId} navigation={navigation} />}
+        {activeTab === 8 && <LifecycleTab form={form} set={set} />}
 
         <PrimaryButton
           title={saving ? 'Saving…' : (memberId ? 'Update Member Information' : 'Register New Member')}
@@ -798,10 +800,28 @@ function LifecycleTab({ form, set }) {
       <SectionHeader title="Commandery Transfers" />
       <FormInput label="From Previous Commandery" value={form.transfer_from} onChangeText={set('transfer_from')} />
       <FormInput label="To New Commandery" value={form.transfer_to} onChangeText={set('transfer_to')} />
-      <DateInput label="Transfer Date" value={form.transfer_date} onChangeText={set('transfer_date')} />
+      <DateInput label="Date of Transfer" value={form.transfer_date} onChangeText={set('transfer_date')} />
+    </>
+  );
+}
 
-      <SectionHeader title="Historical Notes" />
-      <FormInput label="Other Positions & Notes" value={form.uniform_positions} onChangeText={set('uniform_positions')} multiline />
+function FinancialsTab({ memberId, navigation }) {
+  if (!memberId) {
+    return (
+      <>
+        <SectionHeader title="Financial Ledger" />
+        <SaveFirstNote />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <SectionHeader title="Financial Ledger" />
+      <View style={s.summaryEmptyCard}>
+        <Text style={s.summaryEmptyText}>View your annual assessments, monthly payments, and outstanding balances.</Text>
+      </View>
+      <SubformLink icon="💰" label="View Financial Ledger" onPress={() => navigation.navigate('Financials')} />
     </>
   );
 }

@@ -9,7 +9,6 @@ import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
 
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
 import { formatMemberTitle } from '../utils/ksji-logic';
 
 export default function MembershipCardScreen({ route, navigation }) {

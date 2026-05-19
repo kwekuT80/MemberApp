@@ -257,6 +257,12 @@ export default function RegistrarDashboard({ navigation }) {
         >
           <Text style={[styles.tabText, activeTab === 'insights' && styles.tabTextActive]}>Commandery Insights</Text>
         </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.tabItem}
+          onPress={() => navigation.navigate('Meetings')}
+        >
+          <Text style={styles.tabText}>Meetings</Text>
+        </TouchableOpacity>
       </View>
 
       {/* BIRTHDAY BANNER */}
