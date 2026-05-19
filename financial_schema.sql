@@ -45,10 +45,8 @@ CREATE POLICY "Members can view their own assessments"
     TO authenticated
     USING (
         public.is_registrar() OR
-        member_id = auth.uid() OR
         member_id IN (
-            -- Allow if it's their own record or they are a registrar for this commandery (handled by is_registrar usually, but let's be safe)
-            SELECT id FROM public.members WHERE id = auth.uid()
+            SELECT id FROM public.members WHERE user_id = auth.uid()
         )
     );
 
@@ -68,9 +66,8 @@ CREATE POLICY "Members can view their own payments"
     TO authenticated
     USING (
         public.is_registrar() OR
-        member_id = auth.uid() OR
         member_id IN (
-            SELECT id FROM public.members WHERE id = auth.uid()
+            SELECT id FROM public.members WHERE user_id = auth.uid()
         )
     );
 

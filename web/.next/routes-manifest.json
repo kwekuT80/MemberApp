@@ -170,6 +170,12 @@
       "namedRegex": "^/me/family(?:/)?$"
     },
     {
+      "page": "/me/financials",
+      "regex": "^/me/financials(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/me/financials(?:/)?$"
+    },
+    {
       "page": "/me/military",
       "regex": "^/me/military(?:/)?$",
       "routeKeys": {},
