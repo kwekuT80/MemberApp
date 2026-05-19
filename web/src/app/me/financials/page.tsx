@@ -76,74 +76,66 @@ export default function FinancialsPage() {
 
   return (
     <MemberShell title="Financial Ledger" subtitle={`Your ${currentYear} dues and assessments`}>
-      <div className="space-y-6 pt-6">
+      
+      {/* Summary Cards */}
+      <div className="grid-cols-2">
+        <div className="summary-card" style={{ background: '#fff' }}>
+          <div className="label" style={{ marginBottom: 4 }}>⏳ Arrears B/F</div>
+          <div className="main-title" style={{ fontSize: 24, color: 'var(--navy)' }}>{currencyFormat(arrears)}</div>
+        </div>
         
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="text-gray-500 text-sm font-semibold uppercase mb-1 flex items-center">
-               ⏳ Arrears B/F
-            </div>
-            <div className="text-2xl font-bold text-gray-900">{currencyFormat(arrears)}</div>
-          </div>
-          
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="text-gray-500 text-sm font-semibold uppercase mb-1 flex items-center">
-               💰 {currentYear} Assessment
-            </div>
-            <div className="text-2xl font-bold text-gray-900">{currencyFormat(annual)}</div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="text-gray-500 text-sm font-semibold uppercase mb-1 flex items-center">
-               ✅ Total Paid
-            </div>
-            <div className="text-2xl font-bold text-green-700">{currencyFormat(totalPaid)}</div>
-          </div>
-
-          <div className={`rounded-xl p-6 shadow-sm border ${outstanding > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-            <div className={`text-sm font-semibold uppercase mb-1 flex items-center ${outstanding > 0 ? 'text-red-700' : 'text-green-700'}`}>
-               {outstanding > 0 ? '⚠️' : '🎉'} Outstanding Balance
-            </div>
-            <div className={`text-2xl font-bold ${outstanding > 0 ? 'text-red-700' : 'text-green-700'}`}>
-              {currencyFormat(outstanding)}
-            </div>
-          </div>
+        <div className="summary-card" style={{ background: '#fff' }}>
+          <div className="label" style={{ marginBottom: 4 }}>💰 {currentYear} Assessment</div>
+          <div className="main-title" style={{ fontSize: 24, color: 'var(--navy)' }}>{currencyFormat(annual)}</div>
         </div>
 
-        {/* Payments Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
-            <h2 className="text-lg font-bold text-gray-900">Payment History ({currentYear})</h2>
-          </div>
-          
-          {payments.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              No payments recorded for this year yet.
-            </div>
-          ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-white border-b border-gray-100">
-                  <th className="px-6 py-3 text-sm font-semibold text-gray-500 uppercase">Month</th>
-                  <th className="px-6 py-3 text-sm font-semibold text-gray-500 uppercase">Amount</th>
-                  <th className="px-6 py-3 text-sm font-semibold text-gray-500 uppercase">Date Logged</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {payments.map(pay => (
-                  <tr key={pay.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">{pay.month}</td>
-                    <td className="px-6 py-4 text-green-700 font-bold">{currencyFormat(parseFloat(pay.amount))}</td>
-                    <td className="px-6 py-4 text-gray-500 text-sm">{new Date(pay.payment_date).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+        <div className="summary-card" style={{ background: 'var(--gold-faint)' }}>
+          <div className="label" style={{ marginBottom: 4 }}>✅ Total Paid</div>
+          <div className="main-title" style={{ fontSize: 24, color: 'var(--gold)' }}>{currencyFormat(totalPaid)}</div>
         </div>
 
+        <div className="summary-card" style={{ background: outstanding > 0 ? '#FEF2F2' : '#F0FDF4', borderColor: outstanding > 0 ? '#FECACA' : '#BBF7D0' }}>
+          <div className="label" style={{ marginBottom: 4, color: outstanding > 0 ? '#991B1B' : '#166534' }}>
+             {outstanding > 0 ? '⚠️' : '🎉'} Outstanding Balance
+          </div>
+          <div className="main-title" style={{ fontSize: 24, color: outstanding > 0 ? '#991B1B' : '#166534' }}>
+            {currencyFormat(outstanding)}
+          </div>
+        </div>
       </div>
+
+      {/* Payments Table */}
+      <div className="card" style={{ marginTop: 24, padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--bg)', background: '#F8FAFC' }}>
+          <h2 style={{ margin: 0, fontSize: 18, color: 'var(--navy)' }}>Payment History ({currentYear})</h2>
+        </div>
+        
+        {payments.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--grey)' }}>
+            No payments recorded for this year yet.
+          </div>
+        ) : (
+          <table className="member-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Amount</th>
+                <th style={{ textAlign: 'right' }}>Date Logged</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payments.map(pay => (
+                <tr key={pay.id}>
+                  <td style={{ fontWeight: 700 }}>{pay.month}</td>
+                  <td style={{ color: '#166534', fontWeight: 800 }}>{currencyFormat(parseFloat(pay.amount))}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--grey)' }}>{new Date(pay.payment_date).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
     </MemberShell>
   );
 }
