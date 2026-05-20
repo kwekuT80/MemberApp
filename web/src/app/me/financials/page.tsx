@@ -9,37 +9,33 @@ export default function FinancialsPage() {
   const [assessment, setAssessment] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [debugMsg, setDebugMsg] = useState('');
 
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: member } = await supabase
-        .from('members')
-        .select('id')
-        .eq('user_id', user.id)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('member_id')
+        .eq('id', user.id)
         .single();
         
-      if (!member) {
+      if (!profile || !profile.member_id) {
         setLoading(false);
         return;
       }
 
+      const memberId = profile.member_id;
       const currentYear = new Date().getFullYear();
 
       // Fetch assessment for current year
       const { data: assData, error: assErr } = await supabase
         .from('financial_assessments')
         .select('*')
-        .eq('member_id', member.id)
+        .eq('member_id', memberId)
         .eq('year', currentYear)
         .single();
-
-      if (assErr && assErr.code !== 'PGRST116') {
-         setDebugMsg(prev => prev + ` AssErr: ${assErr.message}`);
-      }
 
       if (assData) setAssessment(assData);
 
@@ -47,13 +43,9 @@ export default function FinancialsPage() {
       const { data: payData, error: payErr } = await supabase
         .from('financial_payments')
         .select('*')
-        .eq('member_id', member.id)
+        .eq('member_id', memberId)
         .eq('assessment_year', currentYear)
         .order('payment_date', { ascending: true });
-
-      if (payErr) {
-         setDebugMsg(prev => prev + ` PayErr: ${payErr.message}`);
-      }
 
       if (payData) setPayments(payData);
 
@@ -85,9 +77,10 @@ export default function FinancialsPage() {
 
   return (
     <MemberShell title="Financial Ledger" subtitle={`Your ${currentYear} dues and assessments`}>
-      {debugMsg && <div style={{background:'red', color:'white', padding: 10}}>{debugMsg}</div>}
-      {/* Summary Cards */}
-      <div className="grid-cols-2">
+      
+      <div style={{ marginTop: 40 }}>
+        {/* Summary Cards */}
+        <div className="grid-cols-2">
         <div className="summary-card" style={{ background: '#fff' }}>
           <div className="label" style={{ marginBottom: 4 }}>⏳ Arrears B/F</div>
           <div className="main-title" style={{ fontSize: 24, color: 'var(--navy)' }}>{currencyFormat(arrears)}</div>
@@ -144,7 +137,7 @@ export default function FinancialsPage() {
           </table>
         )}
       </div>
-
+      </div>
     </MemberShell>
   );
 }

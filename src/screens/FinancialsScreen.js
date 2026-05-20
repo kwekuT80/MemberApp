@@ -21,24 +21,25 @@ export default function FinancialsScreen({ navigation }) {
       return;
     }
 
-    const { data: member } = await supabase
-      .from('members')
-      .select('id')
-      .eq('user_id', user.id)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('member_id')
+      .eq('id', user.id)
       .single();
       
-    if (!member) {
+    if (!profile || !profile.member_id) {
       setLoading(false);
       return;
     }
 
+    const memberId = profile.member_id;
     const currentYear = new Date().getFullYear();
 
     // Assessment
     const { data: assData } = await supabase
       .from('financial_assessments')
       .select('*')
-      .eq('member_id', member.id)
+      .eq('member_id', memberId)
       .eq('year', currentYear)
       .single();
 
@@ -48,7 +49,7 @@ export default function FinancialsScreen({ navigation }) {
     const { data: payData } = await supabase
       .from('financial_payments')
       .select('*')
-      .eq('member_id', member.id)
+      .eq('member_id', memberId)
       .eq('assessment_year', currentYear)
       .order('payment_date', { ascending: true });
 
