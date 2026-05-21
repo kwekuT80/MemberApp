@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
-import RegistrarShell from '@/components/layout/RegistrarShell';
 import { createClient } from '@/lib/supabase/client';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -146,7 +145,7 @@ export default function RatesAndBillingClient({
   }
 
   return (
-    <RegistrarShell title="Rates & Billing" subtitle="Set annual assessment rates and generate member bills">
+    <div style={{ width: '100%' }}>
       {/* Toast */}
       {toast && (
         <div style={{
@@ -293,6 +292,6 @@ export default function RatesAndBillingClient({
           </table>
         )}
       </div>
-    </RegistrarShell>
+    </div>
   );
 }

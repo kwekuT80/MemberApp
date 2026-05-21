@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import RegistrarShell from '@/components/layout/RegistrarShell';
 import { createClient } from '@/lib/supabase/client';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -116,7 +115,7 @@ export default function PaymentsClient({
   const selectedMember = members.find(m => m.id === selectedMemberId);
 
   return (
-    <RegistrarShell title="Record Payments" subtitle="Log monthly payment receipts for members">
+    <div style={{ width: '100%' }}>
       {/* Toast */}
       {toast && (
         <div style={{
@@ -281,6 +280,6 @@ export default function PaymentsClient({
           )}
         </div>
       </div>
-    </RegistrarShell>
+    </div>
   );
 }

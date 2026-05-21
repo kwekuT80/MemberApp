@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { requireFinancialRegistrar } from '@/lib/auth/requireFinancialRegistrar';
 import { getAnnualRates, getAssessmentsForYear } from '@/services/financialService';
 import RatesClient from './RatesClient';
+import RegistrarShell from '@/components/layout/RegistrarShell';
 
 export default async function RatesPage() {
   await requireFinancialRegistrar();
@@ -14,10 +15,12 @@ export default async function RatesPage() {
   ]);
 
   return (
-    <RatesClient
-      initialYear={currentYear}
-      initialRates={rates}
-      initialAssessments={assessments as any}
-    />
+    <RegistrarShell title="Rates & Billing" subtitle="Set annual assessment rates and generate member bills">
+      <RatesClient
+        initialYear={currentYear}
+        initialRates={rates}
+        initialAssessments={assessments as any}
+      />
+    </RegistrarShell>
   );
 }

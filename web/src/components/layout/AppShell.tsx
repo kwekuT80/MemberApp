@@ -12,7 +12,7 @@ export default function AppShell({ children, title, subtitle, navItems }: { chil
         </div>
       </header>
 
-      <div style={{ maxWidth: 1200, margin: '-40px auto 0 auto', padding: '0 24px 60px 24px', display: 'grid', gridTemplateColumns: '260px 1fr', gap: 32 }} className="print-layout">
+      <div style={{ maxWidth: 1200, margin: '-12px auto 0 auto', padding: '0 24px 60px 24px', display: 'grid', gridTemplateColumns: '260px 1fr', gap: 32 }} className="print-layout">
         <aside className="no-print">
           <div className="card" style={{ padding: 20 }}>
             <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 24, color: 'var(--navy)' }}>KSJI Registry</div>
