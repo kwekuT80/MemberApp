@@ -194,6 +194,24 @@
       "namedRegex": "^/registrar(?:/)?$"
     },
     {
+      "page": "/registrar/financials",
+      "regex": "^/registrar/financials(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/financials(?:/)?$"
+    },
+    {
+      "page": "/registrar/financials/payments",
+      "regex": "^/registrar/financials/payments(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/financials/payments(?:/)?$"
+    },
+    {
+      "page": "/registrar/financials/rates",
+      "regex": "^/registrar/financials/rates(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/financials/rates(?:/)?$"
+    },
+    {
       "page": "/registrar/import",
       "regex": "^/registrar/import(?:/)?$",
       "routeKeys": {},

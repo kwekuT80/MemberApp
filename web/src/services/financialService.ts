@@ -1,0 +1,194 @@
+'use server';
+import { createClient } from '@/lib/supabase/server';
+
+// ─── Rate Management ───────────────────────────────────────────────────────
+
+export async function getAnnualRates(year: number) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('annual_assessment_rates')
+    .select('*')
+    .eq('year', year)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function saveAnnualRates(rates: {
+  year: number;
+  regular_rate: number;
+  social_rate: number;
+  student_rate: number;
+}) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('annual_assessment_rates')
+    .upsert(rates, { onConflict: 'year' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Age Discount Logic ────────────────────────────────────────────────────
+
+function calcAgeDiscount(birthYear: number | null, assessmentYear: number): number {
+  if (!birthYear) return 0;
+  const age = assessmentYear - birthYear;
+  if (age > 80) return 1.0;    // 100% discount
+  if (age > 75) return 0.5;    // 50% discount
+  if (age > 70) return 0.25;   // 25% discount
+  return 0;
+}
+
+function calcBaseRate(
+  membershipType: string,
+  rates: { regular_rate: number; social_rate: number; student_rate: number }
+): number {
+  if (membershipType === 'Social') return rates.social_rate;
+  if (membershipType === 'Student') return rates.student_rate;
+  return rates.regular_rate;
+}
+
+// ─── Assessment Generation ─────────────────────────────────────────────────
+
+export async function generateAnnualAssessments(year: number) {
+  const supabase = await createClient();
+
+  // 1. Get rates for this year
+  const { data: rates, error: ratesErr } = await supabase
+    .from('annual_assessment_rates')
+    .select('*')
+    .eq('year', year)
+    .single();
+  if (ratesErr || !rates) throw new Error('Please set annual rates for ' + year + ' before generating bills.');
+
+  // 2. Get all active members with birth year
+  const { data: members, error: membErr } = await supabase
+    .from('members')
+    .select('id, first_name, surname, date_of_birth, membership_type, status')
+    .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")');
+  if (membErr) throw membErr;
+
+  // 3. Get prior year payments & assessments to calculate arrears rollover
+  const priorYear = year - 1;
+  const { data: priorAssessments } = await supabase
+    .from('financial_assessments')
+    .select('member_id, arrears_brought_forward, annual_assessment')
+    .eq('year', priorYear);
+  const { data: priorPayments } = await supabase
+    .from('financial_payments')
+    .select('member_id, amount')
+    .eq('assessment_year', priorYear);
+
+  // Build prior year balance map
+  const priorMap: Record<string, number> = {};
+  (priorAssessments || []).forEach((a: any) => {
+    priorMap[a.member_id] = parseFloat(a.arrears_brought_forward) + parseFloat(a.annual_assessment);
+  });
+  (priorPayments || []).forEach((p: any) => {
+    if (priorMap[p.member_id] !== undefined) {
+      priorMap[p.member_id] -= parseFloat(p.amount);
+    }
+  });
+
+  // 4. Build upsert payload
+  const upsertRows = (members || []).map((m: any) => {
+    const birthYear = m.date_of_birth ? new Date(m.date_of_birth).getFullYear() : null;
+    const discount = calcAgeDiscount(birthYear, year);
+    const baseRate = calcBaseRate(m.membership_type || 'Regular', rates);
+    const annualAssessment = parseFloat((baseRate * (1 - discount)).toFixed(2));
+    const arrearsBF = parseFloat((priorMap[m.id] ?? 0).toFixed(2));
+
+    return {
+      member_id: m.id,
+      year,
+      arrears_brought_forward: arrearsBF,
+      annual_assessment: annualAssessment,
+    };
+  });
+
+  const { error: upsertErr } = await supabase
+    .from('financial_assessments')
+    .upsert(upsertRows, { onConflict: 'member_id,year', ignoreDuplicates: false });
+  if (upsertErr) throw upsertErr;
+
+  return { count: upsertRows.length };
+}
+
+// ─── Assessment Viewing & Editing ──────────────────────────────────────────
+
+export async function getAssessmentsForYear(year: number) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('financial_assessments')
+    .select('*, members(id, first_name, surname, title, membership_type, date_of_birth)')
+    .eq('year', year)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function updateIndividualAssessment(
+  id: string,
+  arrears: number,
+  annual: number
+) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('financial_assessments')
+    .update({ arrears_brought_forward: arrears, annual_assessment: annual })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Payment Recording ──────────────────────────────────────────────────────
+
+export async function recordPayment(payment: {
+  member_id: string;
+  assessment_year: number;
+  month: string;
+  amount: number;
+  recorded_by: string;
+}) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('financial_payments')
+    .insert(payment)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getPaymentsForYear(year: number) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('financial_payments')
+    .select('*, members(first_name, surname, title)')
+    .eq('assessment_year', year)
+    .order('payment_date', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function deletePayment(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from('financial_payments').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function getActiveMembers() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('members')
+    .select('id, first_name, surname, title, membership_type')
+    .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+    .order('surname')
+    .order('first_name');
+  if (error) throw error;
+  return data || [];
+}
