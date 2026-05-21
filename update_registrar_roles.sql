@@ -1,11 +1,20 @@
 -- ========================================================
 -- UPDATE REGISTRAR ROLES FOR SEPARATION OF DUTIES
 -- ========================================================
--- Run this in your Supabase SQL Editor to update security functions
--- and establish clear role-based access control.
+-- Run this in your Supabase SQL Editor to:
+--   1. Update the role CHECK constraint to include new roles
+--   2. Update security functions for RBAC
 -- ========================================================
 
--- 1. Update is_registrar() security helper
+-- 1. Update the profiles role CHECK constraint to allow all valid roles
+ALTER TABLE public.profiles
+DROP CONSTRAINT IF EXISTS profiles_role_check;
+
+ALTER TABLE public.profiles
+ADD CONSTRAINT profiles_role_check
+CHECK (role IN ('member', 'registrar', 'financial_registrar', 'super_admin'));
+
+-- 2. Update is_registrar() security helper
 -- Allows 'registrar' (Admin) and 'super_admin' roles.
 CREATE OR REPLACE FUNCTION public.is_registrar()
 RETURNS BOOLEAN AS $$
@@ -17,7 +26,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 2. Update is_financial_registrar() security helper
+-- 3. Update is_financial_registrar() security helper
 -- Allows 'financial_registrar' and 'super_admin' roles.
 CREATE OR REPLACE FUNCTION public.is_financial_registrar()
 RETURNS BOOLEAN AS $$
@@ -29,7 +38,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 3. (Optional) SQL to set your account to super_admin (superuser)
+-- 4. Promote a user to super_admin (run separately, replace email as needed)
 -- UPDATE public.profiles SET role = 'super_admin' WHERE email = 'YOUR_EMAIL@example.com';
 
-SELECT 'Registrar security functions updated successfully!' AS status;
+SELECT 'Registrar security functions and role constraint updated successfully!' AS status;

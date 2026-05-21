@@ -9,10 +9,19 @@ export default async function FinancialsHubPage() {
   await requireFinancialRegistrar();
   const currentYear = new Date().getFullYear();
 
-  const [assessments, payments] = await Promise.all([
-    getAssessmentsForYear(currentYear),
-    getPaymentsForYear(currentYear),
-  ]);
+  let assessments: any[] = [];
+  let payments: any[] = [];
+  let setupRequired = false;
+
+  try {
+    [assessments, payments] = await Promise.all([
+      getAssessmentsForYear(currentYear),
+      getPaymentsForYear(currentYear),
+    ]);
+  } catch (err: any) {
+    // Tables likely don't exist yet — show setup prompt instead of crashing
+    setupRequired = true;
+  }
 
   const totalAssessed = assessments.reduce(
     (sum: number, a: any) => sum + parseFloat(a.arrears_brought_forward || 0) + parseFloat(a.annual_assessment || 0), 0
@@ -25,8 +34,33 @@ export default async function FinancialsHubPage() {
 
   return (
     <RegistrarShell title="Financial Ledger" subtitle={`${currentYear} Assessment & Collections Management`}>
+
+      {/* Database setup required banner */}
+      {setupRequired && (
+        <div className="card" style={{
+          borderLeft: '5px solid #dc2626',
+          padding: 28,
+          marginBottom: 32,
+          background: '#fff5f5',
+        }}>
+          <div style={{ fontSize: 28, marginBottom: 12 }}>⚠️</div>
+          <div style={{ fontWeight: 800, fontSize: 18, color: '#dc2626', marginBottom: 8 }}>
+            Database Setup Required
+          </div>
+          <p style={{ color: '#7f1d1d', lineHeight: 1.7, marginBottom: 16 }}>
+            The Financial Ledger database tables have not been set up yet in Supabase.
+            Please open your <strong>Supabase SQL Editor</strong> and run the master setup script
+            located at <code>setup_financial_ledger_complete.sql</code> in the project root.
+          </p>
+          <div style={{ fontSize: 13, color: '#991b1b', background: '#fee2e2', padding: '12px 16px', borderRadius: 8 }}>
+            This script is safe to re-run. It creates the tables, updates role permissions,
+            and promotes your account to <code>super_admin</code>.
+          </div>
+        </div>
+      )}
+
       {/* Stats Summary */}
-      <div className="grid-cols-3" style={{ marginBottom: 32 }}>
+      {!setupRequired && <div className="grid-cols-3" style={{ marginBottom: 32 }}>
         <StatCard label="Members Billed" value={String(assessments.length)} icon="📋" color="var(--navy)" />
         <StatCard label="Total Assessed" value={fmt(totalAssessed)} icon="📊" color="var(--navy)" />
         <StatCard label="Total Collected" value={fmt(totalCollected)} icon="✅" color="#166534" />
