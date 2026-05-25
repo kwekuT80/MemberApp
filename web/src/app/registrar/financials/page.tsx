@@ -72,7 +72,7 @@ export default async function FinancialsHubPage() {
         />
       </div>
 
-      {/* Action Cards */}
+      {/* Action Cards Section */}
       <div className="grid-cols-2" style={{ marginBottom: 32 }}>
         <Link href="/registrar/financials/rates" style={{ textDecoration: 'none' }}>
           <div className="card" style={{
