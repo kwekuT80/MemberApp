@@ -1,9 +1,9 @@
 export const dynamic = 'force-dynamic';
 
-import Link from 'next/link';
 import { requireFinancialRegistrar } from '@/lib/auth/requireFinancialRegistrar';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { getAssessmentsForYear, getPaymentsForYear } from '@/services/financialService';
+import ActionCard from '@/components/financials/ActionCard';
 
 export default async function FinancialsHubPage() {
   await requireFinancialRegistrar();
@@ -74,58 +74,8 @@ export default async function FinancialsHubPage() {
       </div>
 
       <div className="grid-cols-2" style={{ marginBottom: 32 }}>
-        <Link href="/registrar/financials/rates" style={{ textDecoration: 'none' }}>
-          <div className="card" style={{
-            cursor: 'pointer',
-            borderLeft: '5px solid var(--gold)',
-            transition: 'transform 0.15s, box-shadow 0.15s',
-            padding: 28,
-          }}
-            onMouseEnter={(e: any) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(10,22,40,0.12)'; }}
-            onMouseLeave={(e: any) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
-          >
-            <div style={{ fontSize: 36, marginBottom: 12 }}>⚙️</div>
-            <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--navy)', marginBottom: 8 }}>
-              Set Rates & Generate Bills
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--grey)', lineHeight: 1.6 }}>
-              Configure yearly assessment rates for Regular, Social, and Student members. 
-              Generate annual bills with automatic age-based discounts and arrears rollover.
-            </div>
-            <div style={{
-              marginTop: 16, display: 'inline-block',
-              background: 'var(--navy)', color: 'var(--gold)',
-              padding: '8px 18px', borderRadius: 8, fontSize: 13, fontWeight: 800,
-            }}>
-              Manage Rates →
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/registrar/financials/payments" style={{ textDecoration: 'none' }}>
-          <div className="card" style={{
-            cursor: 'pointer',
-            borderLeft: '5px solid #16a34a',
-            transition: 'transform 0.15s, box-shadow 0.15s',
-            padding: 28,
-          }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>💳</div>
-            <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--navy)', marginBottom: 8 }}>
-              Record Monthly Payments
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--grey)', lineHeight: 1.6 }}>
-              Log payment receipts for individual members by month and amount. 
-              Members instantly see their updated financial standing upon login.
-            </div>
-            <div style={{
-              marginTop: 16, display: 'inline-block',
-              background: '#16a34a', color: 'white',
-              padding: '8px 18px', borderRadius: 8, fontSize: 13, fontWeight: 800,
-            }}>
-              Log Payments →
-            </div>
-          </div>
-        </Link>
+        <ActionCard href="/registrar/financials/rates" icon="⚙️" title="Set Rates & Generate Bills" description="Configure yearly assessment rates for Regular, Social, and Student members. Generate annual bills with automatic age-based discounts and arrears rollover." buttonText="Manage Rates →" buttonBg="var(--navy)" textColor="var(--gold)" borderColor="var(--gold)" />
+        <ActionCard href="/registrar/financials/payments" icon="💳" title="Record Monthly Payments" description="Log payment receipts for individual members by month and amount. Members instantly see their updated financial standing upon login." buttonText="Log Payments →" buttonBg="#16a34a" textColor="white" borderColor="#16a34a" />
       </div>
       </>}
 
