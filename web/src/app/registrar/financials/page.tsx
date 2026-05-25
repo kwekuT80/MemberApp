@@ -59,8 +59,9 @@ export default async function FinancialsHubPage() {
         </div>
       )}
 
-      {/* Stats Summary */}
-      {!setupRequired && <div className="grid-cols-3" style={{ marginBottom: 32 }}>
+      {/* Stats Summary + Action Cards (only when setup is complete) */}
+      {!setupRequired && <>
+      <div className="grid-cols-3" style={{ marginBottom: 32 }}>
         <StatCard label="Members Billed" value={String(assessments.length)} icon="📋" color="var(--navy)" />
         <StatCard label="Total Assessed" value={fmt(totalAssessed)} icon="📊" color="var(--navy)" />
         <StatCard label="Total Collected" value={fmt(totalCollected)} icon="✅" color="#166534" />
@@ -72,7 +73,6 @@ export default async function FinancialsHubPage() {
         />
       </div>
 
-      {/* Action Cards Section */}
       <div className="grid-cols-2" style={{ marginBottom: 32 }}>
         <Link href="/registrar/financials/rates" style={{ textDecoration: 'none' }}>
           <div className="card" style={{
@@ -127,6 +127,7 @@ export default async function FinancialsHubPage() {
           </div>
         </Link>
       </div>
+      </>}
 
       {/* Discount Reference Card */}
       <div className="card">
