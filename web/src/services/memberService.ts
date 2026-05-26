@@ -73,6 +73,73 @@ export async function getMemberCount(): Promise<number> {
 }
 
 /**
+ * Fetch members with birthdays today or within the next 7 days.
+ * Handles cross-month boundaries (e.g., Dec 30 → Jan 6).
+ */
+export async function getUpcomingBirthdayMembers(): Promise<Member[]> {
+  const supabase = await createClient();
+
+  // Fetch active members who have a date_of_birth
+  const { data, error } = await supabase
+    .from('members')
+    .select(`
+      id, title, first_name, surname, date_of_birth, status
+    `)
+    .not('date_of_birth', 'is', null)
+    .eq('status', 'Active')
+    .neq('status', 'Deceased')
+    .order('surname');
+
+  if (error) throw error;
+
+  const members = data || [];
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentDay = today.getDate();
+
+  // Helper: get month-day as a comparable number (e.g., Dec 31 → 1231)
+  const monthDay = (d: string | null): number => {
+    if (!d) return -1;
+    const parts = d.split('-');
+    const m = parseInt(parts[0], 10);
+    const day = parseInt(parts[1], 10);
+    return m * 100 + day;
+  };
+
+  // Helper: days until birthday from today (handles year wrap)
+  const daysUntilBirthday = (d: string | null): number => {
+    if (!d) return -1;
+    const [yearStr, monthStr, dayStr] = d.split('-');
+    const bMonth = parseInt(monthStr, 10);
+    const bDay = parseInt(dayStr, 10);
+
+    // Calculate days until this birthday
+    let birthdayThisYear = new Date(today.getFullYear(), bMonth - 1, bDay);
+
+    if (birthdayThisYear < today) {
+      // Birthday already passed this year — check next year
+      birthdayThisYear = new Date(today.getFullYear() + 1, bMonth - 1, bDay);
+    }
+
+    const diffMs = birthdayThisYear.getTime() - today.getTime();
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  };
+
+  // Filter: birthday is today OR within next 7 days
+  const upcoming = members.filter(m => {
+    const daysUntil = daysUntilBirthday(m.date_of_birth);
+    return daysUntil >= 0 && daysUntil <= 7;
+  });
+
+  // Sort by proximity (soonest first)
+  upcoming.sort((a, b) => {
+    return daysUntilBirthday(a.date_of_birth!) - daysUntilBirthday(b.date_of_birth!);
+  });
+
+  return upcoming as Member[];
+}
+
+/**
  * Column-safe save function to prevent database pollution
  */
 export async function saveMember(form: any): Promise<Member> {
