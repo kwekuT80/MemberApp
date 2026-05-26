@@ -44,9 +44,13 @@ export async function createMeeting(payload: {
 export async function checkInMember(payload: {
   meeting_id: string;
   member_id: string;
-  method: 'gps' | 'manual';
+  method: 'gps' | 'manual' | 'gps_auto' | 'manual_registrar' | 'qr_scan';
   verified_by?: string;
   commandery_id: string;
+  gps_latitude?: number;
+  gps_longitude?: number;
+  accuracy_meters?: number;
+  verified?: boolean;
 }) {
   const supabase = await createClient();
   

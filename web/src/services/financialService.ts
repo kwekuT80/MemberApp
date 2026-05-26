@@ -192,3 +192,60 @@ export async function getActiveMembers() {
   if (error) throw error;
   return data || [];
 }
+
+// ─── Member Financial Summaries ─────────────────────────────────────────────
+
+export async function getAllMemberSummaries(filters?: {
+  status?: string;
+  search?: string;
+}) {
+  const supabase = await createClient();
+  let query = supabase.from('member_financial_summary').select('*');
+
+  if (filters?.status) {
+    query = query.eq('payment_status', filters.status);
+  }
+
+  if (filters?.search) {
+    query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
+  }
+
+  const { data, error } = await query.order('outstanding_balance', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getMemberDetailedSummary(memberId: string) {
+  const supabase = await createClient();
+
+  const { data: assessments, error: aErr } = await supabase
+    .from('financial_assessments')
+    .select('*')
+    .eq('member_id', memberId)
+    .order('year', { ascending: false });
+
+  if (aErr) throw aErr;
+
+  const { data: payments, error: pErr } = await supabase
+    .from('financial_payments')
+    .select('*')
+    .eq('member_id', memberId)
+    .order('payment_date', { ascending: true });
+
+  if (pErr) throw pErr;
+
+  const totalAssessed = (assessments || []).reduce(
+    (sum, a) => sum + parseFloat(a.annual_assessment as any || 0) + parseFloat(a.arrears_brought_forward as any || 0),
+    0
+  );
+
+  const totalPaid = (payments || []).reduce((sum, p) => sum + parseFloat(p.amount as any || 0), 0);
+
+  return {
+    assessments: assessments || [],
+    payments: payments || [],
+    totalAssessed,
+    totalPaid,
+    outstandingBalance: totalAssessed - totalPaid
+  };
+}
