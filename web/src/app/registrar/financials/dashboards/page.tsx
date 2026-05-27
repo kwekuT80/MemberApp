@@ -17,12 +17,13 @@ export default async function CommanderyHealthPage() {
   const currentYear = new Date().getFullYear();
 
   // Fetch all metrics in parallel
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Total active members
-  const [{ data: totalMembers }: any] = await Promise.all([
-    supabase.from('members').select('*', { count: 'exact', head: true }).not('status', 'in', '("Dismissed","Transfer-Out","Deceased")'),
-  ]);
+ const { data: totalMembers } = await supabase
+   .from('members')
+   .select('*', { count: 'exact', head: true })
+   .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")');
 
   // Members with financial summaries (those who have been assessed)
   const [{ count: assessedCount }: any] = await Promise.all([
