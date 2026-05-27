@@ -177,7 +177,7 @@ export default async function DelinquencyAgingPage({
                           <span className="text-xs text-gray-450 block">{m.email || 'No Email'}</span>
                         </td>
                         <td className="p-4 text-right font-bold text-red-600 dark:text-red-500">
-                          ₵{parseFloat(m.outstanding_balance || 0).toFixed(2)}
+                          ₵{Number(m.outstanding_balance || 0).toFixed(2)}
                         </td>
                         <td className="p-4 text-center">
                           <Link
