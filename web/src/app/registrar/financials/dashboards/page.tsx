@@ -26,19 +26,28 @@ export default async function CommanderyHealthPage() {
    .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")');
 
   // Members with financial summaries (those who have been assessed)
-  const [{ count: assessedCount }: any] = await Promise.all([
-    supabase.from('financial_assessments').select('*', { count: 'exact' }).eq('year', currentYear),
-  ]);
+  const { count: assessedCount } = await supabase
+    .from('financial_assessments')
+    .select('*', { count: 'exact' })
+    .eq('year', currentYear);
 
   // Delinquent members count
-  const [{ data: delinquentMembers }: any] = await Promise.all([
-    supabase.from('member_financial_summary').select('*').eq('payment_status', 'delinquent'),
-  ]);
+  const { count: delinquentMembers } = await supabase
+    .from('member_financial_summary')
+    .select('*')
+    .eq('payment_status', 'delinquent');
 
-  // Total payments this year
-  const [{ sum: totalPaymentsSum }: any] = await Promise.all([
-    supabase.from('financial_payments').select('amount').eq('assessment_year', currentYear),
-  ]);
+    // Total payments this year
+  const { data: payments } = await supabase
+    .from('financial_payments')
+    .select('amount')
+    .eq('assessment_year', currentYear);
+
+  const totalPaymentsSum =
+    payments?.reduce(
+      (total, row) => total + (Number(row.amount) || 0),
+      0
+    ) ?? 0;
 
   // Calculate metrics
   const paymentComplianceRate = assessedCount && assessedCount > 0
