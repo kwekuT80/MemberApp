@@ -20,7 +20,7 @@ export default async function CommanderyHealthPage() {
   const supabase = await createClient();
 
   // Total active members
- const { data: totalMembers } = await supabase
+ const { count: totalMembers } = await supabase
    .from('members')
    .select('*', { count: 'exact', head: true })
    .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")');
@@ -34,7 +34,7 @@ export default async function CommanderyHealthPage() {
   // Delinquent members count
   const { count: delinquentMembers } = await supabase
     .from('member_financial_summary')
-    .select('*')
+   .select('*', { count: 'exact', head: true })
     .eq('payment_status', 'delinquent');
 
     // Total payments this year
@@ -50,11 +50,19 @@ export default async function CommanderyHealthPage() {
     ) ?? 0;
 
   // Calculate metrics
-  const paymentComplianceRate = assessedCount && assessedCount > 0
-    ? ((assessedCount - (delinquentMembers?.length || 0)) / assessedCount * 100).toFixed(1)
+const paymentComplianceRate =
+  assessedCount && assessedCount > 0
+    ? (
+        (
+          assessedCount -
+          (delinquentMembers || 0)
+        ) /
+        assessedCount *
+        100
+      ).toFixed(1)
     : '0.0';
 
-  const totalRevenue = parseFloat(totalPaymentsSum?.sum || '0');
+const totalRevenue = totalPaymentsSum;
 
   // Active vs inactive member ratio
   const activeMemberRatio = totalMembers ? `${((totalMembers as number) > 0 ? ((assessedCount || 0) / (totalMembers as number)) * 100 : 0).toFixed(1)}%` : 'N/A';
@@ -85,8 +93,8 @@ export default async function CommanderyHealthPage() {
     },
     {
       label: 'Delinquent Members',
-      value: delinquentMembers?.length || 0,
-      trend: (delinquentMembers && delinquentMembers.length > 5 ? 'down' : 'neutral'),
+      value: delinquentMembers || 0,
+      trend: (delinquentMembers || 0) > 5 ? 'down' : 'neutral',
       description: 'No payments recorded this year',
     },
     {
