@@ -81,13 +81,29 @@ export default function ImportClient() {
 
   return (
     <div style={container}>
+
+      {/* Export Section */}
+      <div className="card" style={{ ...cardStyle, marginBottom: 24, borderTop: '3px solid #16a34a' }}>
+        <h3 style={{ color: '#16a34a', marginTop: 0 }}>Export Members</h3>
+        <p style={helpText}>
+          Download all active members as CSV for backup or migration. The exported file matches the import format and includes additional fields like status, rank, admission date, and last assessment year.
+        </p>
+        <a
+          href="/api/export/members"
+          style={{ ...importBtn, display: 'inline-block', textDecoration: 'none', textAlign: 'center' }}
+        >
+          Download Members CSV (Export)
+        </a>
+      </div>
+
+      {/* Import Section */}
       <div className="card" style={cardStyle}>
         <h3>Step 1: Prepare your CSV</h3>
         <p style={helpText}>
           Ensure your file has the following headers in the first row:<br />
           <code>surname, first_name, other_names, title, occupation, phone, email</code>
         </p>
-        
+
         <div style={uploadBox}>
           <input 
             type="file" 
