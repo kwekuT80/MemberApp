@@ -34,7 +34,7 @@ export default async function DelinquencyAgingPage({
   const currentYear = parseInt(params.year || new Date().getFullYear().toString());
 
   // Fetch all members with financial summaries
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: summaries }: any[] | any = await supabase
     .from('member_financial_summary')
     .select('*');

@@ -37,6 +37,9 @@ export default function RatesAndBillingClient({
   const [editArrears, setEditArrears] = useState('');
   const [editAnnual, setEditAnnual] = useState('');
   const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
+  // Confirmation modal for Generate Annual Bills
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmInput, setConfirmInput] = useState('');
 
   function showToast(msg: string, type: 'ok' | 'err') {
     setToast({ msg, type });
@@ -53,7 +56,13 @@ export default function RatesAndBillingClient({
     else showToast('Rates saved successfully!', 'ok');
   }
 
+  function promptGenerateBills() {
+    setConfirmInput('');
+    setShowConfirm(true);
+  }
+
   async function handleGenerateBills() {
+    setShowConfirm(false);
     setGenerating(true);
     try {
       // Check rates saved first
@@ -144,6 +153,8 @@ export default function RatesAndBillingClient({
     setAssessments((ass || []) as Assessment[]);
   }
 
+  const CONFIRM_PHRASE = 'GENERATE BILLS';
+
   return (
     <div style={{ width: '100%' }}>
       {/* Toast */}
@@ -155,6 +166,76 @@ export default function RatesAndBillingClient({
           fontWeight: 700, fontSize: 14, boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
           animation: 'fadeIn 0.2s ease'
         }}>{toast.msg}</div>
+      )}
+
+      {/* ── Confirmation Modal ── */}
+      {showConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 16, padding: '36px 40px',
+            maxWidth: 480, width: '90%', boxShadow: '0 24px 60px rgba(0,0,0,0.3)',
+          }}>
+            <div style={{ fontSize: 36, marginBottom: 12, textAlign: 'center' }}>⚠️</div>
+            <h2 style={{ margin: '0 0 8px', color: '#991B1B', fontWeight: 900, fontSize: 20, textAlign: 'center' }}>
+              Destructive Action
+            </h2>
+            <p style={{ color: '#374151', lineHeight: 1.7, marginBottom: 4, fontSize: 14 }}>
+              Generating bills for <strong>{year}</strong> will <strong>overwrite</strong> any existing
+              {year} assessments in the database with auto-calculated values.
+            </p>
+            <p style={{ color: '#6B7280', fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>
+              Age discounts are applied automatically (100% over 80, 50% over 75, 25% over 70)
+              and prior-year outstanding balances are rolled in as arrears.
+            </p>
+            <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
+              <div style={{ fontWeight: 700, color: '#991B1B', fontSize: 13, marginBottom: 6 }}>
+                To confirm, type exactly:
+              </div>
+              <code style={{ fontWeight: 900, fontSize: 15, color: '#7F1D1D', letterSpacing: 1 }}>
+                {CONFIRM_PHRASE}
+              </code>
+            </div>
+            <input
+              className="input"
+              autoFocus
+              placeholder={CONFIRM_PHRASE}
+              value={confirmInput}
+              onChange={e => setConfirmInput(e.target.value)}
+              style={{
+                width: '100%', padding: '12px 14px', fontSize: 14, marginBottom: 16,
+                border: confirmInput === CONFIRM_PHRASE ? '2px solid #16a34a' : '2px solid #D1D5DB',
+                borderRadius: 10, boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={() => setShowConfirm(false)}
+                style={{
+                  flex: 1, padding: '12px 0', borderRadius: 10, border: '2px solid #D1D5DB',
+                  background: 'white', color: '#374151', fontWeight: 700, cursor: 'pointer', fontSize: 14,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleGenerateBills}
+                disabled={confirmInput !== CONFIRM_PHRASE}
+                style={{
+                  flex: 1, padding: '12px 0', borderRadius: 10, border: 0,
+                  background: confirmInput === CONFIRM_PHRASE ? '#DC2626' : '#D1D5DB',
+                  color: 'white', fontWeight: 800, cursor: confirmInput === CONFIRM_PHRASE ? 'pointer' : 'not-allowed',
+                  fontSize: 14, transition: 'background 0.2s',
+                }}
+              >
+                ⚡ Yes, Generate Bills
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Year Selector */}
@@ -197,7 +278,7 @@ export default function RatesAndBillingClient({
           <button className="btn-primary" onClick={handleSaveRates} disabled={saving} style={{ fontSize: 14 }}>
             {saving ? 'Saving...' : '💾 Save Rates'}
           </button>
-          <button onClick={handleGenerateBills} disabled={generating} style={{
+          <button onClick={promptGenerateBills} disabled={generating} style={{
             background: generating ? '#9ca3af' : '#16a34a', color: 'white',
             padding: '14px 28px', borderRadius: 12, fontWeight: 800,
             textTransform: 'uppercase', border: 0, cursor: 'pointer', fontSize: 14,
