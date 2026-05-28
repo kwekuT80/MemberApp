@@ -39,9 +39,11 @@ export default async function DelinquencyAgingPage({
     .from('member_financial_summary')
     .select('*');
 
-  if (!summaries) return <RegistrarShell title="Delinquency Report" subtitle="">
-    <div style={{ padding: 40, textAlign: 'center' }}>No data available</div>
-  </RegistrarShell>;
+  if (!summaries) return (
+    <RegistrarShell title="Delinquency Report" subtitle="">
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--grey)' }}>No data available</div>
+    </RegistrarShell>
+  );
 
   // Filter for active delinquent members only
   const filtered = (summaries as any[]).filter((m: any) => m.payment_status === 'delinquent');
@@ -68,7 +70,7 @@ export default async function DelinquencyAgingPage({
   const bucketConfig: Record<string, { key: string; label: string }> = {
     '90_days': { key: '90_days', label: 'Within 90 Days' },
     '180_days': { key: '180_days', label: '90–180 Days' },
-    '365_plus': { key: '365_plus', label: '180+ Days' },
+    '365_plus': { key: '365_plus', label: '180+ Days (Severe)' },
   };
 
   const buckets: DelinquencyBucket[] = Object.values(bucketConfig)
@@ -90,29 +92,33 @@ export default async function DelinquencyAgingPage({
 
   return (
     <RegistrarShell title="Delinquency Aging Report" subtitle={`${currentYear} | ${totalMembers} Members with Outstanding Balances`}>
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-width-container">
 
-        {/* Print/Export Actions */}
+        {/* ── PRINT & EXPORT PANEL ── */}
         <DelinquencyPrintView
           buckets={buckets}
           totalOutstanding={totalOutstanding}
           currentYear={currentYear}
         />
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* ── DELINQUENCY METRIC CARDS ── */}
+        <div className="stats-grid" style={{ marginTop: 24 }}>
           {buckets.map((bucket) => (
             <Link
               key={bucket.key}
               href={`/registrar/financials/delinquency?bucket=${bucket.key}`}
-              className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
+              style={{ textDecoration: 'none' }}
+              className="metric-card metric-card-white hover-lift"
             >
-              <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">
-                {bucket.label}
-              </p>
-              <div className="mt-2 flex justify-between items-baseline">
-                <span className="text-2xl font-bold text-red-600 dark:text-red-450">{bucket.members.length} Members</span>
-                <span className="text-xs font-semibold bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 px-2 py-0.5 rounded-full">
+              <div>
+                <p className="metric-label" style={{ color: 'var(--danger)' }}>{bucket.label}</p>
+                <div className="metric-value" style={{ color: 'var(--danger)', fontSize: 24, marginTop: 4 }}>
+                  {bucket.members.length} Brothers
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--grey)' }}>TOTAL OWED</span>
+                <span className="badge badge-red" style={{ fontWeight: 900 }}>
                   ₵{bucket.totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
@@ -120,69 +126,93 @@ export default async function DelinquencyAgingPage({
           ))}
         </div>
 
-        {/* Bucket Filter */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5 shadow-sm">
-          <form method="GET" className="flex items-center gap-4">
-            <label htmlFor="bucket" className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap">
-              Filter by Bucket:
+        {/* ── BUCKET FILTER TRAY ── */}
+        <div className="filter-bar">
+          <form method="GET" style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%' }}>
+            <label htmlFor="bucket" className="filter-label" style={{ marginBottom: 0 }}>
+              Filter by Severity Bucket:
             </label>
             <select
               id="bucket"
               name="bucket"
               defaultValue={params.bucket || ''}
-              className="bg-gray-50 dark:bg-gray-850 border border-gray-200 dark:border-gray-700 rounded-lg py-2 px-3 focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900 dark:text-gray-100"
+              className="select"
+              style={{ maxWidth: 280 }}
             >
-              <option value="">All Buckets</option>
+              <option value="">All Severity Buckets</option>
               <option value="90_days">Within 90 Days</option>
               <option value="180_days">90–180 Days</option>
-              <option value="365_plus">180+ Days</option>
+              <option value="365_plus">180+ Days (Severe)</option>
             </select>
+            <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', fontSize: 12 }}>
+              Apply Filter
+            </button>
+            {params.bucket && (
+              <Link href="/registrar/financials/delinquency" className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: 12 }}>
+                Reset
+              </Link>
+            )}
           </form>
         </div>
 
-        {/* Member List */}
+        {/* ── BUCKET SECTIONS ── */}
         {buckets.map((bucket) => {
           const filteredMembers = params.bucket ? (params.bucket === bucket.key ? bucket.members : []) : bucket.members;
 
           if (filteredMembers.length === 0) return null;
 
           return (
-            <div key={bucket.key} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
-              <div className="p-5 bg-gradient-to-r from-red-50 to-transparent dark:from-red-950/20 dark:to-transparent">
-                <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">
-                  {bucket.label} ({filteredMembers.length} members)
+            <div key={bucket.key} className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 32 }}>
+              
+              {/* Header section with gradient alert line */}
+              <div style={{
+                padding: '20px 24px',
+                background: 'linear-gradient(90deg, rgba(244, 63, 94, 0.08) 0%, transparent 100%)',
+                borderBottom: '1px solid rgba(244, 63, 94, 0.1)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <h3 className="section-header" style={{ margin: 0, color: 'var(--danger)', fontWeight: 900 }}>
+                  {bucket.label} ({filteredMembers.length} Brothers)
                 </h3>
+                <span className="badge badge-red" style={{ fontWeight: 900, fontSize: 12 }}>
+                  Total: ₵{bucket.totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+              <div className="member-table-container">
+                <table className="member-table">
                   <thead>
-                    <tr className="bg-gray-50 dark:bg-gray-850 border-b border-gray-100 dark:border-gray-800">
-                      <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Brother's Name</th>
-                      <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact Info</th>
-                      <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Outstanding Balance</th>
-                      <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">Actions</th>
+                    <tr>
+                      <th>Brother's Name</th>
+                      <th>Contact Information</th>
+                      <th style={{ textAlign: 'right' }}>Outstanding Balance</th>
+                      <th style={{ textAlign: 'center' }}>Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tbody>
                     {filteredMembers.map((m) => (
-                      <tr key={m.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-850/30 transition-colors">
-                        <td className="p-4">
-                          <Link href={`/registrar/members/${m.id}`} className="font-semibold text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors block">
+                      <tr key={m.id}>
+                        <td>
+                          <Link href={`/registrar/members/${m.id}`} style={{ fontWeight: 800, color: 'var(--navy)', textDecoration: 'none' }}>
                             {m.full_name}
                           </Link>
+                          <span style={{ display: 'block', fontSize: 10, color: 'var(--grey)', marginTop: 4 }}>
+                            ID: {m.id.substring(0, 8).toUpperCase()}
+                          </span>
                         </td>
-                        <td className="p-4">
-                          <span className="block text-sm text-gray-800 dark:text-gray-250">{m.phone_number || 'No Phone'}</span>
-                          <span className="text-xs text-gray-450 block">{m.email || 'No Email'}</span>
+                        <td>
+                          <span style={{ display: 'block', fontWeight: 600 }}>{m.phone_number || '—'}</span>
+                          <span style={{ display: 'block', fontSize: 12, color: 'var(--grey)', marginTop: 2 }}>{m.email || '—'}</span>
                         </td>
-                        <td className="p-4 text-right font-bold text-red-600 dark:text-red-500">
+                        <td style={{ textAlign: 'right', fontWeight: 900, color: 'var(--danger)', fontSize: 15 }}>
                           ₵{Number(m.outstanding_balance || 0).toFixed(2)}
                         </td>
-                        <td className="p-4 text-center">
+                        <td style={{ textAlign: 'center' }}>
                           <Link
                             href={`/registrar/members/${m.id}/dossier`}
-                            className="text-xs font-semibold bg-gray-50 hover:bg-indigo-50 border border-gray-250 text-gray-700 hover:text-indigo-650 hover:border-indigo-200 py-1.5 px-3 rounded transition-colors inline-block dark:bg-gray-850 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-indigo-950 dark:hover:text-indigo-400"
+                            className="btn btn-primary btn-action"
                           >
                             View Dossier
                           </Link>

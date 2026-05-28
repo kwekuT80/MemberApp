@@ -20,10 +20,10 @@ export default async function CommanderyHealthPage() {
   const supabase = await createClient();
 
   // Total active members
- const { count: totalMembers } = await supabase
-   .from('members')
-   .select('*', { count: 'exact', head: true })
-   .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")');
+  const { count: totalMembers } = await supabase
+    .from('members')
+    .select('*', { count: 'exact', head: true })
+    .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")');
 
   // Members with financial summaries (those who have been assessed)
   const { count: assessedCount } = await supabase
@@ -34,10 +34,10 @@ export default async function CommanderyHealthPage() {
   // Delinquent members count
   const { count: delinquentMembers } = await supabase
     .from('member_financial_summary')
-   .select('*', { count: 'exact', head: true })
+    .select('*', { count: 'exact', head: true })
     .eq('payment_status', 'delinquent');
 
-    // Total payments this year
+  // Total payments this year
   const { data: payments } = await supabase
     .from('financial_payments')
     .select('amount')
@@ -50,118 +50,165 @@ export default async function CommanderyHealthPage() {
     ) ?? 0;
 
   // Calculate metrics
-const paymentComplianceRate =
-  assessedCount && assessedCount > 0
-    ? (
-        (
-          assessedCount -
-          (delinquentMembers || 0)
-        ) /
-        assessedCount *
-        100
-      ).toFixed(1)
-    : '0.0';
+  const paymentComplianceRate =
+    assessedCount && assessedCount > 0
+      ? (
+          (
+            assessedCount -
+            (delinquentMembers || 0)
+          ) /
+          assessedCount *
+          100
+        ).toFixed(1)
+      : '0.0';
 
-const totalRevenue = totalPaymentsSum;
+  const totalRevenue = totalPaymentsSum;
 
   // Active vs inactive member ratio
   const activeMemberRatio = totalMembers ? `${((totalMembers as number) > 0 ? ((assessedCount || 0) / (totalMembers as number)) * 100 : 0).toFixed(1)}%` : 'N/A';
 
   const metrics: DashboardMetric[] = [
     {
-      label: 'Commandery Membership',
+      label: 'Active Brothers',
       value: totalMembers || 0,
-      description: 'Total active members',
+      description: 'Total active registered roster',
     },
     {
       label: 'Assessed Members',
       value: assessedCount || 0,
       trend: 'neutral',
-      description: `Members billed for ${currentYear}`,
+      description: `Members ledgered for ${currentYear}`,
     },
     {
-      label: 'Payment Compliance Rate',
+      label: 'Payment Compliance',
       value: `${paymentComplianceRate}%`,
       trend: (parseFloat(paymentComplianceRate) > 80 ? 'up' : 'down'),
-      description: 'Current on payments this year',
+      description: 'Members current on dues obligations',
     },
     {
       label: 'Active Member Ratio',
       value: activeMemberRatio,
       trend: 'neutral',
-      description: 'Assessed vs total membership',
+      description: 'Assessed vs total registered members',
     },
     {
       label: 'Delinquent Members',
       value: delinquentMembers || 0,
       trend: (delinquentMembers || 0) > 5 ? 'down' : 'neutral',
-      description: 'No payments recorded this year',
+      description: 'Zero payments registered this year',
     },
     {
       label: 'Total Revenue Collected',
       value: `₵${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       trend: 'up',
-      description: `${currentYear} collections`,
+      description: `${currentYear} financial collections`,
     },
   ];
 
   return (
-    <RegistrarShell title="Commandery Health Dashboard" subtitle="Aggregate metrics for chapter oversight and planning">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <RegistrarShell title="Commandery Health Dashboard" subtitle="Aggregate metrics for chapter financial oversight and strategic planning">
+      <div className="max-width-container">
 
-        {/* Key Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {metrics.map((metric) => (
-            <div key={metric.label} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5 shadow-sm">
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{metric.label}</p>
-                {metric.trend && (
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${
-                    metric.trend === 'up' ? 'bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400' :
-                    metric.trend === 'down' ? 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400' :
-                    'bg-gray-50 text-gray-600 dark:bg-gray-850 dark:text-gray-400'
-                  }`}>
-                    {metric.trend === 'up' ? '▲ Improving' : metric.trend === 'down' ? '▼ Declining' : '● Stable'}
-                  </span>
-                )}
+        {/* ── KEY METRICS BOARD ── */}
+        <div className="stats-grid">
+          {metrics.map((metric) => {
+            const isNavyCard = metric.label.includes('Revenue') || metric.label.includes('Compliance');
+            return (
+              <div key={metric.label} className={`metric-card ${isNavyCard ? 'metric-card-navy' : 'metric-card-white'}`}>
+                <div style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <p className="metric-label" style={{ margin: 0 }}>{metric.label}</p>
+                    {metric.trend && (
+                      <span className={`badge ${
+                        metric.trend === 'up' ? 'badge-green' :
+                        metric.trend === 'down' ? 'badge-red' :
+                        'badge-grey'
+                      }`} style={{ fontSize: 9, padding: '3px 8px' }}>
+                        {metric.trend === 'up' ? '▲ Improving' : metric.trend === 'down' ? '▼ Alert' : '● Stable'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="metric-value" style={{ margin: 0 }}>
+                    {metric.value}
+                  </div>
+                </div>
+
+                <p className="metric-desc" style={{ marginTop: 12, marginBottom: 0 }}>{metric.description}</p>
               </div>
-
-              <div className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                {metric.value}
-              </div>
-
-              <p className="text-sm text-gray-500 dark:text-gray-400">{metric.description}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5 shadow-sm">
-          <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* ── QUICK ACTIONS BOARD ── */}
+        <div className="card">
+          <h3 className="section-header" style={{ marginBottom: 20 }}>Financial Administrative Toolkit</h3>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+            
             <Link
               href="/registrar/financials/delinquency"
-              className="block p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-950/30 transition-colors text-center"
+              style={{
+                display: 'block',
+                padding: '24px',
+                background: 'rgba(244, 63, 94, 0.05)',
+                border: '1.5px solid rgba(244, 63, 94, 0.15)',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                transition: 'all 0.2s'
+              }}
+              className="hover-card-rose"
             >
-              <span className="font-semibold text-red-700 dark:text-red-400 block">View Delinquency Report</span>
-              <span className="text-sm text-red-600 dark:text-red-500">Members by aging bucket</span>
+              <span style={{ fontWeight: 900, color: 'var(--danger)', display: 'block', fontSize: 16 }}>
+                View Delinquency Report
+              </span>
+              <span style={{ display: 'block', fontSize: 13, color: 'var(--grey)', marginTop: 6 }}>
+                Analyze outstanding member dues categorized by aging severity buckets.
+              </span>
             </Link>
 
             <Link
               href="/registrar/financials/members"
-              className="block p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/30 transition-colors text-center"
+              style={{
+                display: 'block',
+                padding: '24px',
+                background: 'rgba(59, 130, 246, 0.05)',
+                border: '1.5px solid rgba(59, 130, 246, 0.15)',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                transition: 'all 0.2s'
+              }}
+              className="hover-card-blue"
             >
-              <span className="font-semibold text-blue-700 dark:text-blue-400 block">Member Financial Overview</span>
-              <span className="text-sm text-blue-600 dark:text-blue-500">Detailed member summaries</span>
+              <span style={{ fontWeight: 900, color: '#1D4ED8', display: 'block', fontSize: 16 }}>
+                Member Financial Overview
+              </span>
+              <span style={{ display: 'block', fontSize: 13, color: 'var(--grey)', marginTop: 6 }}>
+                Access consolidated dues lists, payment ratios, and individual member ledgers.
+              </span>
             </Link>
 
             <Link
               href="/registrar/financials/payments"
-              className="block p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-950/30 transition-colors text-center"
+              style={{
+                display: 'block',
+                padding: '24px',
+                background: 'rgba(16, 185, 129, 0.05)',
+                border: '1.5px solid rgba(16, 185, 129, 0.15)',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                transition: 'all 0.2s'
+              }}
+              className="hover-card-green"
             >
-              <span className="font-semibold text-green-700 dark:text-green-400 block">Record Payments</span>
-              <span className="text-sm text-green-600 dark:text-green-500">Log new transactions</span>
+              <span style={{ fontWeight: 900, color: 'var(--success)', display: 'block', fontSize: 16 }}>
+                Record Dues Payments
+              </span>
+              <span style={{ display: 'block', fontSize: 13, color: 'var(--grey)', marginTop: 6 }}>
+                Log monthly transaction receipts, adjust ledgers, and audit payment entries.
+              </span>
             </Link>
+
           </div>
         </div>
 
