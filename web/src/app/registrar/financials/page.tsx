@@ -73,9 +73,14 @@ export default async function FinancialsHubPage() {
         />
       </div>
 
-      <div className="grid-cols-2" style={{ marginBottom: 32 }}>
-        <ActionCard href="/registrar/financials/rates" icon="⚙️" title="Set Rates & Generate Bills" description="Configure yearly assessment rates for Regular, Social, and Student members. Generate annual bills with automatic age-based discounts and arrears rollover." buttonText="Manage Rates →" buttonBg="var(--navy)" textColor="var(--gold)" borderColor="var(--gold)" />
+      <div className="grid-cols-3" style={{ marginBottom: 32 }}>
+        <ActionCard href="/registrar/financials/rates" icon="⚙️" title="Set Rates & Generate Bills" description="Configure yearly assessment rates for Regular, Social, and Student members. Generate annual bills with age-based discounts and arrears rollover." buttonText="Manage Rates →" buttonBg="var(--navy)" textColor="var(--gold)" borderColor="var(--gold)" />
+        <ActionCard href="/registrar/financials/rates/history" icon="📊" title="Rate History & Comparison" description="View the full audit timeline of rate changes. Compare rates across any two dates to track how assessments have evolved over time." buttonText="View History →" buttonBg="#1d4ed8" textColor="white" borderColor="#1d4ed8" />
         <ActionCard href="/registrar/financials/payments" icon="💳" title="Record Monthly Payments" description="Log payment receipts for individual members by month and amount. Members instantly see their updated financial standing upon login." buttonText="Log Payments →" buttonBg="#16a34a" textColor="white" borderColor="#16a34a" />
+        <ActionCard href="/registrar/financials/members" icon="👥" title="Member Financial Summaries" description="Comprehensive per-member financial overview: total assessed, total paid, outstanding balance, and payment status — powered by a materialized view." buttonText="View Summaries →" buttonBg="#0369a1" textColor="white" borderColor="#0369a1" />
+        <ActionCard href="/registrar/financials/dashboards" icon="🏥" title="Commandery Health Dashboard" description="Aggregate metrics for chapter oversight: payment compliance rate, delinquency count, total revenue collected, and active member ratio." buttonText="View Dashboard →" buttonBg="#7c3aed" textColor="white" borderColor="#7c3aed" />
+        <ActionCard href="/registrar/financials/delinquency" icon="📉" title="Delinquency Aging Report" description="Members with outstanding balances bucketed by severity (90 days / 90–180 days / 180+ days). Includes contact info and printable report." buttonText="View Report →" buttonBg="#b91c1c" textColor="white" borderColor="#b91c1c" />
+        <ActionCard href="/registrar/financials/audit" icon="📋" title="Financial Audit Trail" description="Full immutable log of all payment records and rate configuration changes for accountability and reconciliation." buttonText="View Audit Log →" buttonBg="#374151" textColor="white" borderColor="#374151" />
       </div>
       </>}
 

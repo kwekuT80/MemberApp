@@ -42,24 +42,36 @@ export default function RegistrarShell({
       { href: '/registrar/members', label: 'Members' },
       { href: '/registrar/members/new', label: 'Create Member' },
       { href: '/registrar/reports', label: 'Reporting Hub' },
-      { href: '/registrar/meetings', label: 'Meetings' }
+      { href: '/registrar/meetings', label: 'Meetings' },
+      { href: '/registrar/communications', label: '📣 Communications' }
     );
   }
 
-  // Super Admin gets Financial Ledger tab on main admin shell
+  // Super Admin gets Financial Ledger tab + all financial sub-pages
   if (role === 'super_admin') {
     navItems.push(
-      { href: '/registrar/financials', label: '💰 Financial Ledger' }
+      { href: '/registrar/financials', label: '💰 Financial Ledger' },
+      { href: '/registrar/financials/rates', label: '⚙️ Rates & Billing' },
+      { href: '/registrar/financials/rates/history', label: '📊 Rate History' },
+      { href: '/registrar/financials/payments', label: '💳 Record Payments' },
+      { href: '/registrar/financials/members', label: '👥 Member Summaries' },
+      { href: '/registrar/financials/dashboards', label: '🏥 Health Dashboard' },
+      { href: '/registrar/financials/delinquency', label: '📉 Delinquency Report' },
+      { href: '/registrar/financials/audit', label: '📋 Audit Trail' }
     );
   }
 
-  // Financial Registrar gets custom navigation
+  // Financial Registrar gets full financial navigation suite
   if (role === 'financial_registrar') {
-    // If they aren't super_admin but are financial_registrar, they only see these options
     navItems.push(
-      { href: '/registrar/financials', label: 'Dashboard' },
+      { href: '/registrar/financials', label: 'Financial Dashboard' },
       { href: '/registrar/financials/rates', label: '⚙️ Rates & Billing' },
-      { href: '/registrar/financials/payments', label: '💳 Record Payments' }
+      { href: '/registrar/financials/rates/history', label: '📊 Rate History' },
+      { href: '/registrar/financials/payments', label: '💳 Record Payments' },
+      { href: '/registrar/financials/members', label: '👥 Member Summaries' },
+      { href: '/registrar/financials/dashboards', label: '🏥 Health Dashboard' },
+      { href: '/registrar/financials/delinquency', label: '📉 Delinquency Report' },
+      { href: '/registrar/financials/audit', label: '📋 Audit Trail' }
     );
   }
 
