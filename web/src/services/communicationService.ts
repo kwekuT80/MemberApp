@@ -20,8 +20,8 @@ export type TemplateId =
 interface TemplateVariables {
   memberName: string;
   [key: string]:
-    | string
-    | number;
+  | string
+  | number;
 }
 
 // Simple template engine — extends in production with Nunjucks/Handlebars
@@ -40,55 +40,43 @@ function renderTemplate(
   switch (templateId) {
     case 'payment_reminder':
       return {
-        subject: `Payment Reminder - ${
-          variables.dueDate
+        subject: `Payment Reminder - ${variables.dueDate
             ? new Date(
-                String(
-                  variables.dueDate
-                )
-              ).toLocaleDateString()
+              String(
+                variables.dueDate
+              )
+            ).toLocaleDateString()
             : 'Upcoming Due'
-        }`,
+          }`,
 
-        html: `<p>Dear ${name},</p><p>This is a reminder that your payment of <strong>${
-          variables.amount || 0
-        }</strong> is due on <strong>${
-          variables.dueDate ||
+        html: `<p>Dear ${name},</p><p>This is a reminder that your payment of <strong>${variables.amount || 0
+          }</strong> is due on <strong>${variables.dueDate ||
           'N/A'
-        }</strong>.</p><p>Please contact the registrar to make arrangements.</p><br/><p>Kind regards,<br/>KSJI Commandery #500</p>`,
+          }</strong>.</p><p>Please contact the registrar to make arrangements.</p><br/><p>Kind regards,<br/>KSJI Commandery No500</p>`,
 
-        text: `Dear ${name},\n\nThis is a reminder that your payment of $${
-          variables.amount || 0
-        } is due on ${
-          variables.dueDate ||
+        text: `Dear ${name},\n\nThis is a reminder that your payment of $${variables.amount || 0
+          } is due on ${variables.dueDate ||
           'N/A'
-        }.\n\nPlease contact the registrar to make arrangements.\n\nKind regards,\nKSJI Commandery #500`,
+          }.\n\nPlease contact the registrar to make arrangements.\n\nKind regards,\nKSJI Commandery No. 500`,
       };
 
     case 'meeting_notice':
       return {
-        subject: `Meeting Notice - ${
-          variables.meetingTitle ||
+        subject: `Meeting Notice - ${variables.meetingTitle ||
           'Upcoming Meeting'
-        }`,
+          }`,
 
-        html: `<p>Dear ${name},</p><p>You are invited to attend the <strong>${
-          variables.meetingTitle
-        }</strong> meeting on <strong>${
-          variables.meetingDate
-        }</strong> at <strong>${
-          variables.meetingLocation ||
+        html: `<p>Dear ${name},</p><p>You are invited to attend the <strong>${variables.meetingTitle
+          }</strong> meeting on <strong>${variables.meetingDate
+          }</strong> at <strong>${variables.meetingLocation ||
           'TBD'
-        }</strong>.</p><br/><p>Kind regards,<br/>KSJI Commandery #500</p>`,
+          }</strong>.</p><br/><p>Kind regards,<br/>KSJI Commandery 500</p>`,
 
-        text: `Dear ${name},\n\nYou are invited to attend the ${
-          variables.meetingTitle
-        } meeting on ${
-          variables.meetingDate
-        } at ${
-          variables.meetingLocation ||
+        text: `Dear ${name},\n\nYou are invited to attend the ${variables.meetingTitle
+          } meeting on ${variables.meetingDate
+          } at ${variables.meetingLocation ||
           'TBD'
-        }.\n\nKind regards,\nKSJI Commandery #500`,
+          }.\n\nKind regards,\nKSJI Commandery No. 500`,
       };
 
     case 'general':
@@ -96,17 +84,15 @@ function renderTemplate(
       return {
         subject:
           typeof variables.subject ===
-          'string'
+            'string'
             ? variables.subject
-            : 'Message from KSJI Commandery #500',
+            : 'Message from KSJI Commandery No. 500',
 
-        html: `<p>Dear ${name},</p><div>${
-          variables.content || ''
-        }</div><br/><p>Kind regards,<br/>KSJI Commandery #500</p>`,
+        html: `<p>Dear ${name},</p><div>${variables.content || ''
+          }</div><br/><p>Kind regards,<br/>KSJI Commandery No. 500</p>`,
 
-        text: `Dear ${name},\n\n${
-          variables.content || ''
-        }\n\nKind regards,\nKSJI Commandery #500`,
+        text: `Dear ${name},\n\n${variables.content || ''
+          }\n\nKind regards,\nKSJI Commandery No. 500`,
       };
   }
 }
@@ -153,17 +139,15 @@ export async function sendCommunication(
     }
 
     let payloadData: MessagePayload =
-      {
-        to: '',
-        name: `${
-          member.first_name ||
-          ''
-        } ${
-          member.surname
+    {
+      to: '',
+      name: `${member.first_name ||
+        ''
+        } ${member.surname
         }`.trim(),
-        body:
-          payload.smsBody || '',
-      };
+      body:
+        payload.smsBody || '',
+    };
 
     if (
       payload.type ===
@@ -263,7 +247,7 @@ export async function sendCommunication(
 
         status:
           result.status ===
-          'sent'
+            'sent'
             ? 'delivered'
             : result.status,
 
@@ -435,7 +419,7 @@ export async function sendBulkCommunications(
 
         variables:
           payload.variables?.[
-            memberId
+          memberId
           ] || {
             memberName: '',
           },
@@ -449,7 +433,7 @@ export async function sendBulkCommunications(
       errors.set(
         memberId,
         result.error ||
-          'Unknown error'
+        'Unknown error'
       );
     }
   }
