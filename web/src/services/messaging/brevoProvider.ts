@@ -1,4 +1,4 @@
-'use server';
+//'use server';
 
 import { MessagingProvider, MessagePayload, DeliveryResult, WebhookEvent } from './types';
 import type { ProviderName } from './types';

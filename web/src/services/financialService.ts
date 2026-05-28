@@ -1,5 +1,24 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
+import { logFinancialChange, type AuditAction, type EntityType } from './auditService';
+
+function getPaymentFields(payment: any) {
+  return { amount: payment.amount, month: payment.month, assessment_year: payment.assessment_year };
+}
+
+function getFieldDiff<T>(key: keyof T, a: T, b: T): { hasChange: boolean; oldVal: any; newVal: any } {
+  const av = a[key];
+  const bv = b[key];
+  return { hasChange: av !== bv, oldVal: av, newVal: bv };
+}
+
+function getRateFields(rate: any) {
+  return { regular_rate: rate.regular_rate, social_rate: rate.social_rate, student_rate: rate.student_rate };
+}
+
+function getAssessmentFields(assessment: any) {
+  return { annual_assessment: assessment.annual_assessment, arrears_brought_forward: assessment.arrears_brought_forward };
+}
 
 // ─── Rate Management ───────────────────────────────────────────────────────
 
@@ -21,13 +40,39 @@ export async function saveAnnualRates(rates: {
   student_rate: number;
 }) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+
+  // Get existing rates for diff comparison (audit log)
+  const { data: existing } = await supabase
+    .from('annual_assessment_rates')
+    .select('*')
+    .eq('year', rates.year)
+    .maybeSingle();
+
+  const result = await supabase
     .from('annual_assessment_rates')
     .upsert(rates, { onConflict: 'year' })
     .select()
     .single();
-  if (error) throw error;
-  return data;
+  if (result.error) throw result.error;
+
+  // Log rate changes for audit trail
+  if (existing) {
+    const oldFields = getRateFields(existing);
+    const newFields = getRateFields(rates);
+    const hasAnyChange = Object.keys(oldFields).some(k => (oldFields as any)[k] !== (newFields as any)[k]);
+
+    if (hasAnyChange) {
+      await logFinancialChange({
+        action: 'rate_change',
+        entityType: 'rate',
+        entityId: existing.id,
+        oldValues: oldFields,
+        newValues: newFields,
+      });
+    }
+  }
+
+  return result.data;
 }
 
 // ─── Age Discount Logic ────────────────────────────────────────────────────
@@ -135,14 +180,41 @@ export async function updateIndividualAssessment(
   annual: number
 ) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+
+  // Get existing assessment for diff comparison (audit log)
+  const { data: existing } = await supabase
+    .from('financial_assessments')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  const result = await supabase
     .from('financial_assessments')
     .update({ arrears_brought_forward: arrears, annual_assessment: annual })
     .eq('id', id)
     .select()
     .single();
-  if (error) throw error;
-  return data;
+  if (result.error) throw result.error;
+
+  // Log assessment edit for audit trail
+  if (existing) {
+    const oldFields = getAssessmentFields(existing);
+    const newFields = getAssessmentFields({ arrears_brought_forward: arrears, annual_assessment: annual });
+    const hasAnyChange = Object.keys(oldFields).some(k => (oldFields as any)[k] !== (newFields as any)[k]);
+
+    if (hasAnyChange) {
+      await logFinancialChange({
+        action: 'assessment_edit',
+        entityType: 'assessment',
+        entityId: existing.id,
+        memberId: existing.member_id || undefined,
+        oldValues: oldFields,
+        newValues: newFields,
+      });
+    }
+  }
+
+  return result.data;
 }
 
 // ─── Payment Recording ──────────────────────────────────────────────────────
@@ -155,13 +227,24 @@ export async function recordPayment(payment: {
   recorded_by: string;
 }) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const result = await supabase
     .from('financial_payments')
     .insert(payment)
     .select()
     .single();
-  if (error) throw error;
-  return data;
+  if (result.error) throw result.error;
+
+  // Log new payment for audit trail
+  await logFinancialChange({
+    action: 'payment_amount_change',
+    entityType: 'payment',
+    entityId: result.data.id,
+    memberId: payment.member_id,
+    oldValues: {},
+    newValues: getPaymentFields(result.data),
+  });
+
+  return result.data;
 }
 
 export async function getPaymentsForYear(year: number) {
@@ -177,8 +260,28 @@ export async function getPaymentsForYear(year: number) {
 
 export async function deletePayment(id: string) {
   const supabase = await createClient();
+
+  // Get payment before deletion for audit log
+  const { data: existing } = await supabase
+    .from('financial_payments')
+    .select('*')
+    .eq('id', id)
+    .single();
+
   const { error } = await supabase.from('financial_payments').delete().eq('id', id);
   if (error) throw error;
+
+  // Log deleted payment for audit trail
+  if (existing) {
+    await logFinancialChange({
+      action: 'payment_delete',
+      entityType: 'payment',
+      entityId: existing.id,
+      memberId: existing.member_id || undefined,
+      oldValues: getPaymentFields(existing),
+      newValues: {},
+    });
+  }
 }
 
 export async function getActiveMembers() {

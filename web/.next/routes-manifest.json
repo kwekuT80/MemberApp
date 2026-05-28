@@ -194,10 +194,52 @@
       "namedRegex": "^/registrar(?:/)?$"
     },
     {
+      "page": "/registrar/attendance/reports",
+      "regex": "^/registrar/attendance/reports(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/attendance/reports(?:/)?$"
+    },
+    {
+      "page": "/registrar/communications",
+      "regex": "^/registrar/communications(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/communications(?:/)?$"
+    },
+    {
+      "page": "/registrar/communications/history",
+      "regex": "^/registrar/communications/history(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/communications/history(?:/)?$"
+    },
+    {
       "page": "/registrar/financials",
       "regex": "^/registrar/financials(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/registrar/financials(?:/)?$"
+    },
+    {
+      "page": "/registrar/financials/audit",
+      "regex": "^/registrar/financials/audit(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/financials/audit(?:/)?$"
+    },
+    {
+      "page": "/registrar/financials/dashboards",
+      "regex": "^/registrar/financials/dashboards(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/financials/dashboards(?:/)?$"
+    },
+    {
+      "page": "/registrar/financials/delinquency",
+      "regex": "^/registrar/financials/delinquency(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/financials/delinquency(?:/)?$"
+    },
+    {
+      "page": "/registrar/financials/members",
+      "regex": "^/registrar/financials/members(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/financials/members(?:/)?$"
     },
     {
       "page": "/registrar/financials/payments",
@@ -210,6 +252,12 @@
       "regex": "^/registrar/financials/rates(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/registrar/financials/rates(?:/)?$"
+    },
+    {
+      "page": "/registrar/financials/rates/history",
+      "regex": "^/registrar/financials/rates/history(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registrar/financials/rates/history(?:/)?$"
     },
     {
       "page": "/registrar/import",

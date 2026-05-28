@@ -38,7 +38,11 @@ export default async function AttendanceReportsPage() {
   // Fetch all meetings this year (without commandery filter for global view)
   let meetings: any[] = [];
   try {
-    const supabase = (await import('@/lib/supabase/server')).createClient();
+   const { createClient } = await import(
+     '@/lib/supabase/server'
+   );
+
+   const supabase = await createClient();
     const { data } = await supabase
       .from('meetings')
       .select('*')

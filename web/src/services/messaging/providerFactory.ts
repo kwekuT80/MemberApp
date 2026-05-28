@@ -1,4 +1,4 @@
-'use server';
+//'use server';
 
 import { MessagingProvider, ProviderName } from './types';
 import { BrevoProvider } from './brevoProvider';
