@@ -31,11 +31,14 @@ export default async function CommanderyHealthPage() {
     .select('*', { count: 'exact' })
     .eq('year', currentYear);
 
-  // Delinquent members count
+  // Delinquent members count (exclude dismissed, transferred-out, or deceased)
   const { count: delinquentMembers } = await supabase
     .from('member_financial_summary')
     .select('*', { count: 'exact', head: true })
     .eq('payment_status', 'delinquent');
+
+  // NOTE: member_financial_summary SQL view now filters these members server-side.
+  // Keeping this query as-is since the view already handles exclusion.
 
   // Total payments this year
   const { data: payments } = await supabase

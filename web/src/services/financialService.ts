@@ -315,6 +315,8 @@ export async function getAllMemberSummaries(filters?: {
 
   const { data, error } = await query.order('outstanding_balance', { ascending: false });
   if (error) throw error;
+
+  // SQL view now filters by member status server-side. Return raw results.
   return data || [];
 }
 
@@ -351,4 +353,60 @@ export async function getMemberDetailedSummary(memberId: string) {
     totalPaid,
     outstandingBalance: totalAssessed - totalPaid
   };
+}
+
+// ─── C1b: Notification Reminder Configuration ──────────────────────────────
+
+export async function getReminderConfig() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('reminder_config')
+    .select('*');
+  if (!data) return {};
+
+  const config: Record<string, any> = {};
+  for (const item of data) {
+    config[item.config_key] = item.config_value?.value ?? item.config_value;
+  }
+  return config;
+}
+
+export async function saveReminderConfig(updates: Record<string, any>) {
+  const supabase = await createClient();
+
+  // Upsert each key-value pair
+  for (const [key, value] of Object.entries(updates)) {
+    const payload = {
+      config_key: key,
+      config_value: JSON.stringify(value),
+    };
+
+    await supabase.from('reminder_config').upsert(payload, { onConflict: 'config_key' });
+  }
+}
+
+export async function getReminderHistory(params?: {
+  member_id?: string;
+  channel?: string;
+  status?: string;
+  limit?: number;
+}) {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from('reminder_log')
+    .select(`
+      *,
+      members!inner (first_name, surname)
+    `);
+
+  if (params?.member_id) query = query.eq('member_id', params.member_id);
+  if (params?.channel) query = query.eq('channel', params.channel);
+  if (params?.status) query = query.eq('status', params.status);
+
+  const { data } = await query
+    .order('sent_at', { ascending: false })
+    .limit(params?.limit || 100);
+
+  return data || [];
 }
