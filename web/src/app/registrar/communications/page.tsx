@@ -7,14 +7,24 @@ import { getAllCommunications } from '@/services/communicationService';
 
 // Calculate summary statistics
 function calculateStats(communications: any[]) {
-  if (!communications || communications.length === 0) return null;
+  if (!communications) return null;
 
   const emailCount = communications.filter((c: any) => c.type === 'email').length;
   const smsCount = communications.filter((c: any) => c.type === 'sms').length;
-  const deliveredCount = communications.filter((c: any) => c.status === 'delivered' || c.status === 'sent').length;
-  const failedCount = communications.filter((c: any) => c.status === 'failed').length;
+  const deliveredCount = communications.filter(
+    (c: any) => c.status === 'delivered' || c.status === 'sent'
+  ).length;
+  const failedCount = communications.filter(
+    (c: any) => c.status === 'failed'
+  ).length;
 
-  return { total: communications.length, emailCount, smsCount, deliveredCount, failedCount };
+  return {
+    total: communications.length,
+    emailCount,
+    smsCount,
+    deliveredCount,
+    failedCount,
+  };
 }
 
 export default async function CommunicationsHubPage() {
