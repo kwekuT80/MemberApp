@@ -1,253 +1,1269 @@
 /**
- * C1b: Automated Payment Reminder Orchestration (Edge Function)
+ * =====================================================================
+ * KSJI MEMBERAPP
+ * FINANCIAL ENGAGEMENT ENGINE
+ * =====================================================================
  *
- * Scans for members with pending/overdue payments and sends reminders via SMS or email.
- * Uses provider selection from environment variable MESSAGING_PROVIDER.
+ * Edge Function:
+ *   payment-reminders
  *
- * Scheduled via Vercel cron → /api/cron/payment-reminders → calls this edge function.
+ * Purpose:
+ *   Quarterly member financial engagement and collections workflow.
+ *
+ * Replaces:
+ *   Legacy payment reminder engine that was based on:
+ *
+ *     financial_payments
+ *         ↓
+ *     unpaid rows
+ *         ↓
+ *     days overdue
+ *         ↓
+ *     generic reminder email
+ *
+ * New Model:
+ *
+ *     member_financial_summary
+ *             ↓
+ *     financial classification
+ *             ↓
+ *     communication template selection
+ *             ↓
+ *     communication_requests
+ *             ↓
+ *     send-email edge function
+ *             ↓
+ *     communication_delivery_states
+ *             ↓
+ *     member_communications
+ *             ↓
+ *     reminder_log
+ *             ↓
+ *     registrar escalation workflow
+ *
+ * ---------------------------------------------------------------------
+ * BUSINESS PHILOSOPHY
+ * ---------------------------------------------------------------------
+ *
+ * This function is intentionally designed as a:
+ *
+ *     Financial Engagement Engine
+ *
+ * rather than a:
+ *
+ *     Debt Collection Engine
+ *
+ * Members making meaningful progress toward their assessment obligations
+ * should receive encouragement rather than punitive messaging.
+ *
+ * The system therefore evaluates:
+ *
+ *     • Total assessed
+ *     • Total paid
+ *     • Outstanding balance
+ *     • Completion percentage
+ *     • Arrears age
+ *
+ * before deciding which communication should be sent.
+ *
+ * ---------------------------------------------------------------------
+ * PRIMARY DATA SOURCE
+ * ---------------------------------------------------------------------
+ *
+ * member_financial_summary
+ *
+ * This table/view already contains:
+ *
+ *     total_assessed
+ *     total_paid
+ *     outstanding_balance
+ *     payment_status
+ *
+ * Assessment calculations, age discounts, social-member rates,
+ * student-member rates and arrears roll-forwards have already been
+ * incorporated into these figures.
+ *
+ * This function MUST NOT attempt to recalculate assessment obligations.
+ *
+ * ---------------------------------------------------------------------
+ * COMMUNICATION PRINCIPLE
+ * ---------------------------------------------------------------------
+ *
+ * Exactly ONE communication may be sent to a member during a single
+ * execution cycle.
+ *
+ * If multiple categories apply, the highest-priority category wins.
+ *
+ * ---------------------------------------------------------------------
+ * COMMUNICATION PRIORITY ORDER
+ * ---------------------------------------------------------------------
+ *
+ * Highest severity first:
+ *
+ *     financial_suspension_review
+ *     financial_intervention
+ *     financial_delinquent
+ *     financial_strong_reminder
+ *     financial_reminder
+ *     financial_encouragement
+ *     financial_appreciation
+ *
+ * ---------------------------------------------------------------------
+ * COMMUNICATION CATEGORIES
+ * ---------------------------------------------------------------------
+ *
+ * financial_appreciation
+ *
+ *     payment_status = paid
+ *     total_paid > 0
+ *
+ * Purpose:
+ *     Recognize members who have satisfied their obligations.
+ *
+ * ---------------------------------------------------------------------
+ *
+ * financial_encouragement
+ *
+ *     partially_paid
+ *     completion_percentage >= 50%
+ *
+ * Purpose:
+ *     Recognize meaningful payment progress.
+ *
+ * ---------------------------------------------------------------------
+ *
+ * financial_reminder
+ *
+ *     completion_percentage >= 25%
+ *     completion_percentage < 50%
+ *
+ * Purpose:
+ *     Friendly reminder.
+ *
+ * ---------------------------------------------------------------------
+ *
+ * financial_strong_reminder
+ *
+ *     completion_percentage < 25%
+ *
+ * Purpose:
+ *     Encourage more active payment participation.
+ *
+ * ---------------------------------------------------------------------
+ *
+ * financial_delinquent
+ *
+ *     payment_status = delinquent
+ *
+ * Purpose:
+ *     No meaningful payment activity recorded.
+ *
+ * ---------------------------------------------------------------------
+ *
+ * financial_intervention
+ *
+ *     Two-year arrears.
+ *
+ * Purpose:
+ *     Personal engagement by officers.
+ *
+ * Creates:
+ *     registrar_queues record.
+ *
+ * ---------------------------------------------------------------------
+ *
+ * financial_suspension_review
+ *
+ *     Three-year-plus arrears.
+ *
+ * Purpose:
+ *     Governance review workflow.
+ *
+ * Creates:
+ *     registrar_queues record.
+ *
+ * ---------------------------------------------------------------------
+ * REGISTRAR ESCALATION MODEL
+ * ---------------------------------------------------------------------
+ *
+ * Event Types:
+ *
+ *     financial_intervention
+ *     suspension_review
+ *
+ * Status Values:
+ *
+ *     pending
+ *     assigned
+ *     completed
+ *
+ * Duplicate active cases are prevented by:
+ *
+ *     uq_financial_active_case
+ *
+ * which allows only one active case per:
+ *
+ *     member_id
+ *     event_type
+ *
+ * combination.
+ *
+ * ---------------------------------------------------------------------
+ * COMMUNICATION ARCHITECTURE
+ * ---------------------------------------------------------------------
+ *
+ * This function does NOT send email directly through Resend.
+ *
+ * All delivery is delegated to:
+ *
+ *     send-email
+ *
+ * edge function.
+ *
+ * Benefits:
+ *
+ *     • Single email delivery implementation
+ *     • Centralized Resend integration
+ *     • Consistent delivery-state tracking
+ *     • Reduced code duplication
+ *
+ * ---------------------------------------------------------------------
+ * TABLES UPDATED
+ * ---------------------------------------------------------------------
+ *
+ * communication_requests
+ *
+ *     Created before delivery.
+ *
+ * ---------------------------------------------------------------------
+ *
+ * communication_delivery_states
+ *
+ *     Created by send-email.
+ *
+ * ---------------------------------------------------------------------
+ *
+ * member_communications
+ *
+ *     Member communication history.
+ *
+ * ---------------------------------------------------------------------
+ *
+ * reminder_log
+ *
+ *     Financial engagement audit trail.
+ *
+ * ---------------------------------------------------------------------
+ *
+ * registrar_queues
+ *
+ *     Intervention and suspension-review workflows.
+*
+  * Members aged 80 and above are excluded from
+  * financial engagement communications.
+  *
+  * KSJI policy should treat outstanding arrears as forgiven
+  * upon attaining age 80.
+  *
+ * ---------------------------------------------------------------------
+ * EXECUTION FREQUENCY
+ * ---------------------------------------------------------------------
+ *
+ * Quarterly.
+ *
+ * Recommended:
+ *
+ *     January
+ *     April
+ *     July
+ *     October
+ *
+ * Trigger Path:
+ *
+ *     Vercel Cron
+ *         ↓
+ *     API Route
+ *         ↓
+ *     payment-reminders Edge Function
+ *
+ * ---------------------------------------------------------------------
+ * MAINTAINER NOTES
+ * ---------------------------------------------------------------------
+ *
+ * If future business rules change:
+ *
+ *     1. Update communication_templates first.
+ *     2. Update classification logic second.
+ *     3. Avoid modifying send-email unless delivery behaviour changes.
+ *
+ * Communication wording should generally be modified through:
+ *
+ *     communication_templates
+ *
+ * rather than through code deployments.
+ *
+ * =====================================================================
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+/**
+ * ---------------------------------------------------------------------
+ * ENVIRONMENT CONFIGURATION
+ * ---------------------------------------------------------------------
+ */
 
-// Messaging provider configuration — switch via MESSAGING_PROVIDER env var
-const MESSAGING_PROVIDER = Deno.env.get("MESSAGING_PROVIDER") || "brevo";
-const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
-const BREVO_SMS_FROM = Deno.env.get("BREVO_SMS_FROM");
+const SUPABASE_URL =
+  Deno.env.get("SUPABASE_URL")!;
 
-// Legacy provider keys (kept for future migration)
-const TWILIO_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
-const TWILIO_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
-const TWILIO_PHONE_NUMBER = Deno.env.get("TWILIO_PHONE_NUMBER");
+const SUPABASE_SERVICE_KEY =
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-interface MemberWithProfile {
+/**
+ * Used to invoke the send-email edge function.
+ */
+const SEND_EMAIL_ENDPOINT =
+  `${SUPABASE_URL}/functions/v1/send-email`;
+
+/**
+ * Financial engagement communications originate from
+ * the KSJI communications mailbox.
+ */
+const DEFAULT_FROM_NAME =
+  "KSJI Commandery #500";
+
+/**
+ * Current execution year.
+ *
+ * Used when calculating arrears severity.
+ */
+const CURRENT_YEAR =
+  new Date().getFullYear();
+
+/**
+ * MAIN EXECUTION FLOW
+ *
+ * Build Work Queue
+ *     ↓
+ * Classify Member
+ *     ↓
+ * Select Template
+ *     ↓
+ * Create Communication Request
+ *     ↓
+ * Send Email
+ *     ↓
+ * Record Communication
+ *     ↓
+ * Create Registrar Case
+ */
+
+interface FinancialSummary {
   id: string;
+  full_name: string;
+  phone: string | null;
+  email: string | null;
+  total_assessed: number;
+  total_paid: number;
+  outstanding_balance: number;
+  last_assessment_year: number;
+  payment_status: string;
+}
+
+interface Member {
+  id: string;
+
+  title: string | null;
+
   first_name: string;
   surname: string;
-  phone_number?: string;
-  email?: string;
+
+  email: string | null;
+  phone: string | null;
+
+  membership_type: string | null;
+
+  status?: string | null;
+
+  is_deceased?: boolean | null;
+
+  date_of_birth?: string | null;
+
+  date_of_death?: string | null;
+
+  date_of_dismissal?: string | null;
+
+  transfer_to?: string | null;
 }
 
-interface PendingPayment {
+interface Profile {
   member_id: string;
-  amount: number;
-  payment_date: string;
-  status: string;
+  notification_channel: string | null;
+  phone: string | null;
 }
 
-serve(async (req) => {
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+interface CommunicationTemplate {
+  id: string;
+  event_type: string;
+  subject: string;
+  html_body: string;
+  text_body: string;
+}
 
-  try {
-    // Fetch members with phone numbers and their notification preferences
-    const { data: members } = await supabase
-      .from("members")
-      .select(`id, first_name, surname, phone_number, email`)
-      .not("phone_number", "is", null);
+type CommunicationType =
+  | "financial_appreciation"
+  | "financial_encouragement"
+  | "financial_reminder"
+  | "financial_strong_reminder"
+  | "financial_delinquent"
+  | "financial_intervention"
+  | "financial_suspension_review";
 
-    // Fetch pending/unpaid payments
-    const { data: pendingPayments } = await supabase
-      .from("financial_payments")
-      .select(`member_id, amount, payment_date, status`)
-      .eq("status", "unpaid");
+type ArrearsSeverity =
+  | "current"
+  | "one_year"
+  | "two_year"
+  | "three_plus_year";
 
-    if (!members || !pendingPayments) {
-      return new Response(JSON.stringify({ success: true, remindersSent: 0 }), {
-        headers: { "Content-Type": "application/json" },
-      });
+interface MemberClassification {
+  communicationType: CommunicationType;
+  completionPercentage: number;
+  severity: ArrearsSeverity;
+}
+
+function calculateCompletionPercentage(
+  totalAssessed: number,
+  totalPaid: number
+): number {
+  if (totalAssessed <= 0) {
+    return totalPaid > 0 ? 100 : 0;
+  }
+
+  return Math.round((totalPaid / totalAssessed) * 100);
+}
+
+function classifyFinancialStatus(
+  summary: FinancialSummary,
+  severity: ArrearsSeverity
+): MemberClassification | null {
+  const completionPercentage = calculateCompletionPercentage(
+    Number(summary.total_assessed || 0),
+    Number(summary.total_paid || 0)
+  );
+/**
+ * Members with no assessment obligation
+ * should not enter the communication
+ * workflow.
+ *
+ * Examples:
+ * - Age-based exemptions
+ * - Honorary exemptions
+ * - Members with fully forgiven balances
+ */
+if (
+  Number(summary.total_assessed || 0) <= 0 &&
+  Number(summary.outstanding_balance || 0) <= 0
+) {
+  return null;
+}
+
+  // Highest priority first
+
+  if (severity === "three_plus_year") {
+    return {
+      communicationType: "financial_suspension_review",
+      completionPercentage,
+      severity,
+    };
+  }
+
+  if (severity === "two_year") {
+    return {
+      communicationType: "financial_intervention",
+      completionPercentage,
+      severity,
+    };
+  }
+
+  if (summary.payment_status === "delinquent") {
+    return {
+      communicationType: "financial_delinquent",
+      completionPercentage,
+      severity,
+    };
+  }
+
+  if (
+    summary.payment_status === "paid" &&
+    Number(summary.total_paid) > 0
+  ) {
+    return {
+      communicationType: "financial_appreciation",
+      completionPercentage,
+      severity,
+    };
+  }
+
+  if (completionPercentage >= 50) {
+    return {
+      communicationType: "financial_encouragement",
+      completionPercentage,
+      severity,
+    };
+  }
+
+  if (completionPercentage >= 25) {
+    return {
+      communicationType: "financial_reminder",
+      completionPercentage,
+      severity,
+    };
+  }
+
+  return {
+    communicationType: "financial_strong_reminder",
+    completionPercentage,
+    severity,
+  };
+}
+
+function renderTemplate(
+  template: CommunicationTemplate,
+  context: Record<string, string | number>
+) {
+  let html = template.html_body;
+  let text = template.text_body;
+  let subject = template.subject;
+
+  for (const [key, value] of Object.entries(context)) {
+    const token = `{{${key}}}`;
+
+    html = html.replaceAll(token, String(value));
+    text = text.replaceAll(token, String(value));
+    subject = subject.replaceAll(token, String(value));
+  }
+
+  return {
+    subject,
+    html,
+    text,
+  };
+}
+/**
+ * Excluded from financial communications:
+ *
+ * - Deceased members
+ * - Dismissed members
+ * - Transferred-out members
+ *
+ * These individuals are no longer within the
+ * Commandery's active financial jurisdiction.
+ */
+
+ function calculateAge(
+   dateOfBirth?: string | null
+ ): number | null {
+
+   if (!dateOfBirth) {
+     return null;
+   }
+
+   const dob = new Date(dateOfBirth);
+   const today = new Date();
+
+   let age =
+     today.getFullYear() -
+     dob.getFullYear();
+
+   const monthDifference =
+     today.getMonth() -
+     dob.getMonth();
+
+   if (
+     monthDifference < 0 ||
+     (
+       monthDifference === 0 &&
+       today.getDate() < dob.getDate()
+     )
+   ) {
+     age--;
+   }
+
+   return age;
+ }
+
+function isEligibleForFinancialCommunication(
+  member: Member
+): boolean {
+
+  if (!member.email) {
+    return false;
+  }
+
+const age =
+  calculateAge(member.date_of_birth);
+
+if (
+  age !== null &&
+  age >= 80
+) {
+  return false;
+}
+
+  if (member.is_deceased === true) {
+    return false;
+  }
+
+  if (member.date_of_death) {
+    return false;
+  }
+
+  if (member.date_of_dismissal) {
+    return false;
+  }
+
+  if (
+    member.status?.toLowerCase() === "dismissed"
+  ) {
+    return false;
+  }
+
+  if (member.transfer_to) {
+    return false;
+  }
+
+  if (
+    member.status?.toLowerCase() === "transferred"
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+async function loadFinancialSummaries(
+  supabase: ReturnType<typeof createClient>
+): Promise<FinancialSummary[]> {
+
+  /**
+   * Load all financial summaries.
+   *
+   * We intentionally do NOT filter on
+   * outstanding_balance > 0 because:
+   *
+   * - Fully-paid members may receive
+   *   appreciation communications.
+   *
+   * - Members with zero balances are
+   *   filtered later by the
+   *   classification engine.
+   *
+   * - Financial engagement decisions
+   *   belong in the classification layer,
+   *   not in the data-loading layer.
+   */
+
+  const { data, error } = await supabase
+    .from("member_financial_summary")
+    .select("*");
+
+  if (error) {
+    throw new Error(
+      `Failed to load member financial summaries: ${error.message}`
+    );
+  }
+
+  return (data || []) as FinancialSummary[];
+}
+
+async function loadMembers(
+  supabase: ReturnType<typeof createClient>
+): Promise<Map<string, Member>> {
+const { data, error } = await supabase
+  .from("members")
+  .select(`
+  id,
+  title,
+  first_name,
+  surname,
+  email,
+  phone,
+  membership_type,
+  status,
+  is_deceased,
+  date_of_birth,
+  date_of_death,
+  date_of_dismissal,
+  transfer_to
+`);
+
+  if (error) {
+    throw new Error(`Failed to load members: ${error.message}`);
+  }
+
+  const map = new Map<string, Member>();
+
+  for (const member of data || []) {
+    map.set(member.id, member as Member);
+  }
+
+  return map;
+}
+
+async function loadProfiles(
+  supabase: ReturnType<typeof createClient>
+): Promise<Map<string, Profile>> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(`
+      member_id,
+      notification_channel,
+      phone
+    `);
+
+  if (error) {
+    throw new Error(`Failed to load profiles: ${error.message}`);
+  }
+
+  const map = new Map<string, Profile>();
+
+  for (const profile of data || []) {
+    map.set(profile.member_id, profile as Profile);
+  }
+
+  return map;
+}
+
+async function loadTemplates(
+  supabase: ReturnType<typeof createClient>
+): Promise<Map<string, CommunicationTemplate>> {
+  const { data, error } = await supabase
+    .from("communication_templates")
+    .select(`
+      id,
+      event_type,
+      subject,
+      html_body,
+      text_body
+    `);
+
+  if (error) {
+    throw new Error(`Failed to load templates: ${error.message}`);
+  }
+
+  const map = new Map<string, CommunicationTemplate>();
+
+  for (const template of data || []) {
+    map.set(
+      template.event_type,
+      template as CommunicationTemplate
+    );
+  }
+
+  return map;
+}
+
+async function determineArrearsSeverity(
+  supabase: ReturnType<typeof createClient>,
+  memberId: string
+): Promise<ArrearsSeverity> {
+  const currentYear = new Date().getFullYear();
+
+  const { data, error } = await supabase
+    .from("financial_assessments")
+    .select("year")
+    .eq("member_id", memberId)
+    .order("year", { ascending: true });
+
+  if (error || !data?.length) {
+    return "current";
+  }
+
+  const oldestYear = Number(data[0].year);
+  const yearsBehind = currentYear - oldestYear;
+
+  if (yearsBehind >= 3) {
+    return "three_plus_year";
+  }
+
+  if (yearsBehind >= 2) {
+    return "two_year";
+  }
+
+  if (yearsBehind >= 1) {
+    return "one_year";
+  }
+
+  return "current";
+}
+
+interface MemberWorkItem {
+  summary: FinancialSummary;
+  member: Member;
+  profile?: Profile;
+  classification: MemberClassification;
+  template: CommunicationTemplate;
+}
+
+async function buildWorkQueue(
+  supabase: ReturnType<typeof createClient>
+): Promise<MemberWorkItem[]> {
+  const summaries = await loadFinancialSummaries(supabase);
+  const members = await loadMembers(supabase);
+  const profiles = await loadProfiles(supabase);
+  const templates = await loadTemplates(supabase);
+
+  const queue: MemberWorkItem[] = [];
+
+  for (const summary of summaries) {
+    const member = members.get(summary.id);
+
+    if (!member) {
+      continue;
     }
 
-    // Build combined dataset with urgency categorization
-    const today = new Date();
-    const remindersToSend: Array<{
-      member: MemberWithProfile;
-      category: 'upcoming_due' | 'overdue_90' | 'overdue_180';
-      amountDue: number;
-      daysOverdue: number;
-      channel?: string;
-    }> = [];
+    if (!isEligibleForFinancialCommunication(member)) {
+      continue;
+    }
 
-    for (const payment of pendingPayments) {
-      const memberData = members.find(m => m.id === payment.member_id);
-      if (!memberData) continue;
+    const severity = await determineArrearsSeverity(
+      supabase,
+      summary.id
+    );
 
-      // Get profile notification preference
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("notification_channel, phone_number")
-        .eq("id", memberData.id)
-        .single();
+    const classification = classifyFinancialStatus(
+      summary,
+      severity
+    );
 
-      const channel = (profile?.notification_channel as string) || "email";
+    if (!classification) {
+      continue;
+    }
 
-      const daysOverdue = Math.floor(
-        (today.getTime() - new Date(payment.payment_date).getTime()) / 86400000
+    const template = templates.get(
+      classification.communicationType
+    );
+
+    if (!template) {
+      console.warn(
+        `[payment-reminders] Missing template: ${classification.communicationType}`
       );
-
-      let category: 'upcoming_due' | 'overdue_90' | 'overdue_180';
-      if (daysOverdue < 0) {
-        // Payment not yet due but coming soon
-        const daysUntilDue = Math.abs(daysOverdue);
-        if (daysUntilDue <= 7) category = "upcoming_due";
-        else continue;
-      } else if (daysOverdue <= 90) {
-        category = "overdue_90";
-      } else {
-        category = "overdue_180";
-      }
-
-      remindersToSend.push({
-        member: memberData,
-        category,
-        amountDue: payment.amount,
-        daysOverdue,
-        channel,
-      });
+      continue;
     }
 
-    // Deduplicate by member + category (don't send same reminder twice)
-    const uniqueReminders = new Map<string, typeof remindersToSend[0]>();
-    for (const r of remindersToSend) {
-      const key = `${r.member.id}-${r.category}`;
-      if (!uniqueReminders.has(key)) {
-        uniqueReminders.set(key, r);
-      }
-    }
-
-    // Send notifications and log results
-    let sentCount = 0;
-    for (const reminder of uniqueReminders.values()) {
-      const channel = reminder.channel || "email";
-
-      if (channel === "sms" && reminder.member.phone_number) {
-        await sendSMS(reminder.member.phone_number, createSMSTemplate(reminder));
-      } else {
-        await sendEmail(
-          reminder.member.email || "",
-          `${reminder.member.first_name} ${reminder.member.surname}`,
-          createEmailTemplate(reminder)
-        );
-      }
-
-      // Log the sent reminder (service role bypasses RLS)
-      try {
-        await supabase.from("reminder_log").insert({
-          member_id: reminder.member.id,
-          recipient: channel === "sms" ? reminder.member.phone_number : reminder.member.email,
-          channel,
-          template_type: reminder.category,
-          status: "sent",
-        });
-      } catch (logError) {
-        console.error("Failed to log reminder:", logError);
-      }
-
-      sentCount++;
-    }
-
-    return new Response(JSON.stringify({ success: true, remindersSent: sentCount }), {
-      headers: { "Content-Type": "application/json" },
+    queue.push({
+      summary,
+      member,
+      profile: profiles.get(member.id),
+      classification,
+      template,
     });
-  } catch (error) {
-    console.error("Reminder generation failed:", error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
-});
 
-// Template helpers
-function createSMSTemplate(reminder: any): string {
-  const templates = {
-    upcoming_due: "Reminder: Payment of GH¢{{amount}} is due on {{date}}. Please contact the Finance Desk.",
-    overdue_90: "URGENT: Payment of GH¢{{amount}} is {{days}} days overdue. Please settle immediately.",
-    overdue_180: "CRITICAL: Payment of GH¢{{amount}} has been outstanding for {{days}} days. Contact the Financial Secretary urgently.",
-  };
-  let body = templates[reminder.category as keyof typeof templates] || templates.overdue_90;
-  // Simple variable substitution (in production, use a proper template engine)
-  body = body.replace("{{amount}}", reminder.amountDue.toFixed(2));
-  if (reminder.daysOverdue !== undefined) {
-    body = body.replace("{{days}}", reminder.daysOverdue.toString());
-  }
-  return body;
+  return queue;
+}
+interface CommunicationRequest {
+  id: string;
 }
 
-function createEmailTemplate(reminder: any): string {
-  const categoryLabels = {
-    upcoming_due: "due soon",
-    overdue_90: `${reminder.daysOverdue} days overdue`,
-    overdue_180: `${reminder.daysOverdue} days overdue (critical)`,
-  };
+async function createCommunicationRequest(
+  supabase: ReturnType<typeof createClient>,
+  memberId: string,
+  communicationType: CommunicationType,
+  context: Record<string, unknown>
+): Promise<CommunicationRequest> {
+  const { data, error } = await supabase
+    .from("communication_requests")
+    .insert({
+      event_type: communicationType,
+      member_id: memberId,
+      priority:
+        communicationType === "financial_suspension_review"
+          ? "high"
+          : communicationType === "financial_intervention"
+          ? "high"
+          : "normal",
+      context,
+      status: "pending",
+      channel: "email",
+    })
+    .select("id")
+    .single();
 
-  return `<html><body>
-    <h2>Payment Reminder</h2>
-    <p>Dear ${reminder.member.first_name || 'Member'},</p>
-    <p>Your payment of GH¢${reminder.amountDue.toFixed(2)} is ${categoryLabels[reminder.category as keyof typeof categoryLabels] || 'overdue'}.</p>
-    <p>Please contact the Finance Desk to settle your account.</p>
-    <br/>
-    <p style="color: #999; font-size: 12px;">KSJI Commandery — Financial Secretary</p>
-  </body></html>`;
+  if (error) {
+    throw new Error(
+      `Failed to create communication request: ${error.message}`
+    );
+  }
+
+  return data as CommunicationRequest;
 }
 
-// Provider abstraction — implemented inline for Deno edge function compatibility
-async function sendSMS(to: string, body: string) {
-  if (MESSAGING_PROVIDER === "twilio" && TWILIO_SID && TWILIO_TOKEN && TWILIO_PHONE_NUMBER) {
-    // Twilio SMS implementation
-    const auth = btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`);
-    await fetch(`https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`, {
+async function callSendEmail(
+  requestId: string,
+  member: Member,
+  rendered: {
+    subject: string;
+    html: string;
+    text: string;
+  }
+) {
+  const response = await fetch(
+    `${SUPABASE_URL}/functions/v1/send-email`,
+    {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${auth}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        From: TWILIO_PHONE_NUMBER,
-        To: to,
-        Body: body,
-      }).toString(),
-    });
-  } else {
-    // Brevo SMS fallback (placeholder — requires proper API key)
-    if (BREVO_API_KEY && BREVO_SMS_FROM) {
-      await fetch("https://api.brevo.com/v3/smtp/sms", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "api-key": BREVO_API_KEY,
-        },
-        body: JSON.stringify({
-          sender: { number: BREVO_SMS_FROM },
-          recipient: { number: to },
-          content: body,
-        }),
-      });
-    } else {
-      console.warn(`[C1b] No SMS provider configured. Skipping SMS to ${to}`);
-    }
-  }
-}
-
-async function sendEmail(to: string, name: string, html: string) {
-  if (MESSAGING_PROVIDER === "brevo" && BREVO_API_KEY) {
-    // Brevo email implementation
-    await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
+        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
         "Content-Type": "application/json",
-        "api-key": BREVO_API_KEY,
       },
       body: JSON.stringify({
-        sender: { email: process.env.BREVO_SENDER_EMAIL || "" },
-        to: [{ email: to, name }],
-        subject: "Payment Reminder — KSJI Commandery",
-        htmlContent: html,
+        to: member.email,
+        subject: rendered.subject,
+        html: rendered.html,
+        text: rendered.text,
+        from_name: DEFAULT_FROM_NAME,
+        request_id: requestId,
       }),
-    });
-  } else if (MESSAGING_PROVIDER === "twilio" && TWILIO_SID && TWILIO_TOKEN) {
-    // Twilio email placeholder (requires additional setup)
-    console.warn(`[C1b] Twilio email not yet implemented. Skipping email to ${to}`);
-  } else {
-    console.warn(`[C1b] No email provider configured. Skipping email to ${to}`);
+    }
+  );
+
+const payload = await response.json();
+
+if (!response.ok) {
+  console.error(
+    "[payment-reminders] send-email response:",
+    payload
+  );
+
+  throw new Error(
+    JSON.stringify(payload)
+  );
+}
+
+  return payload;
+}
+
+async function updateCommunicationRequestSuccess(
+  supabase: ReturnType<typeof createClient>,
+  requestId: string,
+  providerId: string
+) {
+  const { error } = await supabase
+    .from("communication_requests")
+    .update({
+      status: "completed",
+      provider_id: providerId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", requestId);
+
+  if (error) {
+    console.error(
+      "[payment-reminders] Failed to update communication request:",
+      error
+    );
   }
 }
+
+async function updateCommunicationRequestFailure(
+  supabase: ReturnType<typeof createClient>,
+  requestId: string,
+  errorMessage: string
+) {
+  const { error } = await supabase
+    .from("communication_requests")
+    .update({
+      status: "failed",
+      error_message: errorMessage,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", requestId);
+
+  if (error) {
+    console.error(
+      "[payment-reminders] Failed to record communication failure:",
+      error
+    );
+  }
+}
+
+async function createMemberCommunication(
+  supabase: ReturnType<typeof createClient>,
+  memberId: string,
+  communicationType: CommunicationType,
+  subject: string,
+  html: string,
+  providerMessageId: string,
+  templateId: string
+) {
+  const preview =
+    html
+      .replace(/<[^>]+>/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .substring(0, 250);
+
+  const { error } = await supabase
+    .from("member_communications")
+    .insert({
+      member_id: memberId,
+      type: communicationType,
+      subject,
+      content_preview: preview,
+      status: "sent",
+      provider_message_id: providerMessageId,
+      template_id: templateId,
+    });
+
+  if (error) {
+    console.error(
+      "[payment-reminders] Failed to create member communication:",
+      error
+    );
+  }
+}
+
+async function createReminderLog(
+  supabase: ReturnType<typeof createClient>,
+  memberId: string,
+  email: string,
+  communicationType: CommunicationType
+) {
+  const { error } = await supabase
+    .from("reminder_log")
+    .insert({
+      member_id: memberId,
+      recipient: email,
+      channel: "email",
+      template_type: communicationType,
+      status: "sent",
+      sent_at: new Date().toISOString(),
+    });
+
+  if (error) {
+    console.error(
+      "[payment-reminders] Failed to create reminder log:",
+      error
+    );
+  }
+}
+
+async function processCommunication(
+  supabase: ReturnType<typeof createClient>,
+  workItem: MemberWorkItem
+) {
+  const context = {
+    member_name: `${
+  workItem.member.title
+    ? `${workItem.member.title} `
+    : ""
+}${workItem.member.first_name} ${workItem.member.surname}`,
+    total_assessed: Number(
+      workItem.summary.total_assessed || 0
+    ).toFixed(2),
+    total_paid: Number(
+      workItem.summary.total_paid || 0
+    ).toFixed(2),
+    outstanding_balance: Number(
+      workItem.summary.outstanding_balance || 0
+    ).toFixed(2),
+    completion_percentage:
+      workItem.classification.completionPercentage,
+  };
+
+  const request = await createCommunicationRequest(
+    supabase,
+    workItem.member.id,
+    workItem.classification.communicationType,
+    context
+  );
+
+  try {
+    const rendered = renderTemplate(
+      workItem.template,
+      context
+    );
+
+    const sendResult = await callSendEmail(
+      request.id,
+      workItem.member,
+      rendered
+    );
+
+    await updateCommunicationRequestSuccess(
+      supabase,
+      request.id,
+      sendResult.messageId
+    );
+
+    await createMemberCommunication(
+      supabase,
+      workItem.member.id,
+      workItem.classification.communicationType,
+      rendered.subject,
+      rendered.html,
+      sendResult.messageId,
+      workItem.template.id
+    );
+
+    await createReminderLog(
+      supabase,
+      workItem.member.id,
+      workItem.member.email || "",
+      workItem.classification.communicationType
+    );
+
+    return true;
+  } catch (error) {
+    await updateCommunicationRequestFailure(
+      supabase,
+      request.id,
+      (error as Error).message
+    );
+
+    return false;
+  }
+}
+async function createRegistrarCase(
+  supabase: ReturnType<typeof createClient>,
+  memberId: string,
+  eventType: "financial_intervention" | "suspension_review"
+) {
+  const { data: existingCase } = await supabase
+    .from("registrar_queues")
+    .select("id")
+    .eq("member_id", memberId)
+    .eq("event_type", eventType)
+    .in("status", ["pending", "assigned"])
+    .maybeSingle();
+
+  if (existingCase) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("registrar_queues")
+    .insert({
+      member_id: memberId,
+      event_type: eventType,
+      status: "pending",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+  if (error) {
+    console.error(
+      `[payment-reminders] Failed to create registrar case (${eventType}):`,
+      error
+    );
+  }
+}
+
+async function handleEscalation(
+  supabase: ReturnType<typeof createClient>,
+  workItem: MemberWorkItem
+) {
+  switch (workItem.classification.communicationType) {
+    case "financial_suspension_review":
+      await createRegistrarCase(
+        supabase,
+        workItem.member.id,
+        "suspension_review"
+      );
+      break;
+
+    case "financial_intervention":
+      await createRegistrarCase(
+        supabase,
+        workItem.member.id,
+        "financial_intervention"
+      );
+      break;
+  }
+}
+
+serve(async (_req) => {
+  const supabase = createClient(
+    SUPABASE_URL,
+    SUPABASE_SERVICE_KEY
+  );
+
+  try {
+    const workQueue = await buildWorkQueue(supabase);
+
+    let processed = 0;
+    let successful = 0;
+    let failed = 0;
+    let interventions = 0;
+    let suspensionReviews = 0;
+
+    for (const workItem of workQueue) {
+      processed++;
+
+      await handleEscalation(
+        supabase,
+        workItem
+      );
+
+      if (
+        workItem.classification.communicationType ===
+        "financial_intervention"
+      ) {
+        interventions++;
+      }
+
+      if (
+        workItem.classification.communicationType ===
+        "financial_suspension_review"
+      ) {
+        suspensionReviews++;
+      }
+
+      const result = await processCommunication(
+        supabase,
+        workItem
+      );
+
+      if (result) {
+        successful++;
+      } else {
+        failed++;
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        processed,
+        successful,
+        failed,
+        interventions,
+        suspensionReviews,
+      }),
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  } catch (error) {
+    console.error(
+      "[payment-reminders] Execution failed:",
+      error
+    );
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: (error as Error).message,
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  }
+});
