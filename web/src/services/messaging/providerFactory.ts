@@ -1,5 +1,3 @@
-'use server';
-
 import { MessagingProvider, ProviderName } from './types';
 import { ResendProvider } from './resendProvider';
 
