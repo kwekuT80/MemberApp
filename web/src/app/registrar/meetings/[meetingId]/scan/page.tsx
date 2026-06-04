@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import RegistrarShell from '@/components/layout/RegistrarShell';
-import Html5Qrcode from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 
 interface ScannedMember {
   id: string;
