@@ -8,6 +8,7 @@ import { requireRegistrar } from '@/lib/auth/requireRegistrar';
 import { getMemberCount, searchMembers, getUpcomingBirthdayMembers } from '@/services/memberService';
 import WaitingRoom from '@/components/auth/WaitingRoom';
 import { getPendingProfilesWithMatches, getUnlinkedMembers } from '@/services/profileService';
+import BirthdaysWidget from '@/components/dashboard/BirthdaysWidget';
 
 export default async function RegistrarPage() {
   await requireRegistrar();
@@ -125,55 +126,7 @@ export default async function RegistrarPage() {
       </div>
 
       {/* Upcoming Birthdays Section */}
-      {upcomingBirthdays.length > 0 && (
-        <div className="card" style={{ marginBottom: 32, borderLeft: '4px solid var(--gold)' }}>
-          <h3 style={{ margin: '0 0 16px', color: 'var(--navy)', fontWeight: 800, fontSize: 16 }}>
-            🎂 Upcoming Birthdays — Next 7 Days
-          </h3>
-          <div style={{ display: 'grid', gap: 12 }}>
-            {upcomingBirthdays.map((member) => {
-              const dob = new Date(member.date_of_birth!);
-              const bMonth = dob.toLocaleString('en-US', { month: 'short' });
-              const bDay = dob.getDate();
-
-              // Calculate days until birthday
-              let birthdayThisYear = new Date(new Date().getFullYear(), dob.getMonth(), dob.getDate());
-              if (birthdayThisYear < new Date()) {
-                birthdayThisYear = new Date(new Date().getFullYear() + 1, dob.getMonth(), dob.getDate());
-              }
-              const diffMs = birthdayThisYear.getTime() - new Date().getTime();
-              const daysUntil = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-
-              return (
-                <div key={member.id} style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '12px 16px',
-                  borderRadius: 8,
-                  background: daysUntil === 0 ? '#fef3c7' : '#f9fafb',
-                  border: `1px solid ${daysUntil === 0 ? '#f59e0b' : '#e5e7eb'}`,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontSize: 20 }}>{daysUntil === 0 ? '🎉' : '📅'}</span>
-                    <div>
-                      <Link href={`/registrar/members/${member.id}`} style={{ fontWeight: 700, color: 'var(--navy)', textDecoration: 'none', fontSize: 14 }}>
-                        {member.title || 'Bro.'} {member.first_name} {member.surname}
-                      </Link>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="badge-blue" style={{ fontSize: 12, padding: '4px 10px' }}>{bMonth} {bDay}</span>
-                    <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 600 }}>
-                      {daysUntil === 0 ? 'Today!' : `in ${daysUntil} day${daysUntil > 1 ? 's' : ''}`}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <BirthdaysWidget isRegistrar={true} />
 
       {/* Visual Insights Section */}
       <div className="card" style={{ marginBottom: 32 }}>

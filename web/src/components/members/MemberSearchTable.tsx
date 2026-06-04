@@ -71,7 +71,7 @@ export default function MemberSearchTable({ members, basePath='/registrar/member
                   <td style={{ fontSize: 12 }}>{formatDisplayDate(member.date_joined)}</td>
                   <td align='center'>
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                      <Link href={`${basePath}/${member.id}`} className="tab tab-active" style={{ padding: '6px 12px', fontSize: 12 }}>
+                      <Link href={`${basePath}/${member.id}`} className="btn btn-primary btn-action">
                         Profile
                       </Link>
                     </div>

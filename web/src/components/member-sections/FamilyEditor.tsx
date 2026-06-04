@@ -52,18 +52,19 @@ export default function FamilyEditor({
   const [children, setChildren] = useState<ChildRecord[]>(
     initialChildren.length
       ? initialChildren.map((c) => ({ ...c, birth_date: toInputDate(c.birth_date) }))
-      : [{ child_name: '', birth_date: '', birth_place: '' }]
+      : []
   );
 
   const [dependents, setDependents] = useState<DependentRecord[]>(
     initialDependents.length
       ? initialDependents.map((d) => ({ ...d, birth_date: toInputDate(d.birth_date) }))
-      : [{ dependent_name: '', relationship: 'Dependant', birth_date: '' }]
+      : []
   );
 
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   async function handleSave() {
     setBusy(true);
@@ -138,43 +139,87 @@ export default function FamilyEditor({
 
     setMessage('Family and dependent records saved.');
     setBusy(false);
+    setIsEditing(false);
     window.location.reload();
   }
 
   return (
     <div style={card}>
-      <h2 style={{ margin: 0 }}>Family & Dependents</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ margin: 0 }}>Family & Dependents</h2>
+        {!isEditing && (
+          <button type='button' onClick={() => setIsEditing(true)} style={secondaryButton}>✏️ Edit Records</button>
+        )}
+      </div>
       
       {/* Spouse Section */}
       <div style={subCard}>
         <h3 style={{ margin: '0 0 12px' }}>Spouse</h3>
         <div style={grid}>
-          {field('Name', spouse.spouse_name || '', (v) => setSpouse((cur) => ({ ...cur, spouse_name: v })))}
-          {dateField('Date of Birth', spouse.spouse_dob || '', (v) => setSpouse((cur) => ({ ...cur, spouse_dob: v })))}
-          {field('Nationality', spouse.spouse_nationality || '', (v) => setSpouse((cur) => ({ ...cur, spouse_nationality: v })))}
-          {field('Denomination', spouse.spouse_denomination || '', (v) => setSpouse((cur) => ({ ...cur, spouse_denomination: v })))}
-          {checkboxField('Is Sister?', !!spouse.spouse_is_sister, (v) => setSpouse((cur) => ({ ...cur, spouse_is_sister: v })))}
-          {field('Parish', spouse.spouse_parish || '', (v) => setSpouse((cur) => ({ ...cur, spouse_parish: v })))}
-          {field('Auxiliary Name', spouse.auxiliary_name || '', (v) => setSpouse((cur) => ({ ...cur, auxiliary_name: v })))}
-          {field('Auxiliary Number', spouse.auxiliary_number || '', (v) => setSpouse((cur) => ({ ...cur, auxiliary_number: v })))}
+          {isEditing ? (
+            <>
+              {field('Name', spouse.spouse_name || '', (v) => setSpouse((cur) => ({ ...cur, spouse_name: v })))}
+              {dateField('Date of Birth', spouse.spouse_dob || '', (v) => setSpouse((cur) => ({ ...cur, spouse_dob: v })))}
+              {field('Nationality', spouse.spouse_nationality || '', (v) => setSpouse((cur) => ({ ...cur, spouse_nationality: v })))}
+              {field('Denomination', spouse.spouse_denomination || '', (v) => setSpouse((cur) => ({ ...cur, spouse_denomination: v })))}
+              {checkboxField('Is Sister?', !!spouse.spouse_is_sister, (v) => setSpouse((cur) => ({ ...cur, spouse_is_sister: v })))}
+              {field('Parish', spouse.spouse_parish || '', (v) => setSpouse((cur) => ({ ...cur, spouse_parish: v })))}
+              {field('Auxiliary Name', spouse.auxiliary_name || '', (v) => setSpouse((cur) => ({ ...cur, auxiliary_name: v })))}
+              {field('Auxiliary Number', spouse.auxiliary_number || '', (v) => setSpouse((cur) => ({ ...cur, auxiliary_number: v })))}
+            </>
+          ) : (
+            <>
+              <ReadOnlyField label='Name' value={spouse.spouse_name} />
+              <ReadOnlyField label='Date of Birth' value={spouse.spouse_dob} />
+              <ReadOnlyField label='Nationality' value={spouse.spouse_nationality} />
+              <ReadOnlyField label='Denomination' value={spouse.spouse_denomination} />
+              <ReadOnlyField label='Is Sister?' value={spouse.spouse_is_sister ? 'Yes' : 'No'} />
+              <ReadOnlyField label='Parish' value={spouse.spouse_parish} />
+              <ReadOnlyField label='Auxiliary Name' value={spouse.auxiliary_name} />
+              <ReadOnlyField label='Auxiliary Number' value={spouse.auxiliary_number} />
+            </>
+          )}
         </div>
-        {textareaField('Notes', spouse.spouse_notes || '', (v) => setSpouse((cur) => ({ ...cur, spouse_notes: v })))}
+        {isEditing ? (
+          textareaField('Notes', spouse.spouse_notes || '', (v) => setSpouse((cur) => ({ ...cur, spouse_notes: v })))
+        ) : (
+          <ReadOnlyField label='Notes' value={spouse.spouse_notes} />
+        )}
       </div>
 
       {/* Children Section */}
       <div style={subCard}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0 }}>Children</h3>
-          <button type='button' onClick={() => setChildren((items) => [...items, { child_name: '', birth_date: '', birth_place: '' }])} style={secondaryButton}>Add child</button>
+          {isEditing && (
+            <button type='button' onClick={() => setChildren((items) => [...items, { child_name: '', birth_date: '', birth_place: '' }])} style={secondaryButton}>+ Add child</button>
+          )}
         </div>
+
+        {!isEditing && children.length === 0 && (
+          <div style={{ padding: 20, textAlign: 'center', color: '#64748b' }}>No children records found.</div>
+        )}
+
         {children.map((child, index) => (
           <div key={child.id || index} style={{ ...subCard, marginTop: 12 }}>
             <div style={grid}>
-              {field('Child name', child.child_name || '', (v) => setChildren((items) => items.map((item, i) => (i === index ? { ...item, child_name: v } : item))))}
-              {dateField('Birth date', child.birth_date || '', (v) => setChildren((items) => items.map((item, i) => (i === index ? { ...item, birth_date: v } : item))))}
-              {field('Birth place', child.birth_place || '', (v) => setChildren((items) => items.map((item, i) => (i === index ? { ...item, birth_place: v } : item))))}
+              {isEditing ? (
+                <>
+                  {field('Child name', child.child_name || '', (v) => setChildren((items) => items.map((item, i) => (i === index ? { ...item, child_name: v } : item))))}
+                  {dateField('Birth date', child.birth_date || '', (v) => setChildren((items) => items.map((item, i) => (i === index ? { ...item, birth_date: v } : item))))}
+                  {field('Birth place', child.birth_place || '', (v) => setChildren((items) => items.map((item, i) => (i === index ? { ...item, birth_place: v } : item))))}
+                </>
+              ) : (
+                <>
+                  <ReadOnlyField label='Child name' value={child.child_name} />
+                  <ReadOnlyField label='Birth date' value={child.birth_date} />
+                  <ReadOnlyField label='Birth place' value={child.birth_place} />
+                </>
+              )}
             </div>
-            <button type='button' onClick={() => setChildren((items) => items.filter((_, i) => i !== index))} style={dangerButton}>Remove</button>
+            {isEditing && (
+              <button type='button' onClick={() => setChildren((items) => items.filter((_, i) => i !== index))} style={dangerButton}>Remove</button>
+            )}
           </div>
         ))}
       </div>
@@ -183,25 +228,52 @@ export default function FamilyEditor({
       <div style={subCard}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0 }}>Dependents (Parents, In-Laws, etc.)</h3>
-          <button type='button' onClick={() => setDependents((items) => [...items, { dependent_name: '', relationship: 'Dependant', birth_date: '' }])} style={secondaryButton}>Add dependent</button>
+          {isEditing && (
+            <button type='button' onClick={() => setDependents((items) => [...items, { dependent_name: '', relationship: 'Dependant', birth_date: '' }])} style={secondaryButton}>+ Add dependent</button>
+          )}
         </div>
+
+        {!isEditing && dependents.length === 0 && (
+          <div style={{ padding: 20, textAlign: 'center', color: '#64748b' }}>No dependents records found.</div>
+        )}
+
         {dependents.map((dep, index) => (
           <div key={dep.id || index} style={{ ...subCard, marginTop: 12 }}>
             <div style={grid}>
-              {field('Dependent name', dep.dependent_name || '', (v) => setDependents((items) => items.map((item, i) => (i === index ? { ...item, dependent_name: v } : item))))}
-              {selectField('Relationship', dep.relationship || 'Dependant', ['Dependant', 'Parent', 'In-Law', 'Child', 'Other'], (v) => setDependents((items) => items.map((item, i) => (i === index ? { ...item, relationship: v } : item))))}
-              {dateField('Birth date', dep.birth_date || '', (v) => setDependents((items) => items.map((item, i) => (i === index ? { ...item, birth_date: v } : item))))}
+              {isEditing ? (
+                <>
+                  {field('Dependent name', dep.dependent_name || '', (v) => setDependents((items) => items.map((item, i) => (i === index ? { ...item, dependent_name: v } : item))))}
+                  {selectField('Relationship', dep.relationship || 'Dependant', ['Dependant', 'Parent', 'In-Law', 'Child', 'Other'], (v) => setDependents((items) => items.map((item, i) => (i === index ? { ...item, relationship: v } : item))))}
+                  {dateField('Birth date', dep.birth_date || '', (v) => setDependents((items) => items.map((item, i) => (i === index ? { ...item, birth_date: v } : item))))}
+                </>
+              ) : (
+                <>
+                  <ReadOnlyField label='Dependent name' value={dep.dependent_name} />
+                  <ReadOnlyField label='Relationship' value={dep.relationship} />
+                  <ReadOnlyField label='Birth date' value={dep.birth_date} />
+                </>
+              )}
             </div>
-            <button type='button' onClick={() => setDependents((items) => items.filter((_, i) => i !== index))} style={dangerButton}>Remove</button>
+            {isEditing && (
+              <button type='button' onClick={() => setDependents((items) => items.filter((_, i) => i !== index))} style={dangerButton}>Remove</button>
+            )}
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        <button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save all records'}</button>
-        {message ? <span style={{ color: '#1f6f43' }}>{message}</span> : null}
-        {error ? <span style={{ color: 'crimson' }}>{error}</span> : null}
-      </div>
+      {isEditing && (
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save all records'}</button>
+          <button type='button' onClick={() => { 
+            setIsEditing(false); 
+            setSpouse(initialSpouse ? { ...initialSpouse, spouse_dob: toInputDate(initialSpouse.spouse_dob) } : { spouse_name: '', spouse_dob: '', spouse_nationality: '', spouse_denomination: '', spouse_is_sister: false, spouse_parish: '', auxiliary_name: '', auxiliary_number: '', spouse_notes: '' });
+            setChildren(initialChildren.length ? initialChildren.map((c) => ({ ...c, birth_date: toInputDate(c.birth_date) })) : []);
+            setDependents(initialDependents.length ? initialDependents.map((d) => ({ ...d, birth_date: toInputDate(d.birth_date) })) : []);
+          }} disabled={busy} style={secondaryButton}>Cancel</button>
+          {message && <span style={{ color: '#1f6f43' }}>{message}</span>}
+          {error && <span style={{ color: 'crimson' }}>{error}</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -233,6 +305,15 @@ function selectField(label: string, value: string, options: string[], onChange: 
 
 function textareaField(label: string, value: string, onChange: (value: string) => void) {
   return <label style={{ display: 'grid', gap: 6 }}><span style={labelStyle}>{label}</span><textarea value={value} onChange={(e) => onChange(e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></label>;
+}
+
+function ReadOnlyField({ label, value }: { label: string; value: string | undefined | null }) {
+  return (
+    <div style={{ display: 'grid', gap: 4 }}>
+      <span style={labelStyle}>{label}</span>
+      <span style={{ fontSize: 15, color: '#10233f', fontWeight: 500 }}>{value || '-'}</span>
+    </div>
+  );
 }
 
 const card: React.CSSProperties = { background: '#fff', padding: 20, borderRadius: 16, boxShadow: '0 8px 24px rgba(16,35,63,0.08)', display: 'grid', gap: 16 };

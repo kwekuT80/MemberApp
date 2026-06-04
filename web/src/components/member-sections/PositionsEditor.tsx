@@ -167,10 +167,11 @@ const POSITION_DATA: Record<string, string[]> = {
 
 export default function PositionsEditor({ memberId, initialPositions }: { memberId: string; initialPositions: any[] }) {
   const supabase = createClient();
-  const [positions, setPositions] = useState<PositionRecord[]>(initialPositions.length ? initialPositions.map((p) => ({ ...p, date_from: toInputDate(p.date_from), date_to: toInputDate(p.date_to) })) : [{ position_title: '', date_from: '', date_to: '' }]);
+  const [positions, setPositions] = useState<PositionRecord[]>(initialPositions.length ? initialPositions.map((p) => ({ ...p, date_from: toInputDate(p.date_from), date_to: toInputDate(p.date_to) })) : []);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   function update(index: number, key: string, value: string) {
     setPositions((items) => items.map((item, i) => (i === index ? { ...item, [key]: value } : item)));
@@ -205,50 +206,100 @@ export default function PositionsEditor({ memberId, initialPositions }: { member
     }
     setMessage('Position records saved.');
     setBusy(false);
+    setIsEditing(false);
     window.location.reload();
   }
 
-  return <div style={cardStyle}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><h2 style={{ margin: 0 }}>Positions</h2><button type='button' onClick={() => setPositions((items) => [...items, { position_title: '', date_from: '', date_to: '', level: 'Local', rank: '' }])} style={secondaryButton}>Add position</button></div>{positions.map((position, index) => {
-    const currentLevel = position.level || 'Local';
-    const availableTitles = POSITION_DATA[currentLevel] || [];
-
-    return (
-      <div key={position.id || index} style={subCardStyle}>
-        <div style={gridStyle}>
-          <label style={{ display: 'grid', gap: 6 }}>
-            <span style={labelStyle}>Level of Jurisdiction</span>
-            <select value={currentLevel} onChange={(e) => {
-              update(index, 'level', e.target.value);
-              update(index, 'position_title', ''); // Reset title if level changes
-            }} style={inputStyle}>
-              {HIERARCHY_LEVELS.map((lvl) => <option key={lvl} value={lvl}>{lvl}</option>)}
-            </select>
-          </label>
-          <label style={{ display: 'grid', gap: 6 }}>
-            <span style={labelStyle}>Position Title</span>
-            <select value={position.position_title || ''} onChange={(e) => update(index, 'position_title', e.target.value)} style={inputStyle}>
-              <option value=''>Select…</option>
-              {availableTitles.map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
-          </label>
-          <label style={{ display: 'grid', gap: 6 }}>
-            <span style={labelStyle}>Military Rank</span>
-            <select value={position.rank || ''} onChange={(e) => update(index, 'rank', e.target.value)} style={inputStyle}>
-              <option value=''>N/A</option>
-              {RANK_OPTIONS.map((rank) => <option key={rank} value={rank}>{rank}</option>)}
-            </select>
-          </label>
-          <Field label='From' type='date' value={position.date_from || ''} onChange={(v: string) => update(index, 'date_from', v)} />
-          <Field label='To' type='date' value={position.date_to || ''} onChange={(v: string) => update(index, 'date_to', v)} />
-        </div>
-        <button type='button' onClick={() => setPositions((items) => items.filter((_, i) => i !== index))} style={dangerButton}>Remove</button>
+  return (
+    <div style={cardStyle}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ margin: 0 }}>Positions</h2>
+        {!isEditing ? (
+          <button type='button' onClick={() => setIsEditing(true)} style={secondaryButton}>✏️ Edit Records</button>
+        ) : (
+          <button type='button' onClick={() => setPositions((items) => [...items, { position_title: '', date_from: '', date_to: '', level: 'Local', rank: '' }])} style={secondaryButton}>+ Add position</button>
+        )}
       </div>
-    );
-  })}<div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}><button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save positions'}</button>{message ? <span style={{ color: '#1f6f43' }}>{message}</span> : null}{error ? <span style={{ color: 'crimson' }}>{error}</span> : null}</div></div>;
+
+      {!isEditing && positions.length === 0 && (
+        <div style={{ padding: 20, textAlign: 'center', color: '#64748b' }}>No position records found.</div>
+      )}
+
+      {positions.map((position, index) => {
+        const currentLevel = position.level || 'Local';
+        const availableTitles = POSITION_DATA[currentLevel] || [];
+
+        return (
+          <div key={position.id || index} style={subCardStyle}>
+            <div style={gridStyle}>
+              {isEditing ? (
+                <>
+                  <label style={{ display: 'grid', gap: 6 }}>
+                    <span style={labelStyle}>Level of Jurisdiction</span>
+                    <select value={currentLevel} onChange={(e) => {
+                      update(index, 'level', e.target.value);
+                      update(index, 'position_title', ''); // Reset title if level changes
+                    }} style={inputStyle}>
+                      {HIERARCHY_LEVELS.map((lvl) => <option key={lvl} value={lvl}>{lvl}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ display: 'grid', gap: 6 }}>
+                    <span style={labelStyle}>Position Title</span>
+                    <select value={position.position_title || ''} onChange={(e) => update(index, 'position_title', e.target.value)} style={inputStyle}>
+                      <option value=''>Select…</option>
+                      {availableTitles.map((item) => <option key={item} value={item}>{item}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ display: 'grid', gap: 6 }}>
+                    <span style={labelStyle}>Military Rank</span>
+                    <select value={position.rank || ''} onChange={(e) => update(index, 'rank', e.target.value)} style={inputStyle}>
+                      <option value=''>N/A</option>
+                      {RANK_OPTIONS.map((rank) => <option key={rank} value={rank}>{rank}</option>)}
+                    </select>
+                  </label>
+                  <Field label='From' type='date' value={position.date_from || ''} onChange={(v: string) => update(index, 'date_from', v)} />
+                  <Field label='To' type='date' value={position.date_to || ''} onChange={(v: string) => update(index, 'date_to', v)} />
+                </>
+              ) : (
+                <>
+                  <ReadOnlyField label='Level' value={currentLevel} />
+                  <ReadOnlyField label='Position Title' value={position.position_title} />
+                  <ReadOnlyField label='Military Rank' value={position.rank || 'N/A'} />
+                  <ReadOnlyField label='From' value={position.date_from} />
+                  <ReadOnlyField label='To' value={position.date_to} />
+                </>
+              )}
+            </div>
+            {isEditing && (
+              <button type='button' onClick={() => setPositions((items) => items.filter((_, i) => i !== index))} style={dangerButton}>Remove</button>
+            )}
+          </div>
+        );
+      })}
+      
+      {isEditing && (
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+          <button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save positions'}</button>
+          <button type='button' onClick={() => { setIsEditing(false); setPositions(initialPositions.length ? initialPositions.map((p) => ({ ...p, date_from: toInputDate(p.date_from), date_to: toInputDate(p.date_to) })) : []); }} disabled={busy} style={secondaryButton}>Cancel</button>
+          {message && <span style={{ color: '#1f6f43' }}>{message}</span>}
+          {error && <span style={{ color: 'crimson' }}>{error}</span>}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Field({ label, value, onChange, type = 'text', placeholder }: { label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string }) {
   return <label style={{ display: 'grid', gap: 6 }}><span style={labelStyle}>{label}</span><input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} style={inputStyle} /></label>;
+}
+
+function ReadOnlyField({ label, value }: { label: string; value: string | undefined | null }) {
+  return (
+    <div style={{ display: 'grid', gap: 4 }}>
+      <span style={labelStyle}>{label}</span>
+      <span style={{ fontSize: 15, color: '#10233f', fontWeight: 500 }}>{value || '-'}</span>
+    </div>
+  );
 }
 
 const cardStyle: React.CSSProperties = { background: '#fff', padding: 20, borderRadius: 16, boxShadow: '0 8px 24px rgba(16,35,63,0.08)', display: 'grid', gap: 16 };

@@ -28,10 +28,11 @@ const fromInputDate = (value?: string | null) => {
 
 export default function DegreesEditor({ memberId, initialDegrees, degreeTypes }: { memberId: string; initialDegrees: DegreeRecord[]; degreeTypes: string[] }) {
   const supabase = createClient();
-  const [degrees, setDegrees] = useState<DegreeRecord[]>(initialDegrees.length ? initialDegrees.map((d) => ({ ...d, degree_date: toInputDate(d.degree_date) })) : [{ degree_type: '', degree_date: '', degree_place: '' }]);
+  const [degrees, setDegrees] = useState<DegreeRecord[]>(initialDegrees.length ? initialDegrees.map((d) => ({ ...d, degree_date: toInputDate(d.degree_date) })) : []);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   function update(index: number, key: keyof DegreeRecord, value: string) {
     setDegrees((items) => items.map((item, i) => (i === index ? { ...item, [key]: value } : item)));
@@ -60,44 +61,79 @@ export default function DegreesEditor({ memberId, initialDegrees, degreeTypes }:
     }
     setMessage('Degree records saved.');
     setBusy(false);
+    setIsEditing(false);
     window.location.reload();
   }
 
   return (
     <div style={cardStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>Degree</h2>
-        <button type='button' onClick={() => setDegrees((items) => [...items, { degree_type: '', degree_date: '', degree_place: '' }])} style={secondaryButton}>Add degree</button>
+        <h2 style={{ margin: 0 }}>Exemplification</h2>
+        {!isEditing ? (
+          <button type='button' onClick={() => setIsEditing(true)} style={secondaryButton}>✏️ Edit Records</button>
+        ) : (
+          <button type='button' onClick={() => setDegrees((items) => [...items, { degree_type: '', degree_date: '', degree_place: '' }])} style={secondaryButton}>+ Add degree</button>
+        )}
       </div>
+      
+      {!isEditing && degrees.length === 0 && (
+        <div style={{ padding: 20, textAlign: 'center', color: '#64748b' }}>No exemplification records found.</div>
+      )}
+
       {degrees.map((degree, index) => (
         <div key={degree.id || index} style={subCardStyle}>
           <div style={gridStyle}>
-            <label style={{ display: 'grid', gap: 6 }}>
-              <span style={labelStyle}>Degree Type</span>
-              <select value={degree.degree_type || ''} onChange={(e) => update(index, 'degree_type', e.target.value)} style={inputStyle}>
-                <option value=''>Select…</option>
-                {degreeTypes.map((item) => (
-                  <option key={item} value={item}>{item}</option>
-                ))}
-              </select>
-            </label>
-            <Field label='Date' value={degree.degree_date || ''} type='date' onChange={(v) => update(index, 'degree_date', v)} />
-            <Field label='Place' value={degree.degree_place || ''} onChange={(v) => update(index, 'degree_place', v)} />
+            {isEditing ? (
+              <>
+                <label style={{ display: 'grid', gap: 6 }}>
+                  <span style={labelStyle}>Degree Type</span>
+                  <select value={degree.degree_type || ''} onChange={(e) => update(index, 'degree_type', e.target.value)} style={inputStyle}>
+                    <option value=''>Select…</option>
+                    {degreeTypes.map((item) => (
+                      <option key={item} value={item}>{item}</option>
+                    ))}
+                  </select>
+                </label>
+                <Field label='Date' value={degree.degree_date || ''} type='date' onChange={(v) => update(index, 'degree_date', v)} />
+                <Field label='Place' value={degree.degree_place || ''} onChange={(v) => update(index, 'degree_place', v)} />
+              </>
+            ) : (
+              <>
+                <ReadOnlyField label='Degree Type' value={degree.degree_type} />
+                <ReadOnlyField label='Date' value={degree.degree_date} />
+                <ReadOnlyField label='Place' value={degree.degree_place} />
+              </>
+            )}
           </div>
-          <button type='button' onClick={() => setDegrees((items) => items.filter((_, i) => i !== index))} style={dangerButton}>Remove</button>
+          {isEditing && (
+            <button type='button' onClick={() => setDegrees((items) => items.filter((_, i) => i !== index))} style={dangerButton}>Remove</button>
+          )}
         </div>
       ))}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        <button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save degree records'}</button>
-        {message ? <span style={{ color: '#1f6f43' }}>{message}</span> : null}
-        {error ? <span style={{ color: 'crimson' }}>{error}</span> : null}
-      </div>
+      
+      {isEditing && (
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+          <button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save degree records'}</button>
+          <button type='button' onClick={() => { setIsEditing(false); setDegrees(initialDegrees.length ? initialDegrees.map((d) => ({ ...d, degree_date: toInputDate(d.degree_date) })) : []); }} disabled={busy} style={secondaryButton}>Cancel</button>
+          {message && <span style={{ color: '#1f6f43' }}>{message}</span>}
+          {error && <span style={{ color: 'crimson' }}>{error}</span>}
+        </div>
+      )}
     </div>
   );
 }
 
 function Field({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
   return <label style={{ display: 'grid', gap: 6 }}><span style={labelStyle}>{label}</span><input type={type} value={value} onChange={(e) => onChange(e.target.value)} style={inputStyle} /></label>;
+}
+
+function ReadOnlyField({ label, value }: { label: string; value: string | undefined | null }) {
+  return (
+    <div style={{ display: 'grid', gap: 4 }}>
+      <span style={labelStyle}>{label}</span>
+      <span style={{ fontSize: 15, color: '#10233f', fontWeight: 500 }}>{value || '-'}</span>
+    </div>
+  );
 }
 
 const cardStyle: React.CSSProperties = { background: '#fff', padding: 20, borderRadius: 16, boxShadow: '0 8px 24px rgba(16,35,63,0.08)', display: 'grid', gap: 16 };

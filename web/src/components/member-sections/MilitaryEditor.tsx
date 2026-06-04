@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { MilitaryRecord } from '@/types/military';
@@ -21,14 +20,14 @@ const fromInputDate = (value?: string | null) => {
   return value;
 };
 
-
 export default function MilitaryEditor({ memberId, initialMilitary, initialRanks }: { memberId: string; initialMilitary: MilitaryRecord | null; initialRanks: RankRecord[] }) {
   const supabase = createClient();
   const [military, setMilitary] = useState<MilitaryRecord>(initialMilitary ? { ...initialMilitary, uniform_blessed_date: toInputDate(initialMilitary.uniform_blessed_date), first_uniform_use_date: toInputDate(initialMilitary.first_uniform_use_date) } : { is_military: false, uniform_blessed_date: '', first_uniform_use_date: '', current_rank: '', commission: '' });
-  const [ranks, setRanks] = useState<RankRecord[]>(initialRanks.length ? initialRanks.map((r) => ({ ...r, commission_date: toInputDate(r.commission_date) })) : [{ rank_title: '', commission_date: '', is_current: false, notes: '' }]);
+  const [ranks, setRanks] = useState<RankRecord[]>(initialRanks.length ? initialRanks.map((r) => ({ ...r, commission_date: toInputDate(r.commission_date) })) : []);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   async function handleSave() {
     setBusy(true);
@@ -61,16 +60,111 @@ export default function MilitaryEditor({ memberId, initialMilitary, initialRanks
     }
     setMessage('Uniformed rank records saved.');
     setBusy(false);
+    setIsEditing(false);
     window.location.reload();
   }
 
-  return <div style={card}><div style={subCard}><h2 style={{ margin: '0 0 12px' }}>Uniformed Rank</h2><div style={grid}>{checkboxField('In uniform?', !!military.is_military, (v) => setMilitary((cur) => ({ ...cur, is_military: v })))}{dateField('Uniform Blessed Date', military.uniform_blessed_date || '', (v) => setMilitary((cur) => ({ ...cur, uniform_blessed_date: v })))}{dateField('First Uniform Use Date', military.first_uniform_use_date || '', (v) => setMilitary((cur) => ({ ...cur, first_uniform_use_date: v })))}{field('Current Rank', military.current_rank || '', (v) => setMilitary((cur) => ({ ...cur, current_rank: v })))}{field('Commission', military.commission || '', (v) => setMilitary((cur) => ({ ...cur, commission: v })))} </div></div><div style={subCard}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><h3 style={{ margin: 0 }}>Commission History</h3><button type='button' onClick={() => setRanks((items) => [...items, { rank_title: '', commission_date: '', is_current: false, notes: '' }])} style={secondaryButton}>Add rank</button></div>{ranks.map((rank, index) => <div key={rank.id || index} style={{ ...subCard, marginTop: 12 }}><div style={grid}>{field('Rank Title', rank.rank_title || '', (v) => setRanks((items) => items.map((item, i) => (i === index ? { ...item, rank_title: v } : item))))}{dateField('Commission Date', rank.commission_date || '', (v) => setRanks((items) => items.map((item, i) => (i === index ? { ...item, commission_date: v } : item))))}{checkboxField('Current Rank?', !!rank.is_current, (v) => setRanks((items) => items.map((item, i) => (i === index ? { ...item, is_current: v } : item))))}</div>{textareaField('Notes', rank.notes || '', (v) => setRanks((items) => items.map((item, i) => (i === index ? { ...item, notes: v } : item))))}<button type='button' onClick={() => setRanks((items) => items.filter((_, i) => i !== index))} style={dangerButton}>Remove</button></div>)}</div><div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}><button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save uniformed rank records'}</button>{message ? <span style={{ color: '#1f6f43' }}>{message}</span> : null}{error ? <span style={{ color: 'crimson' }}>{error}</span> : null}</div></div>;
+  return (
+    <div style={card}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ margin: 0 }}>Military</h2>
+        {!isEditing && (
+          <button type='button' onClick={() => setIsEditing(true)} style={secondaryButton}>✏️ Edit Records</button>
+        )}
+      </div>
+
+      <div style={subCard}>
+        <h3 style={{ margin: '0 0 12px' }}>Uniformed Rank</h3>
+        <div style={grid}>
+          {isEditing ? (
+            <>
+              {checkboxField('In uniform?', !!military.is_military, (v) => setMilitary((cur) => ({ ...cur, is_military: v })))}
+              {dateField('Uniform Blessed Date', military.uniform_blessed_date || '', (v) => setMilitary((cur) => ({ ...cur, uniform_blessed_date: v })))}
+              {dateField('First Uniform Use Date', military.first_uniform_use_date || '', (v) => setMilitary((cur) => ({ ...cur, first_uniform_use_date: v })))}
+              {field('Current Rank', military.current_rank || '', (v) => setMilitary((cur) => ({ ...cur, current_rank: v })))}
+              {field('Commission', military.commission || '', (v) => setMilitary((cur) => ({ ...cur, commission: v })))}
+            </>
+          ) : (
+            <>
+              <ReadOnlyField label='In uniform?' value={military.is_military ? 'Yes' : 'No'} />
+              <ReadOnlyField label='Uniform Blessed Date' value={military.uniform_blessed_date} />
+              <ReadOnlyField label='First Uniform Use Date' value={military.first_uniform_use_date} />
+              <ReadOnlyField label='Current Rank' value={military.current_rank} />
+              <ReadOnlyField label='Commission' value={military.commission} />
+            </>
+          )}
+        </div>
+      </div>
+
+      <div style={subCard}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0 }}>Commission History</h3>
+          {isEditing && (
+            <button type='button' onClick={() => setRanks((items) => [...items, { rank_title: '', commission_date: '', is_current: false, notes: '' }])} style={secondaryButton}>+ Add rank</button>
+          )}
+        </div>
+        
+        {!isEditing && ranks.length === 0 && (
+          <div style={{ padding: 20, textAlign: 'center', color: '#64748b' }}>No commission history found.</div>
+        )}
+
+        {ranks.map((rank, index) => (
+          <div key={rank.id || index} style={{ ...subCard, marginTop: 12 }}>
+            <div style={grid}>
+              {isEditing ? (
+                <>
+                  {field('Rank Title', rank.rank_title || '', (v) => setRanks((items) => items.map((item, i) => (i === index ? { ...item, rank_title: v } : item))))}
+                  {dateField('Commission Date', rank.commission_date || '', (v) => setRanks((items) => items.map((item, i) => (i === index ? { ...item, commission_date: v } : item))))}
+                  {checkboxField('Current Rank?', !!rank.is_current, (v) => setRanks((items) => items.map((item, i) => (i === index ? { ...item, is_current: v } : item))))}
+                </>
+              ) : (
+                <>
+                  <ReadOnlyField label='Rank Title' value={rank.rank_title} />
+                  <ReadOnlyField label='Commission Date' value={rank.commission_date} />
+                  <ReadOnlyField label='Current Rank?' value={rank.is_current ? 'Yes' : 'No'} />
+                </>
+              )}
+            </div>
+            {isEditing ? (
+              textareaField('Notes', rank.notes || '', (v) => setRanks((items) => items.map((item, i) => (i === index ? { ...item, notes: v } : item))))
+            ) : (
+              <ReadOnlyField label='Notes' value={rank.notes} />
+            )}
+            {isEditing && (
+              <button type='button' onClick={() => setRanks((items) => items.filter((_, i) => i !== index))} style={{...dangerButton, marginTop: 12}}>Remove</button>
+            )}
+          </div>
+        ))}
+      </div>
+      
+      {isEditing && (
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+          <button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save uniformed rank records'}</button>
+          <button type='button' onClick={() => { 
+            setIsEditing(false); 
+            setMilitary(initialMilitary ? { ...initialMilitary, uniform_blessed_date: toInputDate(initialMilitary.uniform_blessed_date), first_uniform_use_date: toInputDate(initialMilitary.first_uniform_use_date) } : { is_military: false, uniform_blessed_date: '', first_uniform_use_date: '', current_rank: '', commission: '' });
+            setRanks(initialRanks.length ? initialRanks.map((r) => ({ ...r, commission_date: toInputDate(r.commission_date) })) : []); 
+          }} disabled={busy} style={secondaryButton}>Cancel</button>
+          {message && <span style={{ color: '#1f6f43' }}>{message}</span>}
+          {error && <span style={{ color: 'crimson' }}>{error}</span>}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function field(label: string, value: string, onChange: (value: string) => void) { return <label style={{ display: 'grid', gap: 6 }}><span style={labelStyle}>{label}</span><input value={value} onChange={(e) => onChange(e.target.value)} style={inputStyle} /></label>; }
 function dateField(label: string, value: string, onChange: (value: string) => void) { return <label style={{ display: 'grid', gap: 6 }}><span style={labelStyle}>{label}</span><input type='date' value={value} onChange={(e) => onChange(e.target.value)} style={inputStyle} /></label>; }
 function checkboxField(label: string, checked: boolean, onChange: (checked: boolean) => void) { return <label style={{ display: 'grid', gap: 6 }}><span style={labelStyle}>{label}</span><input type='checkbox' checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ width: 18, height: 18 }} /></label>; }
 function textareaField(label: string, value: string, onChange: (value: string) => void) { return <label style={{ display: 'grid', gap: 6 }}><span style={labelStyle}>{label}</span><textarea value={value} onChange={(e) => onChange(e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></label>; }
+function ReadOnlyField({ label, value }: { label: string; value: string | undefined | null }) {
+  return (
+    <div style={{ display: 'grid', gap: 4 }}>
+      <span style={labelStyle}>{label}</span>
+      <span style={{ fontSize: 15, color: '#10233f', fontWeight: 500 }}>{value || '-'}</span>
+    </div>
+  );
+}
 
 const card: React.CSSProperties = { background: '#fff', padding: 20, borderRadius: 16, boxShadow: '0 8px 24px rgba(16,35,63,0.08)', display: 'grid', gap: 16 };
 const subCard: React.CSSProperties = { padding: 14, border: '1px solid #dce4ee', borderRadius: 12, display: 'grid', gap: 12 };

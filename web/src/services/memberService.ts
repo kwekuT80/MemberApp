@@ -94,17 +94,7 @@ export async function getUpcomingBirthdayMembers(): Promise<Member[]> {
 
   const members = data || [];
   const today = new Date();
-  const currentMonth = today.getMonth();
-  const currentDay = today.getDate();
-
-  // Helper: get month-day as a comparable number (e.g., Dec 31 → 1231)
-  const monthDay = (d: string | null): number => {
-    if (!d) return -1;
-    const parts = d.split('-');
-    const m = parseInt(parts[0], 10);
-    const day = parseInt(parts[1], 10);
-    return m * 100 + day;
-  };
+  today.setHours(0, 0, 0, 0); // Crucial: remove time component so 'today' comparisons work correctly
 
   // Helper: days until birthday from today (handles year wrap)
   const daysUntilBirthday = (d: string | null): number => {
@@ -115,10 +105,12 @@ export async function getUpcomingBirthdayMembers(): Promise<Member[]> {
 
     // Calculate days until this birthday
     let birthdayThisYear = new Date(today.getFullYear(), bMonth - 1, bDay);
+    birthdayThisYear.setHours(0, 0, 0, 0);
 
     if (birthdayThisYear < today) {
       // Birthday already passed this year — check next year
       birthdayThisYear = new Date(today.getFullYear() + 1, bMonth - 1, bDay);
+      birthdayThisYear.setHours(0, 0, 0, 0);
     }
 
     const diffMs = birthdayThisYear.getTime() - today.getTime();
