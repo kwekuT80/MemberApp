@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import Link from 'next/link';
 import React from 'react';
 import MemberShell from '@/components/layout/MemberShell';
 import { requireUser } from '@/lib/auth/requireUser';
@@ -44,12 +45,17 @@ export default async function MemberAttendancePage() {
 
   return (
     <MemberShell title="Meeting Attendance" subtitle="Live geofenced check-in and excuse management.">
-      <MemberAttendanceClient 
-        member={member} 
-        initialMeetings={meetings} 
-        initialAttendance={attendance || []}
-        initialExcuses={excuses || []}
-      />
+      <div style={{ display: 'grid', gap: 18 }}>
+        <Link href='/me' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>
+          ← Back to Overview
+        </Link>
+        <MemberAttendanceClient 
+          member={member} 
+          initialMeetings={meetings} 
+          initialAttendance={attendance || []}
+          initialExcuses={excuses || []}
+        />
+      </div>
     </MemberShell>
   );
 }

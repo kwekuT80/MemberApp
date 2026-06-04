@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import MemberShell from '@/components/layout/MemberShell';
 
@@ -78,7 +79,11 @@ export default function FinancialsPage() {
   return (
     <MemberShell title="Financial Ledger" subtitle={`Your ${currentYear} dues and assessments`}>
       
-      <div style={{ marginTop: 40 }}>
+      <div style={{ display: 'grid', gap: 18 }}>
+        <Link href='/me' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>
+          ← Back to Overview
+        </Link>
+      <div style={{ marginTop: 12 }}>
         {/* Summary Cards */}
         <div className="grid-cols-2">
         <div className="summary-card" style={{ background: '#fff' }}>
@@ -136,6 +141,7 @@ export default function FinancialsPage() {
             </tbody>
           </table>
         )}
+      </div>
       </div>
       </div>
     </MemberShell>

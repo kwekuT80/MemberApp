@@ -13,14 +13,14 @@ export default async function RegistrarMemberEducationPage({ params }: { params:
   const member = await getMemberById(id);
   if (!member?.id) {
     return (
-      <RegistrarShell title='Degree' subtitle='Member not found.'>
+      <RegistrarShell title='Exemplification' subtitle='Member not found.'>
         <EmptyState message='This member record could not be loaded.' />
       </RegistrarShell>
     );
   }
   const [degrees, degreeTypes] = await Promise.all([getDegreesByMemberId(member.id), getDegreeTypeNames()]);
   return (
-    <RegistrarShell title='Degree' subtitle='Manage degree records for the selected member.'>
+    <RegistrarShell title='Exemplification' subtitle='Manage exemplification records for the selected member.'>
       <div style={{ display: 'grid', gap: 18 }}>
         <Link href={`/registrar/members/${id}`} style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Back to member</Link>
         <DegreesEditor memberId={member.id} initialDegrees={degrees} degreeTypes={degreeTypes} />

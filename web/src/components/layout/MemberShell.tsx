@@ -1,15 +1,15 @@
 import AppShell from './AppShell';
 
 const memberNav = [
-  { href: '/me', label: 'Overview' },
-  { href: '/me/edit', label: 'Edit Main Record' },
-  { href: '/me/family', label: 'Family' },
-  { href: '/me/education', label: 'Degree' },
-  { href: '/me/positions', label: 'Positions' },
-  { href: '/me/military', label: 'Military' },
-  { href: '/me/emergency', label: 'Emergency' },
-  { href: '/me/attendance', label: 'Attendance' },
-  { href: '/me/financials', label: 'Financials' },
+  { href: '/me', label: '🏠 Overview' },
+  { href: '/me/edit', label: '✏️ Edit Main Record' },
+  { href: '/me/family', label: '👨‍👩‍👧‍👦 Family' },
+  { href: '/me/education', label: '📜 Exemplification' },
+  { href: '/me/positions', label: '🎖️ Positions' },
+  { href: '/me/military', label: '⚔️ Military' },
+  { href: '/me/emergency', label: '🚨 Emergency' },
+  { href: '/me/attendance', label: '📋 Attendance' },
+  { href: '/me/financials', label: '💰 Financials' },
   { href: '/registrar', label: '🛡️ Registrar Portal (If Officer)' },
 ];
 

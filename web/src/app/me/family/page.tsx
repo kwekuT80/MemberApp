@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import MemberShell from '@/components/layout/MemberShell';
 import FamilyEditor from '@/components/member-sections/FamilyEditor';
 import EmptyState from '@/components/shared/EmptyState';
@@ -10,7 +11,7 @@ import { getDependentsByMemberId } from '@/services/dependentsService';
 export default async function MeFamilyPage() {
   await requireUser();
   const member = await getMyMember();
-  
+
   if (!member?.id) {
     return (
       <MemberShell title='Family' subtitle='Create your main member record first.'>
@@ -27,12 +28,17 @@ export default async function MeFamilyPage() {
 
   return (
     <MemberShell title='Family & Dependents' subtitle='Manage spouse, children, and dependent records.'>
-      <FamilyEditor 
-        memberId={member.id} 
-        initialSpouse={spouse} 
-        initialChildren={children} 
-        initialDependents={dependents}
-      />
+      <div style={{ display: 'grid', gap: 18 }}>
+        <Link href='/me' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>
+          ← Back to Overview
+        </Link>
+        <FamilyEditor 
+          memberId={member.id} 
+          initialSpouse={spouse} 
+          initialChildren={children} 
+          initialDependents={dependents}
+        />
+      </div>
     </MemberShell>
   );
 }

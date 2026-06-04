@@ -25,7 +25,7 @@ export default async function MePage() {
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', paddingTop: 12 }}>
           <Link href='/me/edit' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Edit Main Record</Link>
           <Link href='/me/attendance' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Attendance</Link>
-          <Link href='/me/education' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Education</Link>
+          <Link href='/me/education' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Exemplification</Link>
           <Link href='/me/emergency' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Emergency</Link>
           <Link href='/me/family' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Family</Link>
           <Link href='/me/financials' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Financials</Link>
