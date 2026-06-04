@@ -29,9 +29,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- 2. Extend annual_assessment_rates for Rate History
-ALTER TABLE public.annual_assessment_rates DROP CONSTRAINT IF EXISTS annual_assessment_rates_pkey CASCADE;
-ALTER TABLE public.annual_assessment_rates ADD COLUMN IF NOT EXISTS id UUID DEFAULT gen_random_uuid();
-ALTER TABLE public.annual_assessment_rates ADD CONSTRAINT annual_assessment_rates_pkey PRIMARY KEY (id);
+-- Existing primary key on year retained; no schema change required.
 
 ALTER TABLE public.annual_assessment_rates
 ADD COLUMN IF NOT EXISTS effective_from TIMESTAMPTZ DEFAULT NOW(),
@@ -43,17 +41,14 @@ ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;
 -- Explicit grants required for RLS to work — without these, table is inaccessible
 GRANT SELECT, INSERT, UPDATE ON TABLE public.annual_assessment_rates TO authenticated;
 
-
 -- Recreate index safely
-DROP INDEX IF EXISTS idx_rate_effective_dates;
-CREATE INDEX idx_rate_effective_dates ON public.annual_assessment_rates (effective_from, active);
+CREATE INDEX IF NOT EXISTS idx_rate_effective_dates ON public.annual_assessment_rates (effective_from, active);
 
 -- Rate History View with PG15 security_invoker = true (inherits RLS from base table)
 CREATE OR REPLACE VIEW public.rate_history
 WITH (security_invoker = true) AS
 SELECT
-  id,
-  year,
+    year,
   regular_rate,
   social_rate,
   student_rate,
@@ -73,7 +68,7 @@ WITH member_financial_base AS (
   SELECT
     m.id,
     m.first_name || ' ' || m.surname AS full_name,
-    m.phone_number,
+    m.phone,
     m.email,
     -- Sum of all annual assessments + arrears of the earliest year (prevents double-billing cumulative arrears)
     COALESCE((
@@ -98,7 +93,7 @@ WITH member_financial_base AS (
 SELECT
   id,
   full_name,
-  phone_number,
+  phone,
   email,
   total_assessed,
   total_paid,
@@ -130,7 +125,6 @@ LEFT JOIN public.financial_payments p ON p.member_id = m.id;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.financial_assessments TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.financial_payments TO authenticated;
 
-
 -- 4. Extend public.attendance table for GPS geofencing & QR code manual fallback
 ALTER TABLE public.attendance
 ADD COLUMN IF NOT EXISTS gps_latitude DECIMAL(10, 8),
@@ -141,12 +135,11 @@ ADD COLUMN IF NOT EXISTS verified BOOLEAN DEFAULT false;
 -- Explicit grants for attendance table (required with RLS)
 GRANT SELECT, INSERT, UPDATE ON TABLE public.attendance TO authenticated;
 
-
 -- Extend members table for QR fallback capability
 ALTER TABLE public.members
 ADD COLUMN IF NOT EXISTS qr_code_value TEXT UNIQUE;
 
 -- Grants for views
-GRANT SELECT ON VIEW public.rate_history TO authenticated;
-GRANT SELECT ON VIEW public.member_financial_summary TO authenticated;
-GRANT SELECT ON VIEW public.member_financial_detail TO authenticated;
+GRANT SELECT ON public.rate_history TO authenticated;
+GRANT SELECT ON public.member_financial_summary TO authenticated;
+GRANT SELECT ON public.member_financial_detail TO authenticated;

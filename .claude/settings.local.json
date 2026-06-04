@@ -10,7 +10,11 @@
       "Bash(powershell *)",
       "Bash(npx next *)",
       "Bash(npx eas *)",
-      "Bash(gradle --version)"
+      "Bash(gradle --version)",
+      "Bash(git push *)",
+      "Bash(npx tsc *)",
+      "Bash(dir \"C:\\\\App\\\\MemberApp\\\\supabase\\\\functions\")"
     ]
-  }
+  },
+  "outputStyle": "default"
 }

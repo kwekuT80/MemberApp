@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { createMeeting, checkInMember, getAbsenceRequests, reviewAbsenceRequest, getAttendanceReport } from '@/services/attendanceService';
 
 interface Props {
@@ -213,8 +214,8 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
           ) : (
             <div style={{ display: 'grid', gap: 8 }}>
               {meetings.map((m) => (
-                <div 
-                  key={m.id} 
+                <div
+                  key={m.id}
                   onClick={() => setSelectedMeeting(m)}
                   style={{
                     padding: 12,
@@ -229,6 +230,13 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                   <span style={{ fontSize: 11, color: '#64748b', display: 'block', marginTop: 4 }}>
                     📅 {new Date(m.date).toLocaleDateString()}
                   </span>
+                  <Link
+                    href={`/registrar/meetings/${m.id}/scan`}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ fontSize: 12, color: 'var(--gold)', fontWeight: 700, display: 'block', marginTop: 8 }}
+                  >
+                    📱 Scan QR Check-In →
+                  </Link>
                 </div>
               ))}
             </div>
@@ -246,6 +254,26 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
               <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
                 📆 <strong>Date:</strong> {new Date(selectedMeeting.date).toLocaleString()} | 🎯 <strong>Geofence:</strong> {selectedMeeting.radius_meters}m radius
               </p>
+              {/* QR Scan Quick Action */}
+              <div style={{ marginTop: 16 }}>
+                <Link
+                  href={`/registrar/meetings/${selectedMeeting.id}/scan`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '12px 24px',
+                    background: '#C9A84C',
+                    color: '#0A1628',
+                    borderRadius: 12,
+                    fontWeight: 800,
+                    fontSize: 15,
+                    textDecoration: 'none',
+                  }}
+                >
+                  📱 Start QR Check-In Session
+                </Link>
+              </div>
             </div>
 
             {/* Visual Attendance Insights Graph */}

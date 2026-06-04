@@ -96,12 +96,14 @@ CREATE POLICY "Financial registrars can manage all payments"
 -- --------------------------------------------------------
 -- 8. Grant Privileges
 -- --------------------------------------------------------
-GRANT ALL ON TABLE public.annual_assessment_rates TO authenticated;
-GRANT ALL ON TABLE public.annual_assessment_rates TO service_role;
-GRANT ALL ON TABLE public.financial_assessments TO authenticated;
-GRANT ALL ON TABLE public.financial_assessments TO service_role;
-GRANT ALL ON TABLE public.financial_payments TO authenticated;
-GRANT ALL ON TABLE public.financial_payments TO service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.annual_assessment_rates TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.annual_assessment_rates TO service_role;
+
+GRANT SELECT, INSERT, UPDATE ON TABLE public.financial_assessments TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.financial_assessments TO service_role;
+
+GRANT SELECT, INSERT, UPDATE ON TABLE public.financial_payments TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.financial_payments TO service_role;
 
 -- Verification query
 SELECT 'Financial Ledger database schema successfully upgraded!' as status;

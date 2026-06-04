@@ -38,11 +38,11 @@ export default function RegistrarShell({
   // During loading, show basic registrar nav so layout doesn't jump aggressively
   if (role === 'registrar' || role === 'super_admin' || !role) {
     navItems.push(
-      { href: '/registrar', label: 'Dashboard' },
-      { href: '/registrar/members', label: 'Members' },
-      { href: '/registrar/members/new', label: 'Create Member' },
-      { href: '/registrar/reports', label: 'Reporting Hub' },
-      { href: '/registrar/meetings', label: 'Meetings' },
+      { href: '/registrar', label: '🏠 Dashboard' },
+      { href: '/registrar/members', label: '👥 Members' },
+      { href: '/registrar/members/new', label: '➕ Create Member' },
+      { href: '/registrar/reports', label: '📊 Reporting Hub' },
+      { href: '/registrar/meetings', label: '📅 Meetings' },
       { href: '/registrar/communications', label: '📣 Communications' }
     );
   }
@@ -52,7 +52,7 @@ export default function RegistrarShell({
     navItems.push(
       { href: '/registrar/financials', label: '💰 Financial Ledger' },
       { href: '/registrar/financials/rates', label: '⚙️ Rates & Billing' },
-      { href: '/registrar/financials/rates/history', label: '📊 Rate History' },
+      { href: '/registrar/financials/rates/history', label: '📉 Rate History' },
       { href: '/registrar/financials/payments', label: '💳 Record Payments' },
       { href: '/registrar/financials/members', label: '👥 Member Summaries' },
       { href: '/registrar/financials/dashboards', label: '🏥 Health Dashboard' },
@@ -64,9 +64,9 @@ export default function RegistrarShell({
   // Financial Registrar gets full financial navigation suite
   if (role === 'financial_registrar') {
     navItems.push(
-      { href: '/registrar/financials', label: 'Financial Dashboard' },
+      { href: '/registrar/financials', label: '💰 Financial Dashboard' },
       { href: '/registrar/financials/rates', label: '⚙️ Rates & Billing' },
-      { href: '/registrar/financials/rates/history', label: '📊 Rate History' },
+      { href: '/registrar/financials/rates/history', label: '📉 Rate History' },
       { href: '/registrar/financials/payments', label: '💳 Record Payments' },
       { href: '/registrar/financials/members', label: '👥 Member Summaries' },
       { href: '/registrar/financials/dashboards', label: '🏥 Health Dashboard' },

@@ -132,7 +132,7 @@ export default function AppNavigator() {
           ) : (
             // Logged in — show member form and all subscreens
             <>
-              {role === 'registrar' && (
+              {['registrar', 'super_admin', 'financial_registrar'].includes(role) && (
                 <>
                   <Stack.Screen name="RegistrarDashboard" component={RegistrarDashboard} />
                   <Stack.Screen name="Reports"            component={ReportsScreen} />

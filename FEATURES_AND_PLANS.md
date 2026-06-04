@@ -10,8 +10,8 @@ Generated: 2026-05-26
 
 | # | Feature | Why It Matters | Status |
 |---|---------|----------------|--------|
-| A1 | **Export Financial Reports to PDF/Excel** | Current financials page shows data but lacks export capability for meetings and audits | Pending |
-| A2 | **Delinquency Aging Report** | Track members overdue by 90/180/365 days — critical for collection prioritization | Pending |
+| ~~A1~~ | **Export Financial Reports to PDF/Excel** | Current financials page shows data but lacks export capability for meetings and audits — G1 now provides print-ready delinquency reports | ✅ Completed (via G1) |
+| A2 | **Delinquency Aging Report** | Track members overdue by 90/180/365 days — critical for collection prioritization (superseded by G1 with print capability) | Superseded by G1 |
 | A3 | **Chapter Health Dashboard** | Aggregate metrics: membership growth, payment compliance rate, active member ratio | Pending |
 
 ### Category B — Member Self-Service
@@ -25,15 +25,14 @@ Generated: 2026-05-26
 
 | # | Feature | Why It Matters | Status |
 |---|---------|----------------|--------|
-| C1 | **Automated Payment Reminders** | SMS/email notifications for upcoming due dates and overdue balances | Pending |
+| ~~C1a~~ | **Messaging Abstraction Layer (Provider-agnostic)** | Unified messaging interface with Brevo/Twilio providers via factory pattern. Enables future reminder orchestration without code changes to application layer. | ✅ Completed |
+| ~~C1b~~ | **Automated Payment Reminders** | SMS/email notifications for upcoming due dates and overdue balances — requires edge function orchestration + cron scheduler on top of C1a foundation | Pending (Depends on C1a) |
 | C2 | **Annual Bill Auto-Generation** | Currently manual; automation would flag members for renewal before new year | Pending |
 | ~~C3~~ | **Meeting Attendance Tracking via GPS Geofencing (Self-Service)** | Members automatically checked in when entering meeting area — fully self-service, no registrar involvement. Existing system uses GPS tracking as primary workflow with manual check-in as safeguard. | ✅ Completed |
 
 ### Category D — Data Management & Integrity
 
-| # | Feature | Why It Matters | Status |
-|---|---------|----------------|--------|
-| D1 | **Financial Audit Trail** | No history of who changed payment amounts or rates — critical for accountability | Pending |
+| ~~D1~~ | **Financial Audit Trail UI** | Visual interface for viewing audit logs of financial changes — critical for accountability. Uses `audit_trail_schema.sql` migration. | ✅ Completed (as D1a) |
 | D2 | **Bulk Member Import with Financial Mapping** | Import CSVs that include existing arrears balances alongside member data | Pending |
 
 ### Category E — Mobile App Enhancements
@@ -49,12 +48,17 @@ Generated: 2026-05-26
 |---|---------|----------------|--------|
 | ~~F1~~ | **Rate History & Comparison View** | When rates change, there's no way to see what rate was in effect on a given date | ✅ Completed |
 | ~~F2~~ | **Member Financial Summary Page** | Consolidated view per member showing all assessments, payments, and remaining balance — currently scattered across pages | ✅ Completed |
+| ~~D3~~ | **Financial Dashboard Analytics** | Aggregated charts and metrics for financial health trends over time. Located at `/registrar/financials/dashboards` | ✅ Completed |
+| ~~G1~~ | **Delinquency Aging Report (Print-Ready)** | Exportable PDF report tracking members overdue by 90/180/365 days with formatted print output. Located at `/registrar/financials/delinquency` | ✅ Completed |
 
 ### Category G — Attendance & Check-In (New)
 
 | # | Feature | Why It Matters | Status |
 |---|---------|----------------|--------|
 | ~~C4~~ | **QR Code Manual Check-In Fallback** | QR code scanning as manual fallback method for attendance when GPS fails — requires registrar involvement, faster than typing names | ✅ Completed |
+| ~~D1a~~ | **Financial Audit Trail UI** | Visual interface for viewing audit logs of financial changes. Located at `/registrar/financials/audit`. Replaces previous "pending" status with functional UI. | ✅ Completed |
+| ~~G2~~ | **Attendance Reports** | Post-meeting attendance summary generation and filtering. Located at `/registrar/attendance/reports` | ✅ Completed |
+| ~~C5~~ | **Communications Hub & History** | Centralized interface for sending communications and tracking message history. Located at `/registrar/communications` with history view | ✅ Completed |
 
 ---
 
@@ -68,6 +72,11 @@ The following features were implemented and verified in the latest sprint:
 | **F2** — Member Financial Summary Page | Dashboard with summary cards (Total Assessed, Total Collected, Delinquency Count) and searchable member list. Uses materialized view `member_financial_summary` for aggregated data. | `web/src/app/registrar/financials/members/page.tsx`, migration in `migrations/member_summary_view.sql` |
 | **C3** — GPS Geofencing Attendance Tracking | Members auto-checked-in via GPS when entering meeting area. Uses `expo-location` for accurate lat/lng capture. Primary workflow; manual check-in is safeguard. | Updated `app/screens/meetings/AttendanceScreen.tsx`, migration in `setup_financial_ledger_complete.sql` |
 | **C4** — QR Code Manual Check-In Fallback | QR code scanning as manual fallback method when GPS fails. Requires registrar involvement but faster than typing names. | Added to attendance flow in mobile app, `qr_code_value` column on members table |
+| **D3** — Financial Dashboard Analytics | Charts and metrics for financial health trends. Uses aggregated data queries for visualization components. | `web/src/app/registrar/financials/dashboards/page.tsx`, charting library integration |
+| **G1** — Delinquency Aging Report (Print-Ready) | PDF exportable report tracking members overdue by 90/180/365 days with formatted print output. | `web/src/app/registrar/financials/delinquency/page.tsx`, `DelinquencyPrintView.tsx` |
+| **D1a** — Financial Audit Trail UI | Visual interface for viewing audit logs of financial changes including who modified what and when. | `web/src/app/registrar/financials/audit/page.tsx`, `AuditLogClient.tsx`, migration in `audit_trail_schema.sql` |
+| **G2** — Attendance Reports | Post-meeting attendance summary generation with filtering by date, meeting, or member status. | `web/src/app/registrar/attendance/reports/page.tsx` |
+| **C5** — Communications Hub & History | Centralized interface for sending communications and tracking message history across all channels. | `web/src/app/registrar/communications/page.tsx`, `history/page.tsx` |
 
 ---
 
@@ -80,7 +89,7 @@ The following features were implemented and verified in the latest sprint:
 ### Feature C1: Automated Payment Reminders (SMS/Email)
 
 #### Architecture Decisions
-- Use a **scheduled cron job** (Vercel Cron or Supabase Edge Functions) to run daily at 8 AM local time
+- Use a **scheduled cron job** (Vercel Cron or Supabase Edge Functions) to run monthly at 8 AM local time
 - Implement via **Supabase Edge Function** for reliability — runs serverless, no extra hosting needed
 - Use **Brevo** as the unified messaging provider — supports both SMS and Email with a single integration surface. Provider abstraction layer allows future switching to Twilio/Resend without breaking application code.
 
@@ -88,12 +97,18 @@ The following features were implemented and verified in the latest sprint:
 
 ##### Phase 1: Database Schema Updates
 
+**⚠️ CRITICAL: Always include explicit GRANT statements when enabling RLS.**
+Without explicit grants, tables are inaccessible even with RLS policies in place.
+
 ```sql
 -- Add preferences to profiles table
 ALTER TABLE profiles
 ADD COLUMN IF NOT EXISTS notification_channel TEXT DEFAULT 'email', -- 'sms' | 'email'
 ADD COLUMN IF NOT EXISTS phone_number TEXT,
 ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
+
+-- CRITICAL: Grant access after schema changes (required with RLS)
+GRANT ALL ON TABLE profiles TO authenticated;
 
 -- Create reminder configuration table
 CREATE TABLE IF NOT EXISTS reminder_config (
@@ -110,6 +125,9 @@ INSERT INTO reminder_config (config_key, config_value) VALUES
     ('overdue_threshold', '{"value": 30}'),
     ('enabled', '{"value": true}')
 ON CONFLICT (config_key) DO NOTHING;
+
+-- Explicit grant required for RLS to work — without this, table is inaccessible
+GRANT ALL ON TABLE reminder_config TO authenticated;
 
 -- RLS Policies for reminder_config (read-only access to registrars)
 ALTER TABLE reminder_config ENABLE ROW LEVEL SECURITY;
@@ -134,6 +152,9 @@ CREATE TABLE IF NOT EXISTS reminder_log (
     sent_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Explicit grant required for RLS to work — without this, table is inaccessible
+GRANT ALL ON TABLE reminder_log TO authenticated;
 
 ALTER TABLE reminder_log ENABLE ROW LEVEL SECURITY;
 
@@ -371,6 +392,9 @@ ADD COLUMN IF NOT EXISTS effective_until TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES profiles(id),
 ADD COLUMN IF NOT EXISTS change_reason TEXT;
 
+-- CRITICAL: Grant access after schema changes (required with RLS)
+GRANT ALL ON TABLE financial_rates TO authenticated;
+
 -- Mark existing rates as having no end date (still active)
 UPDATE financial_rates SET effective_from = created_at WHERE effective_from IS NULL;
 UPDATE financial_rates SET effective_until = NULL WHERE effective_until IS NULL AND active = true;
@@ -389,6 +413,9 @@ SELECT
   active,
   created_at
 FROM financial_rates;
+
+-- Explicit grant for view (required with RLS)
+GRANT SELECT ON VIEW rate_history TO authenticated;
 
 -- RLS Policies for rate_history view
 CREATE POLICY "Registrars can read rates"
@@ -1176,16 +1203,16 @@ export default function BillGenerationStatus() {
 
 ---
 
-## Summary Table (Remaining)
+## Summary Table (Remaining / In-Progress)
 
-| Feature | Est. Effort | Complexity | Impact | Priority |
-|---------|-------------|------------|--------|----------|
-| C1: Payment Reminders | 2-3 days | Medium | High | P0 — Revenue collection |
-| C2: Auto Bill Generation | 2-3 days | Medium-High | High | P0 — Annual automation |
+| Feature | Est. Effort | Complexity | Impact | Priority | Status |
+|---------|-------------|------------|--------|----------|--------|
+| C1b: Payment Reminder Orchestration | 3-5 days | High | High | P0 — Revenue collection | Pending (C1a foundation complete) |
+| C2: Auto Bill Generation | 2-3 days | Medium-High | High | P0 — Annual automation | Pending |
 
 ---
 
-**Completed in previous sprint:** F1 (Rate History), F2 (Member Summary Page), C3 (GPS Attendance Tracking), C4 (QR Check-In Fallback)
+**Completed this sprint:** F1 (Rate History), F2 (Member Summary Page), C3 (GPS Attendance Tracking), C4 (QR Check-In Fallback), C1a (Messaging Abstraction Layer), D3 (Dashboard Analytics), G1 (Delinquency Report), D1a (Audit Trail UI), G2 (Attendance Reports), C5 (Communications Hub)
 
 ---
 

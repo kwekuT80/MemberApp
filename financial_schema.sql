@@ -85,8 +85,8 @@ CREATE INDEX IF NOT EXISTS idx_financial_assessments_member_year ON public.finan
 -- ==========================================
 -- Grant Privileges
 -- ==========================================
-GRANT ALL ON TABLE public.financial_assessments TO authenticated;
-GRANT ALL ON TABLE public.financial_assessments TO service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.financial_assessments TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.financial_assessments TO service_role;
 
-GRANT ALL ON TABLE public.financial_payments TO authenticated;
-GRANT ALL ON TABLE public.financial_payments TO service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.financial_payments TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.financial_payments TO service_role;

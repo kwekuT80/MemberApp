@@ -40,10 +40,11 @@ CREATE POLICY "Members can view their own payments"
     );
 
 -- 4. Grant privileges just in case
-GRANT ALL ON TABLE public.financial_assessments TO authenticated;
-GRANT ALL ON TABLE public.financial_assessments TO service_role;
-GRANT ALL ON TABLE public.financial_payments TO authenticated;
-GRANT ALL ON TABLE public.financial_payments TO service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.financial_assessments TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.financial_assessments TO service_role;
+
+GRANT SELECT, INSERT, UPDATE ON TABLE public.financial_payments TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.financial_payments TO service_role;
 
 -- Verification notice (this will print in Supabase SQL logs)
 SELECT 'Financial Ledger RLS policies successfully updated!' as status;

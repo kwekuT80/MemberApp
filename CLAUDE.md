@@ -37,6 +37,12 @@ This is a dual-platform application for the KSJI Commandery member registration 
 - `/registrar/financials/rates/history` — Rate history timeline + comparison tool (completed feature)
 - `/registrar/financials/members` — Member financial summary page (completed feature)
 - `/registrar/financials/payments` — Monthly payment recording (new)
+- `/registrar/financials/dashboards` — Dashboard analytics (completed feature)
+- `/registrar/financials/delinquency` — Delinquency aging report (completed feature)
+- `/registrar/financials/audit` — Financial audit trail UI (completed feature)
+- `/registrar/attendance/reports` — Attendance reports (completed feature)
+- `/registrar/communications` — Communications hub (new)
+- `/registrar/communications/history` — Communication history tracking
 - `/verify/[id]` — Public verification page
 
 **Role hierarchy:** `member` → `registrar` → `financial_registrar` → `super_admin`. Separation of duties between registrar and financial registrar roles; super_admin has access to everything.
@@ -102,10 +108,39 @@ A financial management system for KSJI registration fee collection. Features inc
 - **Architecture**: QR code stored as text column on members table (`qr_code_value`). Scanned via mobile camera as fallback when GPS fails
 - **Key files**: Integrated into attendance flow, `members` table extension with `qr_code_value TEXT UNIQUE`
 
-#### C1: Automated Payment Reminders (SMS/Email) — Provider-Agnostic Abstraction
+#### C1a: Messaging Abstraction Layer (Provider-Agnostic) ✅ Completed
 - **Architecture**: Unified messaging abstraction layer (`web/src/services/messaging/`) decouples application from provider. Factory pattern selects provider via `MESSAGING_PROVIDER` env var. Default is Brevo; Twilio and Resend are available as alternatives without changing application code.
 - **Key files**: `web/src/services/messaging/types.ts` (interfaces), `providerFactory.ts` (factory), `brevoProvider.ts`, `twilioProvider.ts`. Uses Supabase Edge Functions for delivery tracking and webhook handling.
 - **Pattern**: Provider interface defines `sendEmail()`, `sendSMS()`, `getStatus()`, `handleWebhook()`. Applications import via factory — switching providers requires only env var change.
+
+#### C1b: Payment Reminder Orchestration ⏳ Pending (depends on C1a)
+- **Architecture**: Supabase Edge Function + cron scheduler for automated SMS/email reminders based on payment due dates and delinquency status. Uses C1a messaging layer for delivery.
+- **Status**: Foundation complete; edge function orchestration planned per `docs/communications_workflow.md`.
+
+#### D3: Financial Dashboard Analytics ✅ Completed
+- **Architecture**: Interactive charts and metrics for financial health trends using aggregated data queries. Provides visual representation of payment compliance, collection rates, and revenue trends over time.
+- **Key files**: `web/src/app/registrar/financials/dashboards/page.tsx` — Server component with real-time aggregations
+- **Pattern**: Dashboard uses materialized view patterns similar to F2 for performance
+
+#### G1: Delinquency Aging Report (Print-Ready) ✅ Completed
+- **Architecture**: PDF exportable report tracking members overdue by 90/180/365 days with formatted print output. Uses server-side rendering for consistent formatting across platforms.
+- **Key files**: `web/src/app/registrar/financials/delinquency/page.tsx`, `DelinquencyPrintView.tsx`
+- **Pattern**: Print-ready components use specialized CSS classes for proper PDF generation
+
+#### D1a: Financial Audit Trail UI ✅ Completed
+- **Architecture**: Visual interface for viewing audit logs of financial changes including who modified what and when. Uses the `audit_trail_schema.sql` migration for data persistence.
+- **Key files**: `web/src/app/registrar/financials/audit/page.tsx`, `AuditLogClient.tsx`
+- **Pattern**: Client component fetches audit entries via service layer with pagination
+
+#### G2: Attendance Reports ✅ Completed
+- **Architecture**: Post-meeting attendance summary generation with filtering by date, meeting, or member status. Provides comprehensive reporting on participation trends.
+- **Key files**: `web/src/app/registrar/attendance/reports/page.tsx`
+- **Pattern**: Server component with dynamic filtering using URL parameters
+
+#### C5: Communications Hub & History ✅ Completed
+- **Architecture**: Centralized interface for sending communications and tracking message history across all channels (email, SMS). Integrates with the messaging abstraction layer.
+- **Key files**: `web/src/app/registrar/communications/page.tsx`, `history/page.tsx`
+- **Pattern**: Hub-and-spoke architecture with history as secondary view
 
 ---
 
@@ -174,8 +209,8 @@ eas build --platform android --profile production   # AAB for store
 
 ## Git History Summary
 
-**Latest (2026-05):** Financial Ledger system — assessment/collections management with annual bill generation, rate configuration, payment recording, materialized summary views, age-based discounts, RLS policies for financial data. Separation of duties: registrar vs financial_registrar roles + super_admin. Provider-agnostic messaging abstraction layer (Brevo/Twilio) implemented for future automated reminders.
+**Latest (2026-05):** Financial Ledger system — assessment/collections management with annual bill generation, rate configuration, payment recording, materialized summary views, age-based discounts, RLS policies for financial data. Separation of duties: registrar vs financial_registrar roles + super_admin. Provider-agnostic messaging abstraction layer (Brevo/Twilio) implemented as foundation for automated reminders.
 
-**Completed features this sprint:** F1 (Rate History & Comparison View), F2 (Member Financial Summary Page via Materialized Views), C3 (GPS Geofencing Attendance Tracking), C4 (QR Code Manual Check-In Fallback). Messaging abstraction layer (C1 foundation).
+**Completed features this sprint:** F1 (Rate History & Comparison View), F2 (Member Financial Summary Page via Materialized Views), C3 (GPS Geofencing Attendance Tracking), C4 (QR Code Manual Check-In Fallback), C1a (Messaging Abstraction Layer), D3 (Dashboard Analytics), G1 (Delinquency Report Print-Ready), D1a (Audit Trail UI), G2 (Attendance Reports), C5 (Communications Hub & History).
 
 **Previous:** offline caching, QR codes, bulk import, verification page, rank display fixes, Android photo upload improvements.
