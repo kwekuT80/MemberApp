@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../db/supabase';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
 
-export default function FinancialsScreen({ navigation }) {
+export default function FinancialsScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [assessment, setAssessment] = useState(null);
   const [payments, setPayments] = useState([]);
@@ -32,7 +32,21 @@ export default function FinancialsScreen({ navigation }) {
       return;
     }
 
-    const memberId = profile.member_id;
+    // Determine which member's finances to display:
+    // - If route.params?.memberId provided (admin viewing another member), use that
+    // - Otherwise fall back to the logged-in user's own record
+    let memberId = null;
+
+    if (route && route.params && route.params.memberId) {
+      memberId = route.params.memberId;
+    } else if (profile && profile.member_id) {
+      memberId = profile.member_id;
+    }
+
+    if (!memberId) {
+      setLoading(false);
+      return;
+    }
     const currentYear = new Date().getFullYear();
 
     // Assessment

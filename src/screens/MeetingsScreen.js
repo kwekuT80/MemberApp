@@ -44,12 +44,46 @@ export default function MeetingsScreen({ navigation }) {
 
   const fetchMeetings = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('meetings')
-      .select('*')
-      .order('meeting_date', { ascending: false });
-    if (!error && data) setMeetings(data);
-    setLoading(false);
+    try {
+      // Get current user's profile to filter by commandery_id
+      const { data: userData } = await supabase.auth.getUser();
+
+      // Fetch user's profile/commandery association
+      let commanderyId = null;
+      if (userData?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('commandery_id, role')
+          .eq('id', userData.user.id)
+          .single();
+        commanderyId = profile?.commandery_id;
+      }
+
+      let query = supabase.from('meetings').select('*');
+
+      // If user has a commandery assignment, filter by it
+      if (commanderyId) {
+        query = query.eq('commandery_id', commanderyId);
+      } else if (!userData?.user) {
+        // Not logged in — show nothing
+        setMeetings([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await query.order('date', { ascending: false });
+
+      if (error) {
+        Alert.alert('Error', `Failed to load meetings: ${error.message}`);
+      } else if (data) {
+        setMeetings(data);
+      }
+    } catch (err) {
+      console.error('fetchMeetings error:', err);
+      Alert.alert('Error', 'Unable to connect. Please check your network.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchMeetingDashboard = async (meetingId) => {
@@ -95,7 +129,7 @@ export default function MeetingsScreen({ navigation }) {
     const meetingDatetime = new Date(`${date}T${time}:00`).toISOString();
     const { error } = await supabase.from('meetings').insert({
       title,
-      meeting_date: meetingDatetime,
+      date: meetingDatetime,
       latitude: parseFloat(lat),
       longitude: parseFloat(lng),
       radius_meters: parseInt(radius, 10),
@@ -145,7 +179,7 @@ export default function MeetingsScreen({ navigation }) {
   };
 
   const renderMeetingCard = ({ item }) => {
-    const dateObj = new Date(item.meeting_date);
+    const dateObj = new Date(item.date);
     return (
       <TouchableOpacity 
         style={styles.card} 
@@ -184,7 +218,7 @@ export default function MeetingsScreen({ navigation }) {
         
         <View style={styles.header}>
           <Text style={styles.title}>{selectedMeeting.title}</Text>
-          <Text style={styles.subtitle}>{new Date(selectedMeeting.meeting_date).toLocaleString()}</Text>
+          <Text style={styles.subtitle}>{new Date(selectedMeeting.date).toLocaleString()}</Text>
         </View>
 
         <ScrollView style={{ flex: 1, padding: Spacing.md }}>

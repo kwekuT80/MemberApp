@@ -26,6 +26,7 @@ import ReportsScreen        from '../screens/ReportsScreen';
 import DossierScreen       from '../screens/DossierScreen';
 import ScanVerificationScreen from '../screens/ScanVerificationScreen';
 import MeetingsScreen       from '../screens/MeetingsScreen';
+import ViewMemberFinancialsScreen from '../screens/ViewMemberFinancialsScreen';
 import { Colors } from '../styles/theme';
 
 const Stack = createNativeStackNavigator();
@@ -137,6 +138,11 @@ export default function AppNavigator() {
                   <Stack.Screen name="RegistrarDashboard" component={RegistrarDashboard} />
                   <Stack.Screen name="Reports"            component={ReportsScreen} />
                   <Stack.Screen name="Meetings"           component={MeetingsScreen} />
+                </>
+              )}
+              {['super_admin', 'financial_registrar'].includes(role) && (
+                <>
+                  <Stack.Screen name="ViewMemberFinancials" component={ViewMemberFinancialsScreen} />
                 </>
               )}
               <Stack.Screen name="MemberForm"        component={MemberFormScreen} />
