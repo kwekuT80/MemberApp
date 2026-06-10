@@ -21,6 +21,8 @@ import {
   DependentsScreen,
 } from '../screens/SubformScreens';
 import FinancialsScreen from '../screens/FinancialsScreen';
+import FinancialHubScreen from '../screens/FinancialHubScreen';
+import FinancialHubStubScreen from '../screens/FinancialHubStubScreen';
 import MembershipCardScreen  from '../screens/MembershipCardScreen';
 import ReportsScreen        from '../screens/ReportsScreen';
 import DossierScreen       from '../screens/DossierScreen';
@@ -142,7 +144,14 @@ export default function AppNavigator() {
               )}
               {['super_admin', 'financial_registrar'].includes(role) && (
                 <>
+                  <Stack.Screen name="FinancialHub" component={FinancialHubScreen} />
                   <Stack.Screen name="ViewMemberFinancials" component={ViewMemberFinancialsScreen} />
+                  {/* Stub screens for financial quick-actions */}
+                  <Stack.Screen name="FinancialHubPayments" component={FinancialHubStubScreen} />
+                  <Stack.Screen name="FinancialHubRates" component={FinancialHubStubScreen} />
+                  <Stack.Screen name="FinancialHubRatesHistory" component={FinancialHubStubScreen} />
+                  <Stack.Screen name="FinancialHubDelinquency" component={FinancialHubStubScreen} />
+                  <Stack.Screen name="FinancialHubAudit" component={FinancialHubStubScreen} />
                 </>
               )}
               <Stack.Screen name="MemberForm"        component={MemberFormScreen} />

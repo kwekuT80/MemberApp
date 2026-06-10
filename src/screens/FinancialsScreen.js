@@ -98,10 +98,16 @@ export default function FinancialsScreen({ navigation, route }) {
       
       {/* ── Brand Header ── */}
       <View style={styles.header}>
-        <View>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>← Back</Text>
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
           <Text style={styles.headerEyebrow}>K.S.J.I MEMBER SERVICE</Text>
           <Text style={styles.headerTitle}>Financial Ledger</Text>
         </View>
+        <TouchableOpacity onPress={() => navigation.navigate('FinancialHub')} style={styles.hubBtn}>
+          <Text style={styles.hubBtnText}>🏠 Hub</Text>
+        </TouchableOpacity>
         <View style={styles.yearBadge}>
           <Text style={styles.yearBadgeText}>{currentYear}</Text>
         </View>
@@ -232,13 +238,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1.5 
   },
-  safe: { 
-    flex: 1, 
-    backgroundColor: Colors.navy 
+  safe: {
+    flex: 1,
+    backgroundColor: Colors.navy
   },
-  header: { 
-    paddingHorizontal: Spacing.lg, 
-    paddingTop: Spacing.md, 
+  header: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.lg,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -246,6 +252,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.08)'
   },
+  backBtn: { marginRight: 4 },
+  backBtnText: { color: Colors.gold, fontWeight: '700', fontSize: 13 },
+  hubBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radii.sm, backgroundColor: 'rgba(255,255,255,0.08)', marginLeft: 4 },
+  hubBtnText: { color: Colors.gold, fontSize: 12, fontWeight: '700' },
   headerEyebrow: { 
     color: Colors.gold, 
     fontSize: 10, 
