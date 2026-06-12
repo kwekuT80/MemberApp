@@ -1,15 +1,19 @@
 // src/screens/FinancialHubScreen.js
 // Dedicated financial registrar hub — aggregate stats, quick actions, delinquency overview.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../db/supabase';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
+import { AuthContext } from '../navigation/AppNavigator';
+
+const FINANCIAL_ROLES = ['super_admin', 'financial_registrar'];
 
 export default function FinancialHubScreen({ navigation }) {
+  const { role } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [delinquency, setDelinquency] = useState([]);
@@ -18,6 +22,21 @@ export default function FinancialHubScreen({ navigation }) {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Check authorization — non-financial users see "Not Authorized" message
+  if (!FINANCIAL_ROLES.includes(role)) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.notAuthorizedContainer}>
+          <Text style={styles.notAuthorizedIcon}>🔒</Text>
+          <Text style={styles.notAuthorizedTitle}>Financial Access Required</Text>
+          <Text style={styles.notAuthorizedText}>
+            This screen is only available to Financial Registrars and Super Administrators.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   async function fetchData() {
     setLoading(true);
@@ -360,6 +379,11 @@ export default function FinancialHubScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.navy },
+  notAuthorizedContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl },
+  notAuthorizedIcon: { fontSize: 48, marginBottom: Spacing.lg },
+  notAuthorizedTitle: { color: Colors.gold, fontSize: Typography.sizes.xl, fontWeight: '900', marginBottom: Spacing.md },
+  notAuthorizedText: { color: Colors.grey300, fontSize: Typography.sizes.sm, textAlign: 'center', lineHeight: 22 },
+
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.navy },
   loadingText: { color: Colors.gold, fontSize: 14, fontWeight: '600', marginTop: 12 },
 

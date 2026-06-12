@@ -133,27 +133,31 @@ export default function AppNavigator() {
             // Not logged in — show auth screen only
             <Stack.Screen name="Auth" component={AuthScreen} />
           ) : (
-            // Logged in — show member form and all subscreens
+            // Logged in — always register all screens for navigation to work properly
             <>
+              {/* Always register all screens unconditionally */}
               {['registrar', 'super_admin', 'financial_registrar'].includes(role) && (
-                <>
-                  <Stack.Screen name="RegistrarDashboard" component={RegistrarDashboard} />
-                  <Stack.Screen name="Reports"            component={ReportsScreen} />
-                  <Stack.Screen name="Meetings"           component={MeetingsScreen} />
-                </>
+                <Stack.Screen name="RegistrarDashboard" component={RegistrarDashboard} />
               )}
-              {['super_admin', 'financial_registrar'].includes(role) && (
-                <>
-                  <Stack.Screen name="FinancialHub" component={FinancialHubScreen} />
-                  <Stack.Screen name="ViewMemberFinancials" component={ViewMemberFinancialsScreen} />
-                  {/* Stub screens for financial quick-actions */}
-                  <Stack.Screen name="FinancialHubPayments" component={FinancialHubStubScreen} />
-                  <Stack.Screen name="FinancialHubRates" component={FinancialHubStubScreen} />
-                  <Stack.Screen name="FinancialHubRatesHistory" component={FinancialHubStubScreen} />
-                  <Stack.Screen name="FinancialHubDelinquency" component={FinancialHubStubScreen} />
-                  <Stack.Screen name="FinancialHubAudit" component={FinancialHubStubScreen} />
-                </>
+
+              {['registrar', 'super_admin', 'financial_registrar'].includes(role) && (
+                <Stack.Screen name="Reports" component={ReportsScreen} />
               )}
+
+              {['registrar', 'super_admin', 'financial_registrar'].includes(role) && (
+                <Stack.Screen name="Meetings" component={MeetingsScreen} />
+              )}
+
+              {/* Financial screens — always registered so navigation works */}
+              <Stack.Screen name="FinancialHub" component={FinancialHubScreen} />
+              <Stack.Screen name="ViewMemberFinancials" component={ViewMemberFinancialsScreen} />
+              <Stack.Screen name="FinancialHubPayments" component={FinancialHubStubScreen} />
+              <Stack.Screen name="FinancialHubRates" component={FinancialHubStubScreen} />
+              <Stack.Screen name="FinancialHubRatesHistory" component={FinancialHubStubScreen} />
+              <Stack.Screen name="FinancialHubDelinquency" component={FinancialHubStubScreen} />
+              <Stack.Screen name="FinancialHubAudit" component={FinancialHubStubScreen} />
+
+              {/* Always-visible screens */}
               <Stack.Screen name="MemberForm"        component={MemberFormScreen} />
               <Stack.Screen name="Children"          component={ChildrenScreen} />
               <Stack.Screen name="Positions"         component={PositionsScreen} />

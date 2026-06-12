@@ -179,12 +179,22 @@ export default function RegistrarDashboard({ navigation }) {
           <Text style={styles.title}>Dashboard</Text>
           <Text style={styles.subtitle}>All Registered Members</Text>
         </View>
-        <TouchableOpacity 
-          style={styles.headerReportBtn} 
-          onPress={() => navigation.navigate('Reports')}
-        >
-          <Text style={styles.headerReportBtnText}>Reports</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActionsRow}>
+          <TouchableOpacity
+            style={styles.headerReportBtn}
+            onPress={() => navigation.navigate('Reports')}
+          >
+            <Text style={styles.headerReportBtnText}>Reports</Text>
+          </TouchableOpacity>
+          {['super_admin', 'financial_registrar'].includes(role as string) && (
+            <TouchableOpacity
+              style={[styles.headerReportBtn, styles.financialHubBtn]}
+              onPress={() => navigation.navigate('FinancialHub')}
+            >
+              <Text style={styles.headerReportBtnText}>Financial Hub</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <View style={styles.searchContainer}>
@@ -393,6 +403,14 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: 1,
     borderColor: Colors.gold,
+  },
+  headerActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  financialHubBtn: {
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    borderColor: '#3B82F6',
   },
   headerReportBtnText: {
     color: Colors.gold,
