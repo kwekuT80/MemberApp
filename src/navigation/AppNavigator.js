@@ -148,15 +148,6 @@ export default function AppNavigator() {
                 <Stack.Screen name="Meetings" component={MeetingsScreen} />
               )}
 
-              {/* Financial screens — always registered so navigation works */}
-              <Stack.Screen name="FinancialHub" component={FinancialHubScreen} />
-              <Stack.Screen name="ViewMemberFinancials" component={ViewMemberFinancialsScreen} />
-              <Stack.Screen name="FinancialHubPayments" component={FinancialHubStubScreen} />
-              <Stack.Screen name="FinancialHubRates" component={FinancialHubStubScreen} />
-              <Stack.Screen name="FinancialHubRatesHistory" component={FinancialHubStubScreen} />
-              <Stack.Screen name="FinancialHubDelinquency" component={FinancialHubStubScreen} />
-              <Stack.Screen name="FinancialHubAudit" component={FinancialHubStubScreen} />
-
               {/* Always-visible screens */}
               <Stack.Screen name="MemberForm"        component={MemberFormScreen} />
               <Stack.Screen name="Children"          component={ChildrenScreen} />
@@ -170,6 +161,15 @@ export default function AppNavigator() {
               <Stack.Screen name="MembershipCard"   component={MembershipCardScreen} />
               <Stack.Screen name="Dossier"          component={DossierScreen} />
               <Stack.Screen name="ScanVerification" component={ScanVerificationScreen} options={{ headerShown: false }} />
+
+              {/* Financial screens — always registered so navigation works */}
+              <Stack.Screen name="FinancialHub" component={FinancialHubScreen} />
+              <Stack.Screen name="ViewMemberFinancials" component={ViewMemberFinancialsScreen} />
+              <Stack.Screen name="FinancialHubPayments" component={FinancialHubStubScreen} />
+              <Stack.Screen name="FinancialHubRates" component={FinancialHubStubScreen} />
+              <Stack.Screen name="FinancialHubRatesHistory" component={FinancialHubStubScreen} />
+              <Stack.Screen name="FinancialHubDelinquency" component={FinancialHubStubScreen} />
+              <Stack.Screen name="FinancialHubAudit" component={FinancialHubStubScreen} />
             </>
           )}
         </Stack.Navigator>

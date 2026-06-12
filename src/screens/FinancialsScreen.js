@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, StatusBar, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, StatusBar, TouchableOpacity, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../db/supabase';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
+import { AuthContext } from '../navigation/AppNavigator';
+
+const WEB_APP_URL = 'https://app.ksji500.org/registrar/financials';
 
 export default function FinancialsScreen({ navigation, route }) {
+  const { role } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [assessment, setAssessment] = useState(null);
   const [payments, setPayments] = useState([]);
@@ -105,9 +109,11 @@ export default function FinancialsScreen({ navigation, route }) {
           <Text style={styles.headerEyebrow}>K.S.J.I MEMBER SERVICE</Text>
           <Text style={styles.headerTitle}>Financial Ledger</Text>
         </View>
-        <TouchableOpacity onPress={() => navigation.navigate('FinancialHub')} style={styles.hubBtn}>
-          <Text style={styles.hubBtnText}>🏠 Hub</Text>
-        </TouchableOpacity>
+        {['super_admin', 'financial_registrar'].includes(role) && (
+          <TouchableOpacity onPress={() => navigation.navigate('FinancialHub')} style={styles.hubBtn}>
+            <Text style={styles.hubBtnText}>🏠 Hub</Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.yearBadge}>
           <Text style={styles.yearBadgeText}>{currentYear}</Text>
         </View>
@@ -148,6 +154,26 @@ export default function FinancialsScreen({ navigation, route }) {
               />
             </View>
           </View>
+
+          {outstanding > 0 && (
+            <TouchableOpacity
+              style={styles.payBtn}
+              onPress={async () => {
+                try {
+                  const supported = await Linking.canOpenURL(WEB_APP_URL);
+                  if (supported) {
+                    await Linking.openURL(WEB_APP_URL);
+                  } else {
+                    Alert.alert('Unable to open portal', `Please open a browser and visit: ${WEB_APP_URL}`);
+                  }
+                } catch (e) {
+                  Alert.alert('Error', e.message);
+                }
+              }}
+            >
+              <Text style={styles.payBtnText}>💳 Make Payment Online</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* ── BILLING BREAKDOWN (HIGH-CONTRAST CARD) ── */}
@@ -297,6 +323,21 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     marginBottom: Spacing.xl,
     ...Shadows.glass
+  },
+  payBtn: {
+    backgroundColor: Colors.gold,
+    borderRadius: Radii.md,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.goldLight,
+  },
+  payBtnText: {
+    color: Colors.navy,
+    fontWeight: '900',
+    fontSize: Typography.sizes.sm,
+    letterSpacing: 0.5,
   },
   outstandingHeader: {
     flexDirection: 'row',

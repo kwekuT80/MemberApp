@@ -13,7 +13,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../db/supabase';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
-import * as Location from 'expo-location'; // Optional depending on how it's set up, using expo-location is best practice for RN/Expo. Or just navigator.geolocation if web.
+
+// expo-location is optional — don't crash the app if it's not available in the APK build
+let Location = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, node/no-unpublished-require
+  Location = require('expo-location');
+} catch (e) {
+  console.warn('expo-location not available, GPS features will be disabled:', e.message);
+}
 
 export default function MeetingsScreen({ navigation }) {
   const [view, setView] = useState('list'); // 'list', 'form', 'dashboard'

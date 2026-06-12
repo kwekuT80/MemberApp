@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../db/supabase';
 import { getDashboardInsights, getBirthdayReminders } from '../db/memberQueries';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
+import { AuthContext } from '../navigation/AppNavigator';
 
 export default function RegistrarDashboard({ navigation }) {
+  const { role } = useContext(AuthContext);
   const [members, setMembers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
