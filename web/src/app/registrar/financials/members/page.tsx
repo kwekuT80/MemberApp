@@ -4,6 +4,7 @@ import { requireFinancialRegistrar } from '@/lib/auth/requireFinancialRegistrar'
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { getAllMemberSummaries } from '@/services/financialService';
 import Link from 'next/link';
+import FinancialSummaryExportButtons from '@/components/financials/FinancialSummaryExportButtons';
 
 interface SummaryFilters {
   status?: string;
@@ -123,13 +124,25 @@ export default async function MemberSummaryPage({
               </select>
             </div>
 
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button type="submit" className="btn btn-gold">
-                Apply Filter
-              </button>
-              <Link href="/registrar/financials/members" className="btn btn-secondary">
-                Reset
-              </Link>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button type="submit" className="btn btn-gold">
+                  Apply Filter
+                </button>
+                <Link href="/registrar/financials/members" className="btn btn-secondary">
+                  Reset
+                </Link>
+              </div>
+              <div style={{ marginLeft: 'auto' }}>
+                <FinancialSummaryExportButtons 
+                  summaries={summaries}
+                  totalAssessed={totalAssessed}
+                  totalPaid={totalPaid}
+                  totalOutstanding={totalOutstanding}
+                  delinquentCount={delinquentCount}
+                  collectionRate={collectionRate}
+                />
+              </div>
             </div>
 
           </form>

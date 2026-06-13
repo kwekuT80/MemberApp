@@ -29,7 +29,7 @@ export default function AuditLogClient() {
     loadData();
   }, []);
 
-  async function loadData() {
+  async function loadData(actionOverride?: string, memberIdOverride?: string) {
     setLoading(true);
     try {
       // Load members for filter dropdown
@@ -41,10 +41,13 @@ export default function AuditLogClient() {
 
       if (memberList) setMembers(memberList);
 
+      const activeAction = actionOverride !== undefined ? actionOverride : filterAction;
+      const activeMemberId = memberIdOverride !== undefined ? memberIdOverride : filterMemberId;
+
       // Load audit log with filters
       const data = await getAuditLog({
-        action: filterAction || undefined,
-        memberId: filterMemberId || undefined,
+        action: activeAction || undefined,
+        memberId: activeMemberId || undefined,
         limit: 500,
       });
       setEntries(data as any[]);
@@ -52,6 +55,121 @@ export default function AuditLogClient() {
       setLoading(false);
     }
   }
+
+  const downloadAuditCSV = () => {
+    if (!entries.length) return;
+
+    const headers = [
+      'Timestamp',
+      'Action Type',
+      'Target Member',
+      'Changed By',
+      'Details'
+    ];
+
+    const rows = entries.map(entry => {
+      const actionLabel = ACTION_LABELS[entry.action as AuditAction] || entry.action;
+      const memberName = entry.members ? `${entry.members.first_name} ${entry.members.surname}` : '—';
+      const changedBy = entry.profiles?.email || entry.changed_by_email || 'System';
+      const details = entry.entity_type === 'payment' ? `Payment ID: ${entry.entity_id}` : '—';
+
+      return [
+        new Date(entry.changed_at).toLocaleString(),
+        actionLabel,
+        memberName,
+        changedBy,
+        details
+      ];
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `financial_audit_trail_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const printAuditPDF = () => {
+    if (!entries.length) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print this report.');
+      return;
+    }
+
+    const rowsHtml = entries.map(entry => {
+      const timestamp = new Date(entry.changed_at).toLocaleString();
+      const actionLabel = ACTION_LABELS[entry.action as AuditAction] || entry.action;
+      const memberName = entry.members ? `${entry.members.first_name} ${entry.members.surname}` : '—';
+      const changedBy = entry.profiles?.email || entry.changed_by_email || 'System';
+      const details = entry.entity_type === 'payment' ? `#${entry.entity_id.toString().slice(-6)}` : '—';
+
+      return `
+        <tr>
+          <td>${timestamp}</td>
+          <td><strong>${actionLabel}</strong></td>
+          <td>${memberName}</td>
+          <td>${changedBy}</td>
+          <td style="font-family: monospace; font-size: 11px;">${details}</td>
+        </tr>
+      `;
+    }).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Financial Audit Trail</title>
+          <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #10233f; }
+            .report-header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #C9A84C; padding-bottom: 20px; }
+            .report-header h1 { text-transform: uppercase; letter-spacing: 2px; margin: 0; font-size: 24px; color: #10233f; }
+            .report-header p { color: #C9A84C; font-weight: 700; margin: 5px 0 0 0; }
+            
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { text-align: left; padding: 12px; border-bottom: 2px solid #10233f; font-size: 12px; text-transform: uppercase; background: #f1f5f9; }
+            td { padding: 12px; border-bottom: 1px solid #eee; font-size: 12px; }
+            .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #64748b; }
+            @page { margin: 1.5cm; }
+          </style>
+        </head>
+        <body onload="window.print(); window.onafterprint = function() { window.close(); }">
+          <div class="report-header">
+            <h1>Knight St. John International</h1>
+            <p>Official Financial Audit Trail — Journal Log</p>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Action</th>
+                <th>Member</th>
+                <th>Changed By</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+          <div class="footer">
+            <p>Confidential — Official System Audit Trail</p>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-4">
@@ -61,7 +179,7 @@ export default function AuditLogClient() {
           Action Type
           <select
             value={filterAction}
-            onChange={(e) => { setFilterAction(e.target.value); loadData(); }}
+            onChange={(e) => { const val = e.target.value; setFilterAction(val); loadData(val, undefined); }}
             className="ml-2 block rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
           >
             <option value="">All</option>
@@ -76,7 +194,7 @@ export default function AuditLogClient() {
           Member
           <select
             value={filterMemberId}
-            onChange={(e) => { setFilterMemberId(e.target.value); loadData(); }}
+            onChange={(e) => { const val = e.target.value; setFilterMemberId(val); loadData(undefined, val); }}
             className="ml-2 block rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
           >
             <option value="">All Members</option>
@@ -86,12 +204,31 @@ export default function AuditLogClient() {
           </select>
         </label>
 
-        <button
-          onClick={() => loadData()}
-          className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm font-medium"
-        >
-          Refresh
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => loadData()}
+            className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm font-medium"
+          >
+            Refresh
+          </button>
+          {entries.length > 0 && (
+            <>
+              <button
+                onClick={downloadAuditCSV}
+                className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md hover:bg-gray-200 text-sm font-medium"
+              >
+                📥 Export CSV
+              </button>
+              <button
+                onClick={printAuditPDF}
+                style={{ background: 'var(--gold)', color: 'var(--navy)' }}
+                className="px-4 py-2 rounded-md hover:opacity-90 text-sm font-medium"
+              >
+                🖨️ Print PDF
+              </button>
+            </>
+          )}
+        </div>
 
         <span className="text-sm text-gray-500 ml-auto">
           {entries.length} entries found

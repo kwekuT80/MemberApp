@@ -211,6 +211,48 @@ export default function DelinquencyPrintView({ buckets, totalOutstanding, curren
     printWindow.document.close();
   };
 
+  const downloadCSV = () => {
+    const allMembers = buckets.flatMap(b => 
+      b.members.map(m => ({
+        bucketLabel: b.label,
+        fullName: m.full_name,
+        phone: m.phone_number || 'N/A',
+        email: m.email || 'N/A',
+        outstanding: parseFloat(m.outstanding_balance || 0).toFixed(2)
+      }))
+    );
+
+    if (!allMembers.length) {
+      alert('No delinquent records to export.');
+      return;
+    }
+
+    const headers = ['Severity Bucket', 'Brother\'s Name', 'Phone Number', 'Email', 'Outstanding Balance (₵)'];
+    
+    const rows = allMembers.map(m => [
+      m.bucketLabel,
+      m.fullName,
+      m.phone,
+      m.email,
+      m.outstanding
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `delinquent_members_${currentYear}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Auto-trigger print when window opens
   useEffect(() => {
     return () => {};
@@ -219,12 +261,18 @@ export default function DelinquencyPrintView({ buckets, totalOutstanding, curren
   const fmt = (n: number) => `GH¢ ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <div className="flex gap-3 no-print">
+    <div className="flex gap-3 no-print" style={{ display: 'flex', gap: 12 }}>
       <button
         onClick={handlePrint}
         style={{ background: '#10233f', color: 'white', border: 'none', padding: '14px 28px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 16 }}
       >
         📄 Print PDF Report
+      </button>
+      <button
+        onClick={downloadCSV}
+        style={{ background: '#f8fafc', color: '#10233f', border: '1px solid #cbd5e1', padding: '14px 28px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 16 }}
+      >
+        📥 Download CSV
       </button>
     </div>
   );

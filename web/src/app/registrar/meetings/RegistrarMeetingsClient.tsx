@@ -151,6 +151,129 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
     }
   }
 
+  const downloadAttendanceCSV = () => {
+    if (!attendanceReport.length || !selectedMeeting) return;
+
+    const headers = [
+      'Meeting Title',
+      'Meeting Date',
+      'Brother\'s Name',
+      'Email',
+      'Phone',
+      'Attendance Status',
+      'Check-in Time'
+    ];
+
+    const rows = attendanceReport.map(m => [
+      selectedMeeting.title || '',
+      new Date(selectedMeeting.date).toLocaleString(),
+      `${m.first_name} ${m.surname}`,
+      m.email || '',
+      m.phone || '',
+      m.status || 'Absent',
+      m.checkInTime ? new Date(m.checkInTime).toLocaleTimeString() : '—'
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${selectedMeeting.title.replace(/\s+/g, '_')}_attendance_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const printAttendancePDF = () => {
+    if (!attendanceReport.length || !selectedMeeting) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print this report.');
+      return;
+    }
+
+    const rowsHtml = attendanceReport.map(m => {
+      const checkInStr = m.checkInTime ? new Date(m.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+      const statusColor = m.status.startsWith('Present') ? '#16a34a' : m.status === 'Excused' ? '#0284c7' : '#dc2626';
+
+      return `
+        <tr>
+          <td><strong>${m.first_name} ${m.surname}</strong><br/><span style="font-size: 11px; color: #64748b;">${m.email || m.phone || 'No contact'}</span></td>
+          <td style="text-align: center;"><span style="color: ${statusColor}; font-weight: 700;">${m.status.toUpperCase()}</span></td>
+          <td style="text-align: right;">${checkInStr}</td>
+        </tr>
+      `;
+    }).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Attendance Report - ${selectedMeeting.title}</title>
+          <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #10233f; }
+            .report-header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #C9A84C; padding-bottom: 20px; }
+            .report-header h1 { text-transform: uppercase; letter-spacing: 2px; margin: 0; font-size: 24px; color: #10233f; }
+            .report-header p { color: #C9A84C; font-weight: 700; margin: 5px 0 0 0; }
+            
+            .meeting-info { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 30px; }
+            .meeting-info h2 { margin: 0 0 8px; color: #10233f; }
+            .meeting-info p { margin: 0; font-size: 13px; color: #64748b; }
+            
+            .stats-container { display: flex; gap: 15px; margin-top: 15px; }
+            .stat-badge { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 16px; font-size: 12px; font-weight: 700; }
+            
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { text-align: left; padding: 12px; border-bottom: 2px solid #10233f; font-size: 13px; text-transform: uppercase; background: #f1f5f9; }
+            td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
+            .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #64748b; }
+            @page { margin: 1.5cm; }
+          </style>
+        </head>
+        <body onload="window.print(); window.onafterprint = function() { window.close(); }">
+          <div class="report-header">
+            <h1>Knight St. John International</h1>
+            <p>Meeting Attendance Sheet</p>
+          </div>
+          
+          <div class="meeting-info">
+            <h2>${selectedMeeting.title}</h2>
+            <p>📅 <strong>Date:</strong> ${new Date(selectedMeeting.date).toLocaleString()} | 🎯 <strong>Geofence:</strong> ${selectedMeeting.radius_meters}m radius</p>
+            
+            <div class="stats-container">
+              <div class="stat-badge" style="border-left: 3px solid #16a34a; color: #16a34a;">Present: ${presentCount} (${presentPct}%)</div>
+              <div class="stat-badge" style="border-left: 3px solid #0284c7; color: #0284c7;">Excused: ${excusedCount} (${excusedPct}%)</div>
+              <div class="stat-badge" style="border-left: 3px solid #dc2626; color: #dc2626;">Absent: ${absentCount} (${absentPct}%)</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Member Name / Contact</th>
+                <th style="text-align: center;">Status</th>
+                <th style="text-align: right;">Check-in Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+          <div class="footer">
+            <p>Confidential — Official Commandery Registry Record</p>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 340px) 1fr', gap: 24, flexWrap: 'wrap' }}>
       {/* Left Column: Create Form & List */}
@@ -399,9 +522,27 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
 
             {/* Attendance List & Manual Overrides */}
             <div className="card" style={{ display: 'grid', gap: 16 }}>
-              <div>
-                <h3 style={{ margin: '0 0 4px', fontSize: 16, color: 'var(--navy)', fontWeight: 800 }}>📊 Live Attendance Roster</h3>
-                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Active members in St. Margaret-Mary registry check-in status.</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <h3 style={{ margin: '0 0 4px', fontSize: 16, color: 'var(--navy)', fontWeight: 800 }}>📊 Live Attendance Roster</h3>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Active members in St. Margaret-Mary registry check-in status.</p>
+                </div>
+                {attendanceReport.length > 0 && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button 
+                      onClick={downloadAttendanceCSV}
+                      style={{ background: '#f8fafc', color: 'var(--navy)', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      📥 Export CSV
+                    </button>
+                    <button 
+                      onClick={printAttendancePDF}
+                      style={{ background: 'var(--gold)', color: 'var(--navy)', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      🖨️ Print PDF
+                    </button>
+                  </div>
+                )}
               </div>
 
               {loadingReport ? (

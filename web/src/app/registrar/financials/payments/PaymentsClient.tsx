@@ -105,6 +105,119 @@ export default function PaymentsClient({
     setPayments((data || []) as Payment[]);
   }
 
+  const downloadPaymentsCSV = () => {
+    if (!filteredPayments.length) return;
+
+    const headers = [
+      'Member Name',
+      'Assessment Year',
+      'Month',
+      'Amount (GH¢)',
+      'Payment Date'
+    ];
+
+    const rows = filteredPayments.map(p => [
+      `${p.members?.title || 'Bro.'} ${p.members?.first_name} ${p.members?.surname}`,
+      p.assessment_year,
+      p.month,
+      p.amount.toFixed(2),
+      new Date(p.payment_date).toLocaleDateString()
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `payments_log_${year}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const printPaymentsPDF = () => {
+    if (!filteredPayments.length) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print this report.');
+      return;
+    }
+
+    const rowsHtml = filteredPayments.map(p => {
+      const dateStr = new Date(p.payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      return `
+        <tr>
+          <td><strong>${p.members?.title || 'Bro.'} ${p.members?.first_name} ${p.members?.surname}</strong></td>
+          <td>${p.month}</td>
+          <td>${dateStr}</td>
+          <td style="text-align: right; font-weight: 700; color: #166534;">GH¢ ${parseFloat(p.amount as any).toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Payments Log - ${year}</title>
+          <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #10233f; }
+            .report-header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #C9A84C; padding-bottom: 20px; }
+            .report-header h1 { text-transform: uppercase; letter-spacing: 2px; margin: 0; font-size: 24px; color: #10233f; }
+            .report-header p { color: #C9A84C; font-weight: 700; margin: 5px 0 0 0; }
+            
+            .summary-info { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+            .summary-info h3 { margin: 0; font-size: 13px; color: #64748b; text-transform: uppercase; }
+            .summary-info .val { font-size: 20px; font-weight: 800; color: #166534; }
+            
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { text-align: left; padding: 12px; border-bottom: 2px solid #10233f; font-size: 13px; text-transform: uppercase; background: #f1f5f9; }
+            td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
+            .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #64748b; }
+            @page { margin: 1.5cm; }
+          </style>
+        </head>
+        <body onload="window.print(); window.onafterprint = function() { window.close(); }">
+          <div class="report-header">
+            <h1>Knight St. John International</h1>
+            <p>Recorded Payments Journal — Year ${year}</p>
+          </div>
+          
+          <div class="summary-info">
+            <div>
+              <h3>Total Collected Amount</h3>
+              <p style="margin: 4px 0 0; font-size: 12px; color: #64748b;">Filtered records count: ${filteredPayments.length}</p>
+            </div>
+            <div class="val">GH¢ ${totalCollected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Member Name</th>
+                <th>Month</th>
+                <th>Payment Date</th>
+                <th style="text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+          <div class="footer">
+            <p>Confidential — Official Financial Registrar Ledger Record</p>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const fmt = (n: number) =>
     `GH¢ ${parseFloat(n as any).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
@@ -229,10 +342,28 @@ export default function PaymentsClient({
 
         {/* Recent Payments */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--bg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-            <h3 style={{ margin: 0, color: 'var(--navy)', fontWeight: 800, fontSize: 16 }}>
-              Payment Log ({year})
-            </h3>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--bg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <h3 style={{ margin: 0, color: 'var(--navy)', fontWeight: 800, fontSize: 16 }}>
+                Payment Log ({year})
+              </h3>
+              {filteredPayments.length > 0 && (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button 
+                    onClick={downloadPaymentsCSV}
+                    style={{ background: '#f8fafc', color: 'var(--navy)', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    📥 CSV
+                  </button>
+                  <button 
+                    onClick={printPaymentsPDF}
+                    style={{ background: 'var(--gold)', color: 'var(--navy)', border: 'none', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    🖨️ PDF
+                  </button>
+                </div>
+              )}
+            </div>
             <input className="input" placeholder="Filter payments..."
               value={paySearch} onChange={e => setPaySearch(e.target.value)}
               style={{ width: 170, padding: '8px 12px', fontSize: 12 }} />
