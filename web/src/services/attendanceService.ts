@@ -50,7 +50,9 @@ export async function checkInMember(payload: {
   gps_latitude?: number;
   gps_longitude?: number;
   accuracy_meters?: number;
+  accuracy?: number;
   verified?: boolean;
+  override_note?: string;
 }) {
   const supabase = await createClient();
   
@@ -73,6 +75,59 @@ export async function checkInMember(payload: {
     .single();
   if (error) throw error;
   return data;
+}
+
+/**
+ * Registrar directly grants an excused absence on behalf of a member
+ * who submitted an official letter to the secretary (bypassing the member portal).
+ * Upserts so that existing pending requests are promoted to 'approved'.
+ */
+export async function registrarGrantExcuse(payload: {
+  meeting_id: string;
+  member_id: string;
+  reason: string;
+  granted_by: string;
+}) {
+  const supabase = await createClient();
+
+  // Check if there is already an absence request for this member + meeting
+  const { data: existing } = await supabase
+    .from('absence_requests')
+    .select('id')
+    .eq('meeting_id', payload.meeting_id)
+    .eq('member_id', payload.member_id)
+    .maybeSingle();
+
+  if (existing) {
+    // Promote the existing request to approved
+    const { data, error } = await supabase
+      .from('absence_requests')
+      .update({
+        status: 'approved',
+        reason: payload.reason,
+        reviewed_by: payload.granted_by,
+      })
+      .eq('id', existing.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } else {
+    // Insert a new pre-approved request
+    const { data, error } = await supabase
+      .from('absence_requests')
+      .insert({
+        meeting_id: payload.meeting_id,
+        member_id: payload.member_id,
+        reason: payload.reason,
+        status: 'approved',
+        reviewed_by: payload.granted_by,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
 }
 
 export async function getAbsenceRequests(meetingId: string) {

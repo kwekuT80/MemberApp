@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { createMeeting, checkInMember, getAbsenceRequests, reviewAbsenceRequest, getAttendanceReport } from '@/services/attendanceService';
+import { createMeeting, checkInMember, getAbsenceRequests, reviewAbsenceRequest, getAttendanceReport, registrarGrantExcuse } from '@/services/attendanceService';
 
 interface Props {
   profile: any;
@@ -39,6 +39,15 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // ── Manual Permission Modal state ──────────────────────────────────────────
+  const [activeModal, setActiveModal] = useState<null | {
+    type: 'checkin' | 'excuse';
+    memberId: string;
+    memberName: string;
+  }>(null);
+  const [modalNote, setModalNote] = useState('');
+  const [modalSubmitting, setModalSubmitting] = useState(false);
 
   // Load report and requests whenever selected meeting changes
   useEffect(() => {
@@ -117,21 +126,50 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
     }
   }
 
-  async function handleManualCheckIn(memberId: string) {
-    if (!selectedMeeting) return;
+  // Open the modal for either a manual check-in or a grant-excuse action
+  function openModal(type: 'checkin' | 'excuse', memberId: string, memberName: string) {
+    setModalNote('');
+    setActiveModal({ type, memberId, memberName });
+  }
+
+  function closeModal() {
+    setActiveModal(null);
+    setModalNote('');
+    setModalSubmitting(false);
+  }
+
+  // Dispatches the correct action when the modal is confirmed
+  async function handleModalConfirm() {
+    if (!activeModal || !selectedMeeting) return;
+    setModalSubmitting(true);
     try {
-      await checkInMember({
-        meeting_id: selectedMeeting.id,
-        member_id: memberId,
-        method: 'manual',
-        verified_by: profile.id,
-        commandery_id: profile.commandery_id
-      });
-      
-      // Refresh report
+      if (activeModal.type === 'checkin') {
+        await checkInMember({
+          meeting_id: selectedMeeting.id,
+          member_id: activeModal.memberId,
+          method: 'manual_registrar',
+          verified_by: profile.id,
+          commandery_id: profile.commandery_id,
+          override_note: modalNote.trim() || undefined,
+        });
+      } else {
+        if (!modalNote.trim()) {
+          alert('Please provide a reason for the excuse.');
+          setModalSubmitting(false);
+          return;
+        }
+        await registrarGrantExcuse({
+          meeting_id: selectedMeeting.id,
+          member_id: activeModal.memberId,
+          reason: modalNote.trim(),
+          granted_by: profile.id,
+        });
+      }
+      closeModal();
       loadMeetingData(selectedMeeting.id);
     } catch (e: any) {
-      alert(`Check-in failed: ${e.message}`);
+      alert(`Action failed: ${e.message}`);
+      setModalSubmitting(false);
     }
   }
 
@@ -143,8 +181,6 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
         status,
         reviewed_by: profile.id
       });
-
-      // Refresh report & requests list
       loadMeetingData(selectedMeeting.id);
     } catch (e: any) {
       alert(`Failed to review excuse: ${e.message}`);
@@ -552,47 +588,49 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
               ) : (
                 <div style={{ display: 'grid', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
                   {/* Table Header */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', background: '#f8fafc', padding: '12px 16px', fontWeight: 800, fontSize: 12, color: 'var(--navy)', borderBottom: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.4fr', background: '#f8fafc', padding: '12px 16px', fontWeight: 800, fontSize: 12, color: 'var(--navy)', borderBottom: '1px solid #e2e8f0' }}>
                     <span>MEMBER</span>
                     <span>STATUS</span>
-                    <span style={{ textAlign: 'right' }}>OVERRIDE ACTION</span>
+                    <span style={{ textAlign: 'right' }}>OVERRIDE ACTIONS</span>
                   </div>
 
                   {/* Table Body */}
                   {attendanceReport.map((m) => {
                     const isPresent = m.status.startsWith('Present');
                     const isExcused = m.status === 'Excused';
+                    const isPending = m.status === 'Excuse Pending';
+                    const memberName = `${m.first_name} ${m.surname}`;
+
+                    const statusBg = isPresent ? '#e6f4ea' : isExcused ? '#e0f2fe' : isPending ? '#fef9c3' : '#fdeaea';
+                    const statusColor = isPresent ? '#1f6f43' : isExcused ? '#0369a1' : isPending ? '#92400e' : 'crimson';
 
                     return (
                       <div 
                         key={m.id} 
                         style={{ 
                           display: 'grid', 
-                          gridTemplateColumns: '1.5fr 1fr 1fr', 
+                          gridTemplateColumns: '1.5fr 1fr 1.4fr', 
                           padding: '14px 16px', 
                           alignItems: 'center', 
                           fontSize: 13, 
                           borderBottom: '1px solid #f1f5f9',
-                          background: isPresent ? 'rgba(34, 197, 94, 0.01)' : 'transparent' 
+                          background: isPresent ? 'rgba(34,197,94,0.02)' : isExcused ? 'rgba(3,105,161,0.02)' : 'transparent',
                         }}
                       >
+                        {/* Col 1: Member name */}
                         <div>
-                          <strong style={{ color: 'var(--navy)', display: 'block' }}>{m.first_name} {m.surname}</strong>
+                          <strong style={{ color: 'var(--navy)', display: 'block' }}>{memberName}</strong>
                           <span style={{ fontSize: 11, color: '#64748b' }}>{m.email || m.phone || 'No contact'}</span>
+                          {m.excuseReason && (
+                            <span style={{ fontSize: 10, color: '#0369a1', display: 'block', marginTop: 3, fontStyle: 'italic' }}>
+                              ✍️ &ldquo;{m.excuseReason}&rdquo;
+                            </span>
+                          )}
                         </div>
 
+                        {/* Col 2: Status badge */}
                         <div>
-                          <span 
-                            style={{ 
-                              display: 'inline-block',
-                              padding: '4px 8px',
-                              borderRadius: 6,
-                              fontSize: 11,
-                              fontWeight: 800,
-                              background: isPresent ? '#e6f4ea' : isExcused ? '#e0f2fe' : '#fdeaea',
-                              color: isPresent ? '#1f6f43' : isExcused ? '#0369a1' : 'crimson'
-                            }}
-                          >
+                          <span style={{ display: 'inline-block', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800, background: statusBg, color: statusColor }}>
                             {m.status.toUpperCase()}
                           </span>
                           {m.checkInTime && (
@@ -602,26 +640,32 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                           )}
                         </div>
 
-                        <div style={{ textAlign: 'right' }}>
-                          {!isPresent && (
-                            <button
-                              onClick={() => handleManualCheckIn(m.id)}
-                              style={{ 
-                                padding: '6px 12px', 
-                                background: '#10233f', 
-                                color: '#fff', 
-                                border: 0, 
-                                borderRadius: 6, 
-                                fontSize: 11, 
-                                fontWeight: 700, 
-                                cursor: 'pointer',
-                                transition: 'all 0.2s'
-                              }}
-                            >
-                              🔗 Manual Check-In
-                            </button>
+                        {/* Col 3: Override action buttons */}
+                        <div style={{ textAlign: 'right', display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                          {isPresent && (
+                            <span style={{ color: '#22c55e', fontWeight: 800, fontSize: 13 }}>✓ PRESENT</span>
                           )}
-                          {isPresent && <span style={{ color: '#22c55e', fontWeight: 800, fontSize: 14 }}>✓ PRESENT</span>}
+                          {isExcused && (
+                            <span style={{ color: '#0369a1', fontWeight: 700, fontSize: 12 }}>✉️ EXCUSED</span>
+                          )}
+                          {!isPresent && !isExcused && (
+                            <>
+                              <button
+                                onClick={() => openModal('checkin', m.id, memberName)}
+                                style={{ padding: '5px 10px', background: '#10233f', color: '#fff', border: 0, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                                title="Manually sign this member in"
+                              >
+                                🔗 Check In
+                              </button>
+                              <button
+                                onClick={() => openModal('excuse', m.id, memberName)}
+                                style={{ padding: '5px 10px', background: '#0284c7', color: '#fff', border: 0, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                                title="Grant an official excuse from an external letter"
+                              >
+                                ✉️ Grant Excuse
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     );
@@ -635,6 +679,132 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             📅 Select or create a meeting to manage live attendance.
           </div>
         )}
+
+      {/* ── Manual Permission Modal ─────────────────────────────────────────── */}
+      {activeModal && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(10, 20, 40, 0.65)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(3px)',
+            padding: 24,
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 16,
+              padding: 32,
+              maxWidth: 480,
+              width: '100%',
+              boxShadow: '0 24px 64px rgba(10,20,40,0.25)',
+              display: 'grid',
+              gap: 20,
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 18, color: 'var(--navy)', fontWeight: 800 }}>
+                  {activeModal.type === 'checkin' ? '🔗 Manual Check-In' : '✉️ Grant Official Excuse'}
+                </h2>
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: '#64748b' }}>
+                  {activeModal.type === 'checkin'
+                    ? 'You are signing this member in on their behalf.'
+                    : 'You are granting an approved excuse for this member.'}
+                </p>
+              </div>
+              <button
+                onClick={closeModal}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#94a3b8', padding: 4, lineHeight: 1 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Member name pill */}
+            <div style={{ background: '#f1f5f9', borderRadius: 10, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 22 }}>{activeModal.type === 'checkin' ? '👤' : '📋'}</span>
+              <div>
+                <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Member</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{activeModal.memberName}</div>
+              </div>
+            </div>
+
+            {/* Note / Reason field */}
+            <div style={{ display: 'grid', gap: 8 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                {activeModal.type === 'checkin'
+                  ? 'Reason for Manual Check-In (optional)'
+                  : 'Official Reason / Letter Reference *'}
+              </label>
+              <textarea
+                value={modalNote}
+                onChange={(e) => setModalNote(e.target.value)}
+                rows={3}
+                placeholder={
+                  activeModal.type === 'checkin'
+                    ? 'e.g. Phone was dead, confirmed present in person'
+                    : 'e.g. Official letter received 16 June 2026, signed by Secretary'
+                }
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  border: '1.5px solid #e2e8f0',
+                  fontSize: 13,
+                  fontFamily: 'inherit',
+                  resize: 'vertical',
+                  outline: 'none',
+                  color: '#1e293b',
+                  lineHeight: 1.6,
+                }}
+                autoFocus
+              />
+              {activeModal.type === 'excuse' && (
+                <p style={{ margin: 0, fontSize: 11, color: '#94a3b8' }}>
+                  * Required. This is recorded as the official excuse in the attendance log.
+                </p>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={closeModal}
+                disabled={modalSubmitting}
+                style={{ padding: '10px 20px', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleModalConfirm}
+                disabled={modalSubmitting}
+                style={{
+                  padding: '10px 24px',
+                  background: activeModal.type === 'checkin' ? 'var(--navy)' : '#0284c7',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: modalSubmitting ? 'not-allowed' : 'pointer',
+                  opacity: modalSubmitting ? 0.7 : 1,
+                  minWidth: 120,
+                }}
+              >
+                {modalSubmitting
+                  ? '⏳ Saving...'
+                  : activeModal.type === 'checkin'
+                  ? '✅ Confirm Check-In'
+                  : '✉️ Grant Excuse'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );
