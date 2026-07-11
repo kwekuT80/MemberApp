@@ -147,7 +147,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
         await checkInMember({
           meeting_id: selectedMeeting.id,
           member_id: activeModal.memberId,
-          method: 'manual_registrar',
+          method: 'manual',
           verified_by: profile.id,
           commandery_id: profile.commandery_id,
           override_note: modalNote.trim() || undefined,

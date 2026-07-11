@@ -56,13 +56,16 @@ export async function POST(request: Request) {
     }
 
     // Record attendance via QR scan
+    const { data: { user } } = await supabase.auth.getUser();
     const { data: checkIn, error: insertError } = await supabase
       .from('attendance')
       .insert({
         meeting_id: meetingId,
         member_id: memberId,
-        method: 'qr_scan',
+        method: 'manual',
         verified: true,
+        verified_by: user?.id || null,
+        commandery_id: member.commandery_id || null,
         check_in_time: new Date().toISOString(),
       })
       .select()
