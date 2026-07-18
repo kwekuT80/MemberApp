@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   FaUsers, 
   FaFileInvoiceDollar, 
@@ -8,8 +8,6 @@ import {
   FaExclamationTriangle, 
   FaDollarSign,
   FaBalanceScale,
-  FaChartPie,
-  FaChartBar,
   FaCalculator,
   FaLightbulb
 } from 'react-icons/fa';
@@ -30,9 +28,11 @@ interface InfographicDashboardProps {
 }
 
 export default function InfographicDashboard({ summaries }: InfographicDashboardProps) {
+  // Modal tracking state
+  const [selectedCard, setSelectedCard] = useState<number | null>(null);
+
   // CRITICAL REQUIREMENT: Exclude members with zero (0) assessment from the infographic data
   const infoMembers = summaries.filter(m => parseFloat(String(m.total_assessed || 0)) > 0);
-
   const totalMembersCount = infoMembers.length;
 
   // 1. Key Summary Calculations
@@ -148,25 +148,402 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
     return `GH₵${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  // SVG parameters for donut charts
-  const radius = 50;
-  const circumference = 2 * Math.PI * radius; // 314.159
+  // ─── CARD 1 RENDER ───
+  const renderCard1 = (isModal: boolean) => (
+    <div className="summary-tile-grid" style={isModal ? { gap: 16 } : undefined}>
+      <div className="summary-tile" style={{ background: '#f0f4f8' }}>
+        <div className="summary-tile-icon-bg" style={{ background: '#e1e7f0', color: 'var(--navy)' }}>
+          <FaUsers />
+        </div>
+        <div className="summary-tile-content">
+          <div className="summary-tile-label" style={isModal ? { fontSize: 11, whiteSpace: 'normal', overflow: 'visible' } : undefined}>Total Members</div>
+          <div className="summary-tile-value" style={isModal ? { fontSize: 20, whiteSpace: 'normal', overflow: 'visible' } : undefined}>{totalMembersCount}</div>
+        </div>
+      </div>
 
-  // Donut 1 (Status Breakdown)
-  const strokeFullyPaid = (fullyPaidPct / 100) * circumference;
-  const strokePartiallyPaid = (partiallyPaidPct / 100) * circumference;
-  const strokeDelinquent = (delinquentPct / 100) * circumference;
+      <div className="summary-tile" style={{ background: '#f0fdf4', border: '1px solid #dcfce7' }}>
+        <div className="summary-tile-icon-bg" style={{ background: '#dcfce7', color: '#16a34a' }}>
+          <FaFileInvoiceDollar />
+        </div>
+        <div className="summary-tile-content">
+          <div className="summary-tile-label" style={isModal ? { fontSize: 11, whiteSpace: 'normal', overflow: 'visible', color: '#15803d' } : { color: '#15803d' }}>Total Assessed</div>
+          <div className="summary-tile-value" style={isModal ? { fontSize: 18, whiteSpace: 'normal', overflow: 'visible', color: '#15803d' } : { color: '#15803d' }}>{fmt(totalAssessedSum)}</div>
+        </div>
+      </div>
 
-  const offsetFullyPaid = 0;
-  const offsetPartiallyPaid = -strokeFullyPaid;
-  const offsetDelinquent = -(strokeFullyPaid + strokePartiallyPaid);
+      <div className="summary-tile" style={{ background: '#ecfdf5', border: '1px solid #d1fae5' }}>
+        <div className="summary-tile-icon-bg" style={{ background: '#d1fae5', color: 'var(--success)' }}>
+          <FaCheckCircle />
+        </div>
+        <div className="summary-tile-content">
+          <div className="summary-tile-label" style={isModal ? { fontSize: 11, whiteSpace: 'normal', overflow: 'visible', color: 'var(--success)' } : { color: 'var(--success)' }}>Total Paid</div>
+          <div className="summary-tile-value" style={isModal ? { fontSize: 18, whiteSpace: 'normal', overflow: 'visible', color: 'var(--success)' } : { color: 'var(--success)' }}>{fmt(totalPaidSum)}</div>
+        </div>
+      </div>
 
-  // Donut 2 (Assessed vs Collected)
-  const strokeCollected = (collectionRate / 100) * circumference;
-  const strokeOutstanding = (outstandingRate / 100) * circumference;
+      <div className="summary-tile" style={{ background: '#fffbeb', border: '1px solid #fef3c7' }}>
+        <div className="summary-tile-icon-bg" style={{ background: '#fef3c7', color: '#d97706' }}>
+          <FaExclamationTriangle />
+        </div>
+        <div className="summary-tile-content">
+          <div className="summary-tile-label" style={isModal ? { fontSize: 11, whiteSpace: 'normal', overflow: 'visible', color: '#b45309' } : { color: '#b45309' }}>Net Outstanding</div>
+          <div className="summary-tile-value" style={isModal ? { fontSize: 18, whiteSpace: 'normal', overflow: 'visible', color: '#b45309' } : { color: '#b45309' }}>{fmt(netOutstandingSum)}</div>
+        </div>
+      </div>
 
-  const offsetCollected = 0;
-  const offsetOutstanding = -strokeCollected;
+      <div className="summary-tile" style={{ background: '#fff5f5', border: '1px solid #fee2e2' }}>
+        <div className="summary-tile-icon-bg" style={{ background: '#fee2e2', color: 'var(--danger)' }}>
+          <FaDollarSign />
+        </div>
+        <div className="summary-tile-content">
+          <div className="summary-tile-label" style={isModal ? { fontSize: 11, whiteSpace: 'normal', overflow: 'visible', color: 'var(--danger)' } : { color: 'var(--danger)' }}>Total Overpayments</div>
+          <div className="summary-tile-value" style={isModal ? { fontSize: 18, whiteSpace: 'normal', overflow: 'visible', color: 'var(--danger)' } : { color: 'var(--danger)' }}>{fmt(totalOverpaymentsSum)}</div>
+        </div>
+      </div>
+
+      <div className="summary-tile" style={{ background: '#f5f3ff', border: '1px solid #edd9ff' }}>
+        <div className="summary-tile-icon-bg" style={{ background: '#e8dbff', color: '#7c3aed' }}>
+          <FaBalanceScale />
+        </div>
+        <div className="summary-tile-content">
+          <div className="summary-tile-label" style={isModal ? { fontSize: 11, whiteSpace: 'normal', overflow: 'visible', color: '#6d28d9' } : { color: '#6d28d9' }}>Actual Indebtedness</div>
+          <div className="summary-tile-value" style={isModal ? { fontSize: 18, whiteSpace: 'normal', overflow: 'visible', color: '#6d28d9' } : { color: '#6d28d9', fontSize: 11 }}>{fmt(totalIndebtednessBeforeOffsets)}</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ─── CARD 2 RENDER ───
+  const renderCard2 = (isModal: boolean) => {
+    const size = isModal ? 180 : 120;
+    const r = isModal ? 70 : 50;
+    const circ = 2 * Math.PI * r;
+    const fp = (fullyPaidPct / 100) * circ;
+    const pp = (partiallyPaidPct / 100) * circ;
+    const del = (delinquentPct / 100) * circ;
+
+    return (
+      <div style={{ display: 'flex', gap: isModal ? 30 : 20, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <circle cx={size / 2} cy={size / 2} r={r} fill="transparent" stroke="#f1f5f9" strokeWidth={isModal ? 16 : 12} />
+            {fp > 0 && (
+              <circle cx={size / 2} cy={size / 2} r={r} fill="transparent" stroke="#16a34a" strokeWidth={isModal ? 16 : 12} 
+                strokeDasharray={`${fp} ${circ}`} strokeDashoffset={0} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+            )}
+            {pp > 0 && (
+              <circle cx={size / 2} cy={size / 2} r={r} fill="transparent" stroke="#f59e0b" strokeWidth={isModal ? 16 : 12} 
+                strokeDasharray={`${pp} ${circ}`} strokeDashoffset={-fp} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+            )}
+            {del > 0 && (
+              <circle cx={size / 2} cy={size / 2} r={r} fill="transparent" stroke="#dc2626" strokeWidth={isModal ? 16 : 12} 
+                strokeDasharray={`${del} ${circ}`} strokeDashoffset={-(fp + pp)} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+            )}
+          </svg>
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: isModal ? 28 : 18, fontWeight: 900, color: 'var(--navy)' }}>{totalMembersCount}</span>
+            <span style={{ fontSize: isModal ? 10 : 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Members</span>
+          </div>
+        </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: isModal ? 12 : 8, minWidth: 160 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 12, height: 12, borderRadius: 3, background: '#16a34a' }}></div>
+            <div style={{ fontSize: isModal ? 14 : 11, fontWeight: 700 }}>
+              Fully Paid <span style={{ color: 'var(--grey)' }}>({fullyPaidCount} - {fullyPaidPct.toFixed(1)}%)</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 12, height: 12, borderRadius: 3, background: '#f59e0b' }}></div>
+            <div style={{ fontSize: isModal ? 14 : 11, fontWeight: 700 }}>
+              Partially Paid <span style={{ color: 'var(--grey)' }}>({partiallyPaidCount} - {partiallyPaidPct.toFixed(1)}%)</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 12, height: 12, borderRadius: 3, background: '#dc2626' }}></div>
+            <div style={{ fontSize: isModal ? 14 : 11, fontWeight: 700 }}>
+              Delinquent <span style={{ color: 'var(--grey)' }}>({delinquentCount} - {delinquentPct.toFixed(1)}%)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── CARD 3 RENDER ───
+  const renderCard3 = (isModal: boolean) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isModal ? 14 : 10 }}>
+      {bucketCounts.map(b => {
+        const widthPct = (b.count / maxBucketCount) * 100;
+        return (
+          <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: isModal ? 110 : 95, fontSize: isModal ? 12 : 10, fontWeight: 800, color: 'var(--grey)', textAlign: 'right' }}>
+              {b.label}
+            </div>
+            <div style={{ flex: 1, height: isModal ? 24 : 16, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ width: `${widthPct}%`, height: '100%', background: b.color, borderRadius: 4 }}></div>
+            </div>
+            <div style={{ width: 24, fontSize: isModal ? 13 : 11, fontWeight: 900, color: 'var(--navy)' }}>
+              {b.count}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // ─── CARD 4 RENDER ───
+  const renderCard4 = (isModal: boolean) => {
+    const size = isModal ? 180 : 120;
+    const r = isModal ? 70 : 50;
+    const circ = 2 * Math.PI * r;
+    const coll = (collectionRate / 100) * circ;
+    const out = (outstandingRate / 100) * circ;
+
+    return (
+      <div style={{ display: 'flex', gap: isModal ? 30 : 20, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <circle cx={size / 2} cy={size / 2} r={r} fill="transparent" stroke="#f1f5f9" strokeWidth={isModal ? 16 : 12} />
+            {coll > 0 && (
+              <circle cx={size / 2} cy={size / 2} r={r} fill="transparent" stroke="#16a34a" strokeWidth={isModal ? 16 : 12} 
+                strokeDasharray={`${coll} ${circ}`} strokeDashoffset={0} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+            )}
+            {out > 0 && (
+              <circle cx={size / 2} cy={size / 2} r={r} fill="transparent" stroke="#dc2626" strokeWidth={isModal ? 16 : 12} 
+                strokeDasharray={`${out} ${circ}`} strokeDashoffset={-coll} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+            )}
+          </svg>
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: isModal ? 20 : 13, fontWeight: 950, color: '#16a34a' }}>{collectionRate.toFixed(1)}%</span>
+            <span style={{ fontSize: isModal ? 9 : 7, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Collection</span>
+          </div>
+        </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: isModal ? 12 : 10, minWidth: 180 }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 2, background: '#1D4ED8' }}></div>
+              <span style={{ fontSize: isModal ? 11 : 9.5, fontWeight: 800, color: 'var(--grey)' }}>TOTAL ASSESSED (100%)</span>
+            </div>
+            <div style={{ fontSize: isModal ? 15 : 12, fontWeight: 900, color: 'var(--navy)' }}>{fmt(totalAssessedSum)}</div>
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 2, background: '#16a34a' }}></div>
+              <span style={{ fontSize: isModal ? 11 : 9.5, fontWeight: 800, color: 'var(--success)' }}>TOTAL PAID ({collectionRate.toFixed(1)}%)</span>
+            </div>
+            <div style={{ fontSize: isModal ? 15 : 12, fontWeight: 900, color: 'var(--success)' }}>{fmt(totalPaidSum)}</div>
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 2, background: '#dc2626' }}></div>
+              <span style={{ fontSize: isModal ? 11 : 9.5, fontWeight: 800, color: 'var(--danger)' }}>NET OUTSTANDING ({outstandingRate.toFixed(1)}%)</span>
+            </div>
+            <div style={{ fontSize: isModal ? 15 : 12, fontWeight: 900, color: 'var(--danger)' }}>{fmt(netOutstandingSum)}</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── CARD 5 RENDER ───
+  const renderCard5 = (isModal: boolean) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isModal ? 14 : 10 }}>
+      {bucketAmounts.map(b => {
+        const amtVal = Math.abs(b.amount);
+        const widthPct = (amtVal / maxBucketAmount) * 100;
+        return (
+          <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: isModal ? 110 : 95, fontSize: isModal ? 12 : 10, fontWeight: 800, color: 'var(--grey)', textAlign: 'right' }}>
+              {b.label}
+            </div>
+            <div style={{ flex: 1, height: isModal ? 24 : 16, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ width: `${widthPct}%`, height: '100%', background: b.color, borderRadius: 4 }}></div>
+            </div>
+            <div style={{ width: isModal ? 100 : 85, fontSize: isModal ? 12.5 : 10.5, fontWeight: 900, color: b.amount < 0 ? 'var(--danger)' : 'var(--navy)' }}>
+              {fmtAbs(b.amount)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // ─── CARD 6 RENDER ───
+  const renderCard6 = (isModal: boolean) => {
+    const w = isModal ? 550 : 300;
+    const h = isModal ? 220 : 150;
+    const baselineY = isModal ? 180 : 130;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <div style={{ height: h, width: '100%', position: 'relative' }}>
+          <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+            <line x1="0" y1={baselineY} x2={w} y2={baselineY} stroke="#cbd5e1" strokeWidth="1" />
+
+            {/* Billed */}
+            <rect x={isModal ? 30 : 20} y={isModal ? 30 : 20} width={isModal ? 60 : 35} height={isModal ? 150 : 110} fill="#1e3a8a" rx="3" />
+            
+            {/* Paid */}
+            <rect x={isModal ? 160 : 90} y={isModal ? 30 : 20} width={isModal ? 60 : 35} height={isModal ? 110 : 80} fill="#16a34a" rx="3" />
+            
+            {/* Owed */}
+            <rect x={isModal ? 290 : 160} y={isModal ? 140 : 100} width={isModal ? 60 : 35} height={isModal ? 40 : 30} fill="#dc2626" rx="3" />
+            
+            {/* Overpaid */}
+            <rect x={isModal ? 420 : 230} y={isModal ? 165 : 115} width={isModal ? 60 : 35} height={isModal ? 15 : 15} fill="#64748b" rx="3" />
+
+            {/* Connecting lines */}
+            <line x1={isModal ? 90 : 55} y1={isModal ? 30 : 20} x2={isModal ? 160 : 90} y2={isModal ? 30 : 20} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3,3" />
+            <line x1={isModal ? 220 : 125} y1={isModal ? 140 : 100} x2={isModal ? 290 : 160} y2={isModal ? 140 : 100} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3,3" />
+            <line x1={isModal ? 350 : 195} y1={baselineY} x2={isModal ? 420 : 230} y2={baselineY} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3,3" />
+          </svg>
+
+          {/* Value Labels Overlay */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 5px', fontSize: isModal ? 10 : 7.5, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase', marginTop: 4 }}>
+            <div style={{ width: isModal ? 80 : 50, textAlign: 'center' }}>Billed<br/><span style={{ color: 'var(--navy)' }}>{fmt(totalAssessedSum)}</span></div>
+            <div style={{ width: isModal ? 80 : 50, textAlign: 'center' }}>Paid<br/><span style={{ color: 'var(--success)' }}>({fmt(totalPaidSum)})</span></div>
+            <div style={{ width: isModal ? 80 : 50, textAlign: 'center' }}>Owed<br/><span style={{ color: 'var(--danger)' }}>({fmt(netOutstandingSum)})</span></div>
+            <div style={{ width: isModal ? 80 : 50, textAlign: 'center' }}>Overpaid<br/><span style={{ color: '#64748b' }}>{fmt(totalOverpaymentsSum)}</span></div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── CARD 7 RENDER ───
+  const renderCard7 = (isModal: boolean) => {
+    const w = isModal ? 550 : 300;
+    const h = isModal ? 220 : 160;
+    const baselineY = isModal ? 180 : 130;
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <div style={{ height: h, width: '100%', position: 'relative' }}>
+          <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+            <line x1="0" y1={baselineY} x2={w} y2={baselineY} stroke="#cbd5e1" strokeWidth="1" />
+            <line x1="0" y1={isModal ? 40 : 30} x2={w} y2={isModal ? 40 : 30} stroke="#f1f5f9" strokeWidth="1" />
+            <line x1="0" y1={isModal ? 110 : 80} x2={w} y2={isModal ? 110 : 80} stroke="#f1f5f9" strokeWidth="1" />
+
+            {/* Delinquent Column */}
+            <rect x={isModal ? 65 : 35} y={baselineY - Math.max(15, (delinquentCount / totalMembersCount) * (isModal ? 140 : 100))} width={isModal ? 50 : 30} height={Math.max(15, (delinquentCount / totalMembersCount) * (isModal ? 140 : 100))} fill="#dc2626" opacity="0.15" rx="2" />
+            
+            {/* Partially Paid Column */}
+            <rect x={isModal ? 245 : 135} y={baselineY - Math.max(15, (partiallyPaidCount / totalMembersCount) * (isModal ? 140 : 100))} width={isModal ? 50 : 30} height={Math.max(15, (partiallyPaidCount / totalMembersCount) * (isModal ? 140 : 100))} fill="#f59e0b" opacity="0.15" rx="2" />
+            
+            {/* Fully Paid Column */}
+            <rect x={isModal ? 425 : 235} y={baselineY - Math.max(15, (fullyPaidCount / totalMembersCount) * (isModal ? 140 : 100))} width={isModal ? 50 : 30} height={Math.max(15, (fullyPaidCount / totalMembersCount) * (isModal ? 140 : 100))} fill="#16a34a" opacity="0.15" rx="2" />
+
+            {/* Line Graph */}
+            {(() => {
+              const maxAmt = Math.max(delinquentAmt, partiallyPaidAmt, 1);
+              const getY = (val: number) => {
+                if (val <= 0) return baselineY + 12;
+                return baselineY - (val / maxAmt) * (isModal ? 130 : 100);
+              };
+
+              const x1 = isModal ? 90 : 50;
+              const x2 = isModal ? 270 : 150;
+              const x3 = isModal ? 450 : 250;
+
+              const y1 = getY(delinquentAmt);
+              const y2 = getY(partiallyPaidAmt);
+              const y3 = getY(fullyPaidAmt);
+
+              return (
+                <>
+                  <path d={`M ${x1} ${y1} L ${x2} ${y2} L ${x3} ${y3}`} fill="none" stroke="#dc2626" strokeWidth={isModal ? 3.5 : 2.5} strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx={x1} cy={y1} r={isModal ? 7 : 5} fill="#dc2626" stroke="#ffffff" strokeWidth="1.5" />
+                  <circle cx={x2} cy={y2} r={isModal ? 7 : 5} fill="#dc2626" stroke="#ffffff" strokeWidth="1.5" />
+                  <circle cx={x3} cy={y3} r={isModal ? 7 : 5} fill="#dc2626" stroke="#ffffff" strokeWidth="1.5" />
+
+                  <text x={x1} y={y1 - 12} fontSize={isModal ? 10 : 8} fontWeight="800" textAnchor="middle" fill="#dc2626">{fmtAbs(delinquentAmt)}</text>
+                  <text x={x2} y={y2 - 12} fontSize={isModal ? 10 : 8} fontWeight="800" textAnchor="middle" fill="#dc2626">{fmtAbs(partiallyPaidAmt)}</text>
+                  <text x={x3} y={y3 + 18} fontSize={isModal ? 10 : 8} fontWeight="800" textAnchor="middle" fill="#dc2626">{fmtAbs(fullyPaidAmt)}</text>
+                </>
+              );
+            })()}
+          </svg>
+
+          <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: isModal ? 10.5 : 8.5, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase', marginTop: 4 }}>
+            <div style={{ textAlign: 'center', width: isModal ? 120 : 80 }}>Delinquent<br/><span style={{ color: 'var(--navy)' }}>{delinquentCount} Members</span></div>
+            <div style={{ textAlign: 'center', width: isModal ? 120 : 80 }}>Partial Paid<br/><span style={{ color: 'var(--navy)' }}>{partiallyPaidCount} Members</span></div>
+            <div style={{ textAlign: 'center', width: isModal ? 120 : 80 }}>Fully Paid<br/><span style={{ color: 'var(--navy)' }}>{fullyPaidCount} Members</span></div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── CARD 8 RENDER ───
+  const renderCard8 = (isModal: boolean) => {
+    const w = isModal ? 550 : 300;
+    const h = isModal ? 220 : 160;
+    const baselineY = isModal ? 180 : 130;
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <div style={{ height: h, width: '100%', position: 'relative' }}>
+          <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+            <line x1="0" y1={isModal ? 40 : 30} x2={w} y2={isModal ? 40 : 30} stroke="#f1f5f9" strokeWidth="1" />
+            <line x1="0" y1={isModal ? 110 : 80} x2={w} y2={isModal ? 110 : 80} stroke="#f1f5f9" strokeWidth="1" />
+            <line x1="0" y1={baselineY} x2={w} y2={baselineY} stroke="#cbd5e1" strokeWidth="1" />
+
+            {bucketCounts.map((b, idx) => {
+              const colW = isModal ? 46 : 26;
+              const colSpacing = isModal ? 100 : 56;
+              const x = (isModal ? 30 : 15) + idx * colSpacing;
+              const barHeight = (b.count / maxBucketCount) * (isModal ? 140 : 100);
+              const y = baselineY - barHeight;
+
+              return (
+                <g key={b.label}>
+                  <rect x={x} y={y} width={colW} height={barHeight} fill={b.color} rx="3" />
+                  <text x={x + colW / 2} y={y - 8} fontSize={isModal ? 11 : 9} fontWeight="800" textAnchor="middle" fill="var(--navy)">{b.count}</text>
+                </g>
+              );
+            })}
+          </svg>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 2px', fontSize: isModal ? 9 : 7, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase', marginTop: 4 }}>
+            <div style={{ width: isModal ? 60 : 44, textAlign: 'center' }}>&gt;2,000</div>
+            <div style={{ width: isModal ? 60 : 44, textAlign: 'center' }}>1k–2k</div>
+            <div style={{ width: isModal ? 60 : 44, textAlign: 'center' }}>500–999</div>
+            <div style={{ width: isModal ? 60 : 44, textAlign: 'center' }}>1–499</div>
+            <div style={{ width: isModal ? 60 : 44, textAlign: 'center' }}>Nil/Overpaid</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── CARD 9 RENDER ───
+  const renderCard9 = (isModal: boolean) => (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isModal ? 16 : 10 }}>
+      <div style={{ borderLeft: '3px solid #dc2626', paddingLeft: 8 }}>
+        <div style={{ fontSize: isModal ? 10 : 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Highest Owed</div>
+        <div style={{ fontSize: isModal ? 15 : 11.5, fontWeight: 900, color: 'var(--navy)', marginTop: 2 }}>{fmt(highestOutstanding)}</div>
+      </div>
+      <div style={{ borderLeft: '3px solid #1D4ED8', paddingLeft: 8 }}>
+        <div style={{ fontSize: isModal ? 10 : 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Average (All)</div>
+        <div style={{ fontSize: isModal ? 15 : 11.5, fontWeight: 900, color: 'var(--navy)', marginTop: 2 }}>{fmt(averageOutstandingAll)}</div>
+      </div>
+      <div style={{ borderLeft: '3px solid #ea580c', paddingLeft: 8 }}>
+        <div style={{ fontSize: isModal ? 10 : 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Average (Owed Only)</div>
+        <div style={{ fontSize: isModal ? 15 : 11.5, fontWeight: 900, color: 'var(--navy)', marginTop: 2 }}>{fmt(averageOutstandingExcludingOverpaid)}</div>
+      </div>
+      <div style={{ borderLeft: '3px solid #16a34a', paddingLeft: 8 }}>
+        <div style={{ fontSize: isModal ? 10 : 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Median Owed</div>
+        <div style={{ fontSize: isModal ? 15 : 11.5, fontWeight: 900, color: 'var(--navy)', marginTop: 2 }}>{fmt(medianOutstanding)}</div>
+      </div>
+      <div style={{ borderLeft: '3px solid #64748b', paddingLeft: 8 }}>
+        <div style={{ fontSize: isModal ? 10 : 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Total Overpaid</div>
+        <div style={{ fontSize: isModal ? 15 : 11.5, fontWeight: 900, color: 'var(--navy)', marginTop: 2 }}>{fmt(totalOverpaymentsSum)}</div>
+      </div>
+      <div style={{ borderLeft: '3px solid #7c3aed', paddingLeft: 8 }}>
+        <div style={{ fontSize: isModal ? 10 : 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Debt Before Offsets</div>
+        <div style={{ fontSize: isModal ? 15 : 11.5, fontWeight: 900, color: 'var(--navy)', marginTop: 2 }}>{fmt(totalIndebtednessBeforeOffsets)}</div>
+      </div>
+    </div>
+  );
 
   if (totalMembersCount === 0) {
     return (
@@ -187,178 +564,24 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
       <div className="info-grid">
 
         {/* ── CARD 1: KEY SUMMARY ── */}
-        <div className="info-card">
+        <div className="info-card" onClick={() => setSelectedCard(1)} style={{ cursor: 'pointer' }}>
           <div className="info-card-header">
             <span className="info-card-number">1</span>
             <h3 className="info-card-title">Key Summary</h3>
           </div>
           <div className="info-card-body" style={{ minHeight: 280 }}>
-            <div className="summary-tile-grid">
-              
-              <div className="summary-tile" style={{ background: '#f0f4f8' }}>
-                <div className="summary-tile-icon-bg" style={{ background: '#e1e7f0', color: 'var(--navy)' }}>
-                  <FaUsers />
-                </div>
-                <div className="summary-tile-content">
-                  <div className="summary-tile-label">Total Members</div>
-                  <div className="summary-tile-value">{totalMembersCount}</div>
-                </div>
-              </div>
-
-              <div className="summary-tile" style={{ background: '#f0fdf4', border: '1px solid #dcfce7' }}>
-                <div className="summary-tile-icon-bg" style={{ background: '#dcfce7', color: '#16a34a' }}>
-                  <FaFileInvoiceDollar />
-                </div>
-                <div className="summary-tile-content">
-                  <div className="summary-tile-label" style={{ color: '#15803d' }}>Total Assessed</div>
-                  <div className="summary-tile-value" style={{ color: '#15803d' }}>{fmt(totalAssessedSum)}</div>
-                </div>
-              </div>
-
-              <div className="summary-tile" style={{ background: '#ecfdf5', border: '1px solid #d1fae5' }}>
-                <div className="summary-tile-icon-bg" style={{ background: '#d1fae5', color: 'var(--success)' }}>
-                  <FaCheckCircle />
-                </div>
-                <div className="summary-tile-content">
-                  <div className="summary-tile-label" style={{ color: 'var(--success)' }}>Total Paid</div>
-                  <div className="summary-tile-value" style={{ color: 'var(--success)' }}>{fmt(totalPaidSum)}</div>
-                </div>
-              </div>
-
-              <div className="summary-tile" style={{ background: '#fffbeb', border: '1px solid #fef3c7' }}>
-                <div className="summary-tile-icon-bg" style={{ background: '#fef3c7', color: '#d97706' }}>
-                  <FaExclamationTriangle />
-                </div>
-                <div className="summary-tile-content">
-                  <div className="summary-tile-label" style={{ color: '#b45309' }}>Net Outstanding</div>
-                  <div className="summary-tile-value" style={{ color: '#b45309' }}>{fmt(netOutstandingSum)}</div>
-                </div>
-              </div>
-
-              <div className="summary-tile" style={{ background: '#fff5f5', border: '1px solid #fee2e2' }}>
-                <div className="summary-tile-icon-bg" style={{ background: '#fee2e2', color: 'var(--danger)' }}>
-                  <FaDollarSign />
-                </div>
-                <div className="summary-tile-content">
-                  <div className="summary-tile-label" style={{ color: 'var(--danger)' }}>Total Overpayments</div>
-                  <div className="summary-tile-value" style={{ color: 'var(--danger)' }}>{fmt(totalOverpaymentsSum)}</div>
-                </div>
-              </div>
-
-              <div className="summary-tile" style={{ background: '#f5f3ff', border: '1px solid #edd9ff' }}>
-                <div className="summary-tile-icon-bg" style={{ background: '#e8dbff', color: '#7c3aed' }}>
-                  <FaBalanceScale />
-                </div>
-                <div className="summary-tile-content">
-                  <div className="summary-tile-label" style={{ color: '#6d28d9' }}>Actual Indebtedness</div>
-                  <div className="summary-tile-value" style={{ color: '#6d28d9', fontSize: 13 }}>{fmt(totalIndebtednessBeforeOffsets)}</div>
-                </div>
-              </div>
-
-            </div>
+            {renderCard1(false)}
           </div>
         </div>
 
         {/* ── CARD 2: PAYMENT STATUS BREAKDOWN ── */}
-        <div className="info-card">
+        <div className="info-card" onClick={() => setSelectedCard(2)} style={{ cursor: 'pointer' }}>
           <div className="info-card-header">
             <span className="info-card-number">2</span>
             <h3 className="info-card-title">Payment Status Breakdown</h3>
           </div>
           <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-              
-              {/* Donut Chart */}
-              <div style={{ position: 'relative', width: 120, height: 120, flexShrink: 0 }}>
-                <svg width="120" height="120" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r={radius} fill="transparent" stroke="#f1f5f9" strokeWidth="12" />
-                  
-                  {strokeFullyPaid > 0 && (
-                    <circle 
-                      cx="60" 
-                      cy="60" 
-                      r={radius} 
-                      fill="transparent" 
-                      stroke="#16a34a" 
-                      strokeWidth="12" 
-                      strokeDasharray={`${strokeFullyPaid} ${circumference}`}
-                      strokeDashoffset={offsetFullyPaid}
-                      transform="rotate(-90 60 60)"
-                      style={{ transition: 'stroke-dasharray 0.5s ease' }}
-                    />
-                  )}
-                  
-                  {strokePartiallyPaid > 0 && (
-                    <circle 
-                      cx="60" 
-                      cy="60" 
-                      r={radius} 
-                      fill="transparent" 
-                      stroke="#f59e0b" 
-                      strokeWidth="12" 
-                      strokeDasharray={`${strokePartiallyPaid} ${circumference}`}
-                      strokeDashoffset={offsetPartiallyPaid}
-                      transform="rotate(-90 60 60)"
-                      style={{ transition: 'stroke-dasharray 0.5s ease' }}
-                    />
-                  )}
-
-                  {strokeDelinquent > 0 && (
-                    <circle 
-                      cx="60" 
-                      cy="60" 
-                      r={radius} 
-                      fill="transparent" 
-                      stroke="#dc2626" 
-                      strokeWidth="12" 
-                      strokeDasharray={`${strokeDelinquent} ${circumference}`}
-                      strokeDashoffset={offsetDelinquent}
-                      transform="rotate(-90 60 60)"
-                      style={{ transition: 'stroke-dasharray 0.5s ease' }}
-                    />
-                  )}
-                </svg>
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  pointerEvents: 'none'
-                }}>
-                  <span style={{ fontSize: 18, fontWeight: 900, color: 'var(--navy)' }}>{totalMembersCount}</span>
-                  <span style={{ fontSize: 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Members</span>
-                </div>
-              </div>
-
-              {/* Legend */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 12, height: 12, borderRadius: 3, background: '#16a34a' }}></div>
-                  <div style={{ fontSize: 11, fontWeight: 700 }}>
-                    Fully Paid <span style={{ color: 'var(--grey)' }}>({fullyPaidCount} - {fullyPaidPct.toFixed(1)}%)</span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 12, height: 12, borderRadius: 3, background: '#f59e0b' }}></div>
-                  <div style={{ fontSize: 11, fontWeight: 700 }}>
-                    Partially Paid <span style={{ color: 'var(--grey)' }}>({partiallyPaidCount} - {partiallyPaidPct.toFixed(1)}%)</span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 12, height: 12, borderRadius: 3, background: '#dc2626' }}></div>
-                  <div style={{ fontSize: 11, fontWeight: 700 }}>
-                    Delinquent <span style={{ color: 'var(--grey)' }}>({delinquentCount} - {delinquentPct.toFixed(1)}%)</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
+            {renderCard2(false)}
             <div style={{
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -372,43 +595,17 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             }}>
               💡 The majority of members ({partiallyPaidPct.toFixed(1)}%) have made partial payments. Only {delinquentCount} Brother{delinquentCount !== 1 ? 's' : ''} ({delinquentPct.toFixed(1)}%) {delinquentCount === 1 ? 'has' : 'have'} not made any payment.
             </div>
-
           </div>
         </div>
 
         {/* ── CARD 3: MEMBERS BY OUTSTANDING BALANCE RANGE ── */}
-        <div className="info-card">
+        <div className="info-card" onClick={() => setSelectedCard(3)} style={{ cursor: 'pointer' }}>
           <div className="info-card-header">
             <span className="info-card-number">3</span>
             <h3 className="info-card-title">Members By Balance Range</h3>
           </div>
           <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {bucketCounts.map(b => {
-                const widthPct = (b.count / maxBucketCount) * 100;
-                return (
-                  <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 95, fontSize: 10, fontWeight: 800, color: 'var(--grey)', textAlign: 'right' }}>
-                      {b.label}
-                    </div>
-                    <div style={{ flex: 1, height: 16, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
-                      <div style={{
-                        width: `${widthPct}%`,
-                        height: '100%',
-                        background: b.color,
-                        borderRadius: 4,
-                        transition: 'width 0.5s ease-out'
-                      }}></div>
-                    </div>
-                    <div style={{ width: 24, fontSize: 11, fontWeight: 900, color: 'var(--navy)', textAlign: 'left' }}>
-                      {b.count}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
+            {renderCard3(false)}
             <div style={{
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -426,98 +623,17 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
               <div>• {( (bucket1To500.length + bucketNilOrOverpaid.length) / totalMembersCount * 100 ).toFixed(1)}% of members owe GH₵500 or less.</div>
               <div>• {( (bucketAbove2k.length + bucket1kTo2k.length) / totalMembersCount * 100 ).toFixed(1)}% of members owe GH₵1,000 or more.</div>
             </div>
-
           </div>
         </div>
 
-        {/* ── CARD 4: ASSESSED vs COLLECTED vs OUTSTANDING ── */}
-        <div className="info-card">
+        {/* ── CARD 4: ASSESSED vs COLLECTED ── */}
+        <div className="info-card" onClick={() => setSelectedCard(4)} style={{ cursor: 'pointer' }}>
           <div className="info-card-header">
             <span className="info-card-number">4</span>
             <h3 className="info-card-title">Assessed vs Collected</h3>
           </div>
           <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-              
-              {/* Donut Chart */}
-              <div style={{ position: 'relative', width: 120, height: 120, flexShrink: 0 }}>
-                <svg width="120" height="120" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r={radius} fill="transparent" stroke="#f1f5f9" strokeWidth="12" />
-                  
-                  {strokeCollected > 0 && (
-                    <circle 
-                      cx="60" 
-                      cy="60" 
-                      r={radius} 
-                      fill="transparent" 
-                      stroke="#16a34a" 
-                      strokeWidth="12" 
-                      strokeDasharray={`${strokeCollected} ${circumference}`}
-                      strokeDashoffset={offsetCollected}
-                      transform="rotate(-90 60 60)"
-                      style={{ transition: 'stroke-dasharray 0.5s ease' }}
-                    />
-                  )}
-                  
-                  {strokeOutstanding > 0 && (
-                    <circle 
-                      cx="60" 
-                      cy="60" 
-                      r={radius} 
-                      fill="transparent" 
-                      stroke="#dc2626" 
-                      strokeWidth="12" 
-                      strokeDasharray={`${strokeOutstanding} ${circumference}`}
-                      strokeDashoffset={offsetOutstanding}
-                      transform="rotate(-90 60 60)"
-                      style={{ transition: 'stroke-dasharray 0.5s ease' }}
-                    />
-                  )}
-                </svg>
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  pointerEvents: 'none'
-                }}>
-                  <span style={{ fontSize: 13, fontWeight: 950, color: '#16a34a' }}>{collectionRate.toFixed(1)}%</span>
-                  <span style={{ fontSize: 7, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Collection</span>
-                </div>
-              </div>
-
-              {/* Legend */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: 2, background: '#1D4ED8' }}></div>
-                    <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--grey)' }}>TOTAL ASSESSED (100%)</span>
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--navy)' }}>{fmt(totalAssessedSum)}</div>
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: 2, background: '#16a34a' }}></div>
-                    <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--success)' }}>TOTAL PAID ({collectionRate.toFixed(1)}%)</span>
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--success)' }}>{fmt(totalPaidSum)}</div>
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: 2, background: '#dc2626' }}></div>
-                    <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--danger)' }}>NET OUTSTANDING ({outstandingRate.toFixed(1)}%)</span>
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--danger)' }}>{fmt(netOutstandingSum)}</div>
-                </div>
-              </div>
-
-            </div>
-
+            {renderCard4(false)}
             <div style={{
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -531,44 +647,17 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             }}>
               📈 We have collected {collectionRate.toFixed(1)}% of the total assessments. {fmt(netOutstandingSum)} remains outstanding.
             </div>
-
           </div>
         </div>
 
         {/* ── CARD 5: OUTSTANDING BALANCE DISTRIBUTION (AMOUNT) ── */}
-        <div className="info-card">
+        <div className="info-card" onClick={() => setSelectedCard(5)} style={{ cursor: 'pointer' }}>
           <div className="info-card-header">
             <span className="info-card-number">5</span>
             <h3 className="info-card-title">Balance Distribution (Amount)</h3>
           </div>
           <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {bucketAmounts.map(b => {
-                const amtVal = Math.abs(b.amount);
-                const widthPct = (amtVal / maxBucketAmount) * 100;
-                return (
-                  <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 95, fontSize: 10, fontWeight: 800, color: 'var(--grey)', textAlign: 'right' }}>
-                      {b.label}
-                    </div>
-                    <div style={{ flex: 1, height: 16, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
-                      <div style={{
-                        width: `${widthPct}%`,
-                        height: '100%',
-                        background: b.color,
-                        borderRadius: 4,
-                        transition: 'width 0.5s ease-out'
-                      }}></div>
-                    </div>
-                    <div style={{ width: 85, fontSize: 10.5, fontWeight: 900, color: b.amount < 0 ? 'var(--danger)' : 'var(--navy)', textAlign: 'left' }}>
-                      {fmtAbs(b.amount)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
+            {renderCard5(false)}
             <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
               <div style={{ flex: 1, background: '#f0fdf4', border: '1px solid #dcfce7', borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
                 <div style={{ fontSize: 8, fontWeight: 800, color: '#15803d', textTransform: 'uppercase', marginBottom: 2 }}>Total Outstanding</div>
@@ -579,51 +668,17 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
                 <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--danger)' }}>{fmt(totalOverpaymentsSum)}</div>
               </div>
             </div>
-
           </div>
         </div>
 
         {/* ── CARD 6: ASSESSMENTS, PAYMENTS & BALANCE FLOW ── */}
-        <div className="info-card">
+        <div className="info-card" onClick={() => setSelectedCard(6)} style={{ cursor: 'pointer' }}>
           <div className="info-card-header">
             <span className="info-card-number">6</span>
             <h3 className="info-card-title">Balance Flow (Waterfall)</h3>
           </div>
           <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            
-            {/* Custom SVG Waterfall Chart */}
-            <div style={{ height: 150, width: '100%', position: 'relative' }}>
-              <svg width="100%" height="150" viewBox="0 0 300 150" preserveAspectRatio="none">
-                {/* Horizontal Baseline */}
-                <line x1="0" y1="130" x2="300" y2="130" stroke="#cbd5e1" strokeWidth="1" />
-
-                {/* Bar 1: Total Assessed */}
-                <rect x="20" y="20" width="35" height="110" fill="#1e3a8a" rx="3" />
-                
-                {/* Bar 2: Total Paid (Step down) */}
-                <rect x="90" y="20" width="35" height="80" fill="#16a34a" rx="3" />
-                
-                {/* Bar 3: Net Outstanding (Step down) */}
-                <rect x="160" y="100" width="35" height="30" fill="#dc2626" rx="3" />
-                
-                {/* Bar 4: Overpayments (Offset step up) */}
-                <rect x="230" y="115" width="35" height="15" fill="#64748b" rx="3" />
-
-                {/* Dashed connecting lines */}
-                <line x1="55" y1="20" x2="90" y2="20" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3,3" />
-                <line x1="125" y1="100" x2="160" y2="100" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3,3" />
-                <line x1="195" y1="130" x2="230" y2="130" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3,3" />
-              </svg>
-
-              {/* Labels overlayed */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 5px', fontSize: 7.5, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase', marginTop: 4 }}>
-                <div style={{ width: 50, textAlign: 'center' }}>Billed<br/><span style={{ color: 'var(--navy)' }}>{fmt(totalAssessedSum)}</span></div>
-                <div style={{ width: 50, textAlign: 'center' }}>Paid<br/><span style={{ color: 'var(--success)' }}>({fmt(totalPaidSum)})</span></div>
-                <div style={{ width: 50, textAlign: 'center' }}>Owed<br/><span style={{ color: 'var(--danger)' }}>({fmt(netOutstandingSum)})</span></div>
-                <div style={{ width: 50, textAlign: 'center' }}>Overpaid<br/><span style={{ color: '#64748b' }}>{fmt(totalOverpaymentsSum)}</span></div>
-              </div>
-            </div>
-
+            {renderCard6(false)}
             <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, background: '#f8fafc', padding: 8, borderRadius: 6, border: '1px solid #e2e8f0', textAlign: 'center' }}>
                 <span style={{ fontSize: 7.5, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Actual Debt (Before Offsets)</span>
@@ -634,77 +689,17 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
                 <span style={{ fontSize: 10.5, fontWeight: 900, color: 'var(--navy)' }}>{fmt(netOutstandingSum)}</span>
               </div>
             </div>
-
           </div>
         </div>
 
         {/* ── CARD 7: PAYMENT STATUS - MEMBERS & OUTSTANDING AMOUNT ── */}
-        <div className="info-card">
+        <div className="info-card" onClick={() => setSelectedCard(7)} style={{ cursor: 'pointer' }}>
           <div className="info-card-header">
             <span className="info-card-number">7</span>
             <h3 className="info-card-title">Status - Members & Amounts</h3>
           </div>
           <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            
-            {/* Combo Column + Line Chart */}
-            <div style={{ height: 160, width: '100%', position: 'relative' }}>
-              <svg width="100%" height="160" viewBox="0 0 300 160" preserveAspectRatio="none">
-                {/* Baseline */}
-                <line x1="0" y1="130" x2="300" y2="130" stroke="#cbd5e1" strokeWidth="1" />
-
-                {/* Y-Axes Grid Lines */}
-                <line x1="0" y1="30" x2="300" y2="30" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="0" y1="80" x2="300" y2="80" stroke="#f1f5f9" strokeWidth="1" />
-
-                {/* Delinquent Column */}
-                <rect x="35" y={130 - Math.max(10, (delinquentCount / totalMembersCount) * 100)} width="30" height={Math.max(10, (delinquentCount / totalMembersCount) * 100)} fill="#dc2626" opacity="0.15" rx="2" />
-                {/* Partially Paid Column */}
-                <rect x="135" y={130 - Math.max(10, (partiallyPaidCount / totalMembersCount) * 100)} width="30" height={Math.max(10, (partiallyPaidCount / totalMembersCount) * 100)} fill="#f59e0b" opacity="0.15" rx="2" />
-                {/* Fully Paid Column */}
-                <rect x="235" y={130 - Math.max(10, (fullyPaidCount / totalMembersCount) * 100)} width="30" height={Math.max(10, (fullyPaidCount / totalMembersCount) * 100)} fill="#16a34a" opacity="0.15" rx="2" />
-
-                {/* Line Graph (Dues Amount) */}
-                {/* Coordinates: Delinquent(50, Y1), PartiallyPaid(150, Y2), FullyPaid(250, Y3) */}
-                {/* Let's compute height scale. DelinquentAmt, PartiallyPaidAmt, FullyPaidAmt */}
-                {/* Max amount is partiallyPaidAmt. Let's map max amount to y=20, 0 to y=130 */}
-                {(() => {
-                  const maxAmt = Math.max(delinquentAmt, partiallyPaidAmt, 1);
-                  const getY = (val: number) => {
-                    if (val <= 0) return 130 + 10; // below baseline for overpayments
-                    return 130 - (val / maxAmt) * 100;
-                  };
-
-                  const y1 = getY(delinquentAmt);
-                  const y2 = getY(partiallyPaidAmt);
-                  const y3 = getY(fullyPaidAmt); // overpaid
-
-                  return (
-                    <>
-                      {/* Connection path */}
-                      <path d={`M 50 ${y1} L 150 ${y2} L 250 ${y3}`} fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                      
-                      {/* Node Circles */}
-                      <circle cx="50" cy={y1} r="5" fill="#dc2626" stroke="#ffffff" strokeWidth="1.5" />
-                      <circle cx="150" cy={y2} r="5" fill="#dc2626" stroke="#ffffff" strokeWidth="1.5" />
-                      <circle cx="250" cy={y3} r="5" fill="#dc2626" stroke="#ffffff" strokeWidth="1.5" />
-
-                      {/* Values display */}
-                      <text x="50" y={y1 - 10} fontSize="8" fontWeight="800" textAnchor="middle" fill="#dc2626">{fmtAbs(delinquentAmt)}</text>
-                      <text x="150" y={y2 - 10} fontSize="8" fontWeight="800" textAnchor="middle" fill="#dc2626">{fmtAbs(partiallyPaidAmt)}</text>
-                      <text x="250" y={y3 + 15} fontSize="8" fontWeight="800" textAnchor="middle" fill="#dc2626">{fmtAbs(fullyPaidAmt)}</text>
-                    </>
-                  );
-                })()}
-              </svg>
-
-              {/* X-Axis labels */}
-              <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: 8.5, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase', marginTop: 4 }}>
-                <div style={{ textAlign: 'center', width: 80 }}>Delinquent<br/><span style={{ color: 'var(--navy)' }}>{delinquentCount} Members</span></div>
-                <div style={{ textAlign: 'center', width: 80 }}>Partial Paid<br/><span style={{ color: 'var(--navy)' }}>{partiallyPaidCount} Members</span></div>
-                <div style={{ textAlign: 'center', width: 80 }}>Fully Paid<br/><span style={{ color: 'var(--navy)' }}>{fullyPaidCount} Members</span></div>
-              </div>
-            </div>
-
+            {renderCard7(false)}
             <div style={{
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -718,52 +713,17 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             }}>
               💡 Partially paid members account for {((partiallyPaidAmt / totalIndebtednessBeforeOffsets) * 100).toFixed(1)}% of the outstanding indebtedness.
             </div>
-
           </div>
         </div>
 
         {/* ── CARD 8: OUTSTANDING BALANCE BAND ANALYSIS ── */}
-        <div className="info-card">
+        <div className="info-card" onClick={() => setSelectedCard(8)} style={{ cursor: 'pointer' }}>
           <div className="info-card-header">
             <span className="info-card-number">8</span>
             <h3 className="info-card-title">Balance Band Analysis</h3>
           </div>
           <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            
-            {/* Vertical Bar Chart (Histogram) */}
-            <div style={{ height: 160, width: '100%', position: 'relative' }}>
-              <svg width="100%" height="160" viewBox="0 0 300 160" preserveAspectRatio="none">
-                {/* Grid Lines */}
-                <line x1="0" y1="30" x2="300" y2="30" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="0" y1="80" x2="300" y2="80" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="0" y1="130" x2="300" y2="130" stroke="#cbd5e1" strokeWidth="1" />
-
-                {bucketCounts.map((b, idx) => {
-                  const x = 15 + idx * 56;
-                  const barHeight = (b.count / maxBucketCount) * 100;
-                  const y = 130 - barHeight;
-
-                  return (
-                    <g key={b.label}>
-                      {/* Bar */}
-                      <rect x={x} y={y} width="26" height={barHeight} fill={b.color} rx="3" style={{ transition: 'all 0.5s ease' }} />
-                      {/* Label Text */}
-                      <text x={x + 13} y={y - 8} fontSize="9" fontWeight="800" textAnchor="middle" fill="var(--navy)">{b.count}</text>
-                    </g>
-                  );
-                })}
-              </svg>
-
-              {/* X-Axis Labels */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 2px', fontSize: 7, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase', marginTop: 4 }}>
-                <div style={{ width: 44, textAlign: 'center' }}>&gt;2,000</div>
-                <div style={{ width: 44, textAlign: 'center' }}>1k–2k</div>
-                <div style={{ width: 44, textAlign: 'center' }}>500–999</div>
-                <div style={{ width: 44, textAlign: 'center' }}>1–499</div>
-                <div style={{ width: 44, textAlign: 'center' }}>Nil/Overpaid</div>
-              </div>
-            </div>
-
+            {renderCard8(false)}
             <div style={{
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -778,51 +738,17 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             }}>
               🎯 <strong>{( (bucket1To500.length) / totalMembersCount * 100 ).toFixed(1)}%</strong> of assessed members owe between GH₵1 and GH₵499.
             </div>
-
           </div>
         </div>
 
         {/* ── CARD 9: OUTSTANDING BALANCE STATISTICS ── */}
-        <div className="info-card">
+        <div className="info-card" onClick={() => setSelectedCard(9)} style={{ cursor: 'pointer' }}>
           <div className="info-card-header">
             <span className="info-card-number">9</span>
             <h3 className="info-card-title">Balance Statistics</h3>
           </div>
           <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              
-              <div style={{ borderLeft: '3px solid #dc2626', paddingLeft: 8 }}>
-                <div style={{ fontSize: 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Highest Owed</div>
-                <div style={{ fontSize: 11.5, fontWeight: 900, color: 'var(--navy)', marginTop: 2 }}>{fmt(highestOutstanding)}</div>
-              </div>
-
-              <div style={{ borderLeft: '3px solid #1D4ED8', paddingLeft: 8 }}>
-                <div style={{ fontSize: 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Average (All)</div>
-                <div style={{ fontSize: 11.5, fontWeight: 900, color: 'var(--navy)', marginTop: 2 }}>{fmt(averageOutstandingAll)}</div>
-              </div>
-
-              <div style={{ borderLeft: '3px solid #ea580c', paddingLeft: 8 }}>
-                <div style={{ fontSize: 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Average (Owed Only)</div>
-                <div style={{ fontSize: 11.5, fontWeight: 900, color: 'var(--navy)', marginTop: 2 }}>{fmt(averageOutstandingExcludingOverpaid)}</div>
-              </div>
-
-              <div style={{ borderLeft: '3px solid #16a34a', paddingLeft: 8 }}>
-                <div style={{ fontSize: 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Median Owed</div>
-                <div style={{ fontSize: 11.5, fontWeight: 900, color: 'var(--navy)', marginTop: 2 }}>{fmt(medianOutstanding)}</div>
-              </div>
-
-              <div style={{ borderLeft: '3px solid #64748b', paddingLeft: 8 }}>
-                <div style={{ fontSize: 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Total Overpaid</div>
-                <div style={{ fontSize: 11.5, fontWeight: 900, color: 'var(--navy)', marginTop: 2 }}>{fmt(totalOverpaymentsSum)}</div>
-              </div>
-
-              <div style={{ borderLeft: '3px solid #7c3aed', paddingLeft: 8 }}>
-                <div style={{ fontSize: 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Debt Before Offsets</div>
-                <div style={{ fontSize: 11.5, fontWeight: 900, color: 'var(--navy)', marginTop: 2 }}>{fmt(totalIndebtednessBeforeOffsets)}</div>
-              </div>
-
-            </div>
-
+            {renderCard9(false)}
             <div style={{
               background: '#f5f3ff',
               border: '1px solid #edd9ff',
@@ -839,10 +765,9 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             }}>
               <FaCalculator style={{ flexShrink: 0 }} />
               <span>
-                Mean outstanding balance for those with active debt is <strong>{fmt(averageOutstandingExcludingOverpaid)}</strong>, while the median is <strong>{fmt(medianOutstanding)}</strong>.
+                Mean outstanding balance for active debt is <strong>{fmt(averageOutstandingExcludingOverpaid)}</strong>, while median is <strong>{fmt(medianOutstanding)}</strong>.
               </span>
             </div>
-
           </div>
         </div>
 
@@ -858,6 +783,42 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
           We have collected {collectionRate.toFixed(2)}% of the total assessments. {fmt(netOutstandingSum)} remains outstanding after accounting for {fmt(totalOverpaymentsSum)} in overpayments.
         </div>
       </div>
+
+      {/* ─── ENLARGED MODAL DIALOG ─── */}
+      {selectedCard !== null && (
+        <div className="modal-overlay" onClick={() => setSelectedCard(null)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-header-title">
+                <span className="info-card-number">{selectedCard}</span>
+                <h3 className="info-card-title" style={{ color: '#FFFFFF', margin: 0 }}>
+                  {selectedCard === 1 && "Key Summary"}
+                  {selectedCard === 2 && "Payment Status Breakdown"}
+                  {selectedCard === 3 && "Members By Balance Range"}
+                  {selectedCard === 4 && "Assessed vs Collected"}
+                  {selectedCard === 5 && "Balance Distribution (Amount)"}
+                  {selectedCard === 6 && "Balance Flow (Waterfall)"}
+                  {selectedCard === 7 && "Status - Members & Amounts"}
+                  {selectedCard === 8 && "Balance Band Analysis"}
+                  {selectedCard === 9 && "Balance Statistics"}
+                </h3>
+              </div>
+              <button className="modal-close-btn" onClick={() => setSelectedCard(null)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              {selectedCard === 1 && renderCard1(true)}
+              {selectedCard === 2 && renderCard2(true)}
+              {selectedCard === 3 && renderCard3(true)}
+              {selectedCard === 4 && renderCard4(true)}
+              {selectedCard === 5 && renderCard5(true)}
+              {selectedCard === 6 && renderCard6(true)}
+              {selectedCard === 7 && renderCard7(true)}
+              {selectedCard === 8 && renderCard8(true)}
+              {selectedCard === 9 && renderCard9(true)}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
