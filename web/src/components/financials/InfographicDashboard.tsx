@@ -223,7 +223,8 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
     const del = (delinquentPct / 100) * circ;
 
     return (
-      <div style={{ display: 'flex', gap: isModal ? 30 : 20, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: isModal ? 16 : 12 }}>
+        <div style={{ display: 'flex', gap: isModal ? 30 : 20, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
           <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
             <circle cx={size / 2} cy={size / 2} r={r} fill="transparent" stroke="#f1f5f9" strokeWidth={isModal ? 16 : 12} />
@@ -265,6 +266,10 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             </div>
           </div>
         </div>
+        </div>
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', fontSize: isModal ? 13 : 11, fontWeight: 600, lineHeight: 1.5, color: 'var(--grey)' }}>
+          💡 The majority of members ({partiallyPaidPct.toFixed(1)}%) have made partial payments. Only {delinquentCount} Brother{delinquentCount !== 1 ? 's' : ''} ({delinquentPct.toFixed(1)}%) {delinquentCount === 1 ? 'has' : 'have'} not made any payment.
+        </div>
       </div>
     );
   };
@@ -288,6 +293,10 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
           </div>
         );
       })}
+      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', fontSize: isModal ? 13 : 10.5, fontWeight: 600, lineHeight: 1.5, color: 'var(--grey)', marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div>• {( (bucket1To500.length + bucketNilOrOverpaid.length) / totalMembersCount * 100 ).toFixed(1)}% of members owe GH₵500 or less.</div>
+        <div>• {( (bucketAbove2k.length + bucket1kTo2k.length) / totalMembersCount * 100 ).toFixed(1)}% of members owe GH₵1,000 or more.</div>
+      </div>
     </div>
   );
 
@@ -300,8 +309,9 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
     const out = (outstandingRate / 100) * circ;
 
     return (
-      <div style={{ display: 'flex', gap: isModal ? 30 : 20, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+      <>
+        <div style={{ display: 'flex', gap: isModal ? 30 : 20, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
           <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
             <circle cx={size / 2} cy={size / 2} r={r} fill="transparent" stroke="#f1f5f9" strokeWidth={isModal ? 16 : 12} />
             {coll > 0 && (
@@ -340,8 +350,12 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             </div>
             <div style={{ fontSize: isModal ? 15 : 12, fontWeight: 900, color: 'var(--danger)' }}>{fmt(netOutstandingSum)}</div>
           </div>
+          </div>
         </div>
-      </div>
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', fontSize: isModal ? 13 : 11, fontWeight: 600, lineHeight: 1.5, color: 'var(--grey)' }}>
+          📈 We have collected {collectionRate.toFixed(1)}% of the total assessments. {fmt(netOutstandingSum)} remains outstanding.
+        </div>
+      </>
     );
   };
 
@@ -365,6 +379,16 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
           </div>
         );
       })}
+      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 10px', fontSize: isModal ? 13 : 10.5, fontWeight: 600, lineHeight: 1.5, color: 'var(--grey)', marginTop: 4, display: 'flex', gap: 8 }}>
+        <div style={{ flex: 1, background: '#f0fdf4', border: '1px solid #dcfce7', borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
+          <div style={{ fontSize: isModal ? 10 : 8, fontWeight: 800, color: '#15803d', textTransform: 'uppercase', marginBottom: 2 }}>Total Outstanding</div>
+          <div style={{ fontSize: isModal ? 14 : 11, fontWeight: 900, color: '#15803d' }}>{fmt(netOutstandingSum)}</div>
+        </div>
+        <div style={{ flex: 1, background: '#fff5f5', border: '1px solid #fee2e2', borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
+          <div style={{ fontSize: isModal ? 10 : 8, fontWeight: 800, color: 'var(--danger)', textTransform: 'uppercase', marginBottom: 2 }}>Total Overpayments</div>
+          <div style={{ fontSize: isModal ? 14 : 11, fontWeight: 900, color: 'var(--danger)' }}>{fmt(totalOverpaymentsSum)}</div>
+        </div>
+      </div>
     </div>
   );
 
@@ -403,6 +427,16 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             <div style={{ width: isModal ? 80 : 50, textAlign: 'center' }}>Paid<br/><span style={{ color: 'var(--success)' }}>({fmt(totalPaidSum)})</span></div>
             <div style={{ width: isModal ? 80 : 50, textAlign: 'center' }}>Owed<br/><span style={{ color: 'var(--danger)' }}>({fmt(netOutstandingSum)})</span></div>
             <div style={{ width: isModal ? 80 : 50, textAlign: 'center' }}>Overpaid<br/><span style={{ color: '#64748b' }}>{fmt(totalOverpaymentsSum)}</span></div>
+          </div>
+        </div>
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 10px', fontSize: isModal ? 13 : 10.5, fontWeight: 600, lineHeight: 1.5, color: 'var(--grey)', display: 'flex', gap: 8, width: '100%' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, background: '#f8fafc', padding: 8, borderRadius: 6, border: '1px solid #e2e8f0', textAlign: 'center' }}>
+            <span style={{ fontSize: isModal ? 10 : 7.5, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Actual Debt (Before Offsets)</span>
+            <span style={{ fontSize: isModal ? 14 : 10.5, fontWeight: 900, color: 'var(--navy)' }}>{fmt(totalIndebtednessBeforeOffsets)}</span>
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, background: '#f8fafc', padding: 8, borderRadius: 6, border: '1px solid #e2e8f0', textAlign: 'center' }}>
+            <span style={{ fontSize: isModal ? 10 : 7.5, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Net Debt (After Offsets)</span>
+            <span style={{ fontSize: isModal ? 14 : 10.5, fontWeight: 900, color: 'var(--navy)' }}>{fmt(netOutstandingSum)}</span>
           </div>
         </div>
       </div>
@@ -469,6 +503,9 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             <div style={{ textAlign: 'center', width: isModal ? 120 : 80 }}>Fully Paid<br/><span style={{ color: 'var(--navy)' }}>{fullyPaidCount} Members</span></div>
           </div>
         </div>
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', fontSize: isModal ? 13 : 10.5, fontWeight: 600, lineHeight: 1.5, color: 'var(--grey)', width: '100%' }}>
+          💡 Partially paid members account for {((partiallyPaidAmt / totalIndebtednessBeforeOffsets) * 100).toFixed(1)}% of the outstanding indebtedness.
+        </div>
       </div>
     );
   };
@@ -511,13 +548,17 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             <div style={{ width: isModal ? 60 : 44, textAlign: 'center' }}>Nil/Overpaid</div>
           </div>
         </div>
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', fontSize: isModal ? 13 : 10.5, fontWeight: 600, lineHeight: 1.5, color: 'var(--grey)', textAlign: 'center', width: '100%' }}>
+          🎯 <strong>{( (bucket1To500.length) / totalMembersCount * 100 ).toFixed(1)}%</strong> of assessed members owe between GH₵1 and GH₵499.
+        </div>
       </div>
     );
   };
 
   // ─── CARD 9 RENDER ───
   const renderCard9 = (isModal: boolean) => (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isModal ? 16 : 10 }}>
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isModal ? 16 : 10 }}>
       <div style={{ borderLeft: '3px solid #dc2626', paddingLeft: 8 }}>
         <div style={{ fontSize: isModal ? 10 : 8, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Highest Owed</div>
         <div style={{ fontSize: isModal ? 15 : 11.5, fontWeight: 900, color: 'var(--navy)', marginTop: 2 }}>{fmt(highestOutstanding)}</div>
@@ -543,6 +584,11 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
         <div style={{ fontSize: isModal ? 15 : 11.5, fontWeight: 900, color: 'var(--navy)', marginTop: 2 }}>{fmt(totalIndebtednessBeforeOffsets)}</div>
       </div>
     </div>
+    <div style={{ background: '#f5f3ff', border: '1px solid #edd9ff', borderRadius: 8, padding: '10px 12px', fontSize: isModal ? 13 : 11, fontWeight: 600, lineHeight: 1.5, color: '#6d28d9', marginTop: isModal ? 16 : 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <FaCalculator style={{ flexShrink: 0 }} />
+      <span>Mean outstanding balance for those with active debt is <strong>{fmt(averageOutstandingExcludingOverpaid)}</strong>, while the median is <strong>{fmt(medianOutstanding)}</strong>.</span>
+    </div>
+  </>
   );
 
   if (totalMembersCount === 0) {
@@ -580,21 +626,8 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             <span className="info-card-number">2</span>
             <h3 className="info-card-title">Payment Status Breakdown</h3>
           </div>
-          <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="info-card-body" style={{ minHeight: 280 }}>
             {renderCard2(false)}
-            <div style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: 8,
-              padding: '10px 12px',
-              fontSize: 11,
-              fontWeight: 600,
-              lineHeight: 1.4,
-              color: 'var(--grey)',
-              marginTop: 12
-            }}>
-              💡 The majority of members ({partiallyPaidPct.toFixed(1)}%) have made partial payments. Only {delinquentCount} Brother{delinquentCount !== 1 ? 's' : ''} ({delinquentPct.toFixed(1)}%) {delinquentCount === 1 ? 'has' : 'have'} not made any payment.
-            </div>
           </div>
         </div>
 
@@ -604,25 +637,8 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             <span className="info-card-number">3</span>
             <h3 className="info-card-title">Members By Balance Range</h3>
           </div>
-          <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="info-card-body" style={{ minHeight: 280 }}>
             {renderCard3(false)}
-            <div style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 10.5,
-              fontWeight: 600,
-              lineHeight: 1.4,
-              color: 'var(--grey)',
-              marginTop: 10,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 4
-            }}>
-              <div>• {( (bucket1To500.length + bucketNilOrOverpaid.length) / totalMembersCount * 100 ).toFixed(1)}% of members owe GH₵500 or less.</div>
-              <div>• {( (bucketAbove2k.length + bucket1kTo2k.length) / totalMembersCount * 100 ).toFixed(1)}% of members owe GH₵1,000 or more.</div>
-            </div>
           </div>
         </div>
 
@@ -632,21 +648,8 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             <span className="info-card-number">4</span>
             <h3 className="info-card-title">Assessed vs Collected</h3>
           </div>
-          <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="info-card-body" style={{ minHeight: 280 }}>
             {renderCard4(false)}
-            <div style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: 8,
-              padding: '10px 12px',
-              fontSize: 11,
-              fontWeight: 600,
-              lineHeight: 1.4,
-              color: 'var(--grey)',
-              marginTop: 12
-            }}>
-              📈 We have collected {collectionRate.toFixed(1)}% of the total assessments. {fmt(netOutstandingSum)} remains outstanding.
-            </div>
           </div>
         </div>
 
@@ -656,18 +659,8 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             <span className="info-card-number">5</span>
             <h3 className="info-card-title">Balance Distribution (Amount)</h3>
           </div>
-          <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="info-card-body" style={{ minHeight: 280 }}>
             {renderCard5(false)}
-            <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-              <div style={{ flex: 1, background: '#f0fdf4', border: '1px solid #dcfce7', borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
-                <div style={{ fontSize: 8, fontWeight: 800, color: '#15803d', textTransform: 'uppercase', marginBottom: 2 }}>Total Outstanding</div>
-                <div style={{ fontSize: 11, fontWeight: 900, color: '#15803d' }}>{fmt(netOutstandingSum)}</div>
-              </div>
-              <div style={{ flex: 1, background: '#fff5f5', border: '1px solid #fee2e2', borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
-                <div style={{ fontSize: 8, fontWeight: 800, color: 'var(--danger)', textTransform: 'uppercase', marginBottom: 2 }}>Total Overpayments</div>
-                <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--danger)' }}>{fmt(totalOverpaymentsSum)}</div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -677,18 +670,8 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             <span className="info-card-number">6</span>
             <h3 className="info-card-title">Balance Flow (Waterfall)</h3>
           </div>
-          <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="info-card-body" style={{ minHeight: 280 }}>
             {renderCard6(false)}
-            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, background: '#f8fafc', padding: 8, borderRadius: 6, border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <span style={{ fontSize: 7.5, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Actual Debt (Before Offsets)</span>
-                <span style={{ fontSize: 10.5, fontWeight: 900, color: 'var(--navy)' }}>{fmt(totalIndebtednessBeforeOffsets)}</span>
-              </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, background: '#f8fafc', padding: 8, borderRadius: 6, border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <span style={{ fontSize: 7.5, fontWeight: 800, color: 'var(--grey)', textTransform: 'uppercase' }}>Net Debt (After Offsets)</span>
-                <span style={{ fontSize: 10.5, fontWeight: 900, color: 'var(--navy)' }}>{fmt(netOutstandingSum)}</span>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -698,21 +681,8 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             <span className="info-card-number">7</span>
             <h3 className="info-card-title">Status - Members & Amounts</h3>
           </div>
-          <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="info-card-body" style={{ minHeight: 280 }}>
             {renderCard7(false)}
-            <div style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 10.5,
-              fontWeight: 600,
-              lineHeight: 1.4,
-              color: 'var(--grey)',
-              marginTop: 10
-            }}>
-              💡 Partially paid members account for {((partiallyPaidAmt / totalIndebtednessBeforeOffsets) * 100).toFixed(1)}% of the outstanding indebtedness.
-            </div>
           </div>
         </div>
 
@@ -722,22 +692,8 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             <span className="info-card-number">8</span>
             <h3 className="info-card-title">Balance Band Analysis</h3>
           </div>
-          <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="info-card-body" style={{ minHeight: 280 }}>
             {renderCard8(false)}
-            <div style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 10.5,
-              fontWeight: 600,
-              lineHeight: 1.4,
-              color: 'var(--grey)',
-              marginTop: 10,
-              textAlign: 'center'
-            }}>
-              🎯 <strong>{( (bucket1To500.length) / totalMembersCount * 100 ).toFixed(1)}%</strong> of assessed members owe between GH₵1 and GH₵499.
-            </div>
           </div>
         </div>
 
@@ -747,27 +703,8 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
             <span className="info-card-number">9</span>
             <h3 className="info-card-title">Balance Statistics</h3>
           </div>
-          <div className="info-card-body" style={{ minHeight: 280, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="info-card-body" style={{ minHeight: 280 }}>
             {renderCard9(false)}
-            <div style={{
-              background: '#f5f3ff',
-              border: '1px solid #edd9ff',
-              borderRadius: 8,
-              padding: '10px 12px',
-              fontSize: 11,
-              fontWeight: 600,
-              lineHeight: 1.4,
-              color: '#6d28d9',
-              marginTop: 12,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8
-            }}>
-              <FaCalculator style={{ flexShrink: 0 }} />
-              <span>
-                Mean outstanding balance for active debt is <strong>{fmt(averageOutstandingExcludingOverpaid)}</strong>, while median is <strong>{fmt(medianOutstanding)}</strong>.
-              </span>
-            </div>
           </div>
         </div>
 
