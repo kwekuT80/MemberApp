@@ -21,6 +21,7 @@ interface SummaryMember {
   total_paid: string | number;
   outstanding_balance: string | number;
   payment_status: string;
+  annual_assessment_sum?: number; // sum of annual_assessment only, excludes arrears_brought_forward
 }
 
 interface InfographicDashboardProps {
@@ -31,8 +32,15 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
   // Modal tracking state
   const [selectedCard, setSelectedCard] = useState<number | null>(null);
 
-  // CRITICAL REQUIREMENT: Exclude members with zero (0) assessment from the infographic data
-  const infoMembers = summaries.filter(m => parseFloat(String(m.total_assessed || 0)) > 0);
+  // CRITICAL: Exclude members with zero *annual* assessment from the infographic.
+  // Uses annual_assessment_sum (current-year assessments only, arrears excluded).
+  // Falls back to total_assessed only when annual_assessment_sum is unavailable.
+  const infoMembers = summaries.filter(m => {
+    if (m.annual_assessment_sum !== undefined) {
+      return m.annual_assessment_sum > 0;
+    }
+    return parseFloat(String(m.total_assessed || 0)) > 0;
+  });
   const totalMembersCount = infoMembers.length;
 
   // 1. Key Summary Calculations

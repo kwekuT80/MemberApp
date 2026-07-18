@@ -313,11 +313,28 @@ export async function getAllMemberSummaries(filters?: {
     query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
   }
 
-  const { data, error } = await query.order('outstanding_balance', { ascending: false });
-  if (error) throw error;
+  const [summaryResult, assessmentsResult] = await Promise.all([
+    query.order('outstanding_balance', { ascending: false }),
+    supabase
+      .from('financial_assessments')
+      .select('member_id, annual_assessment')
+  ]);
 
-  // SQL view now filters by member status server-side. Return raw results.
-  return data || [];
+  if (summaryResult.error) throw summaryResult.error;
+  if (assessmentsResult.error) throw assessmentsResult.error;
+
+  // Sum annual_assessment (excluding arrears_brought_forward) per member
+  const annualSumByMember: Record<string, number> = {};
+  for (const a of assessmentsResult.data || []) {
+    const id = a.member_id;
+    annualSumByMember[id] = (annualSumByMember[id] || 0) + parseFloat(a.annual_assessment || 0);
+  }
+
+  // Attach annual_assessment_sum to each summary row
+  return (summaryResult.data || []).map(row => ({
+    ...row,
+    annual_assessment_sum: annualSumByMember[row.member_id] ?? 0,
+  }));
 }
 
 export async function getMemberDetailedSummary(memberId: string) {
