@@ -331,9 +331,9 @@ export async function getAllMemberSummaries(filters?: {
   }
 
   // Attach annual_assessment_sum to each summary row
-  return (summaryResult.data || []).map(row => ({
+  return (summaryResult.data || []).map((row: any) => ({
     ...row,
-    annual_assessment_sum: annualSumByMember[row.member_id] ?? 0,
+    annual_assessment_sum: annualSumByMember[row.member_id ?? row.id] ?? 0,
   }));
 }
 
