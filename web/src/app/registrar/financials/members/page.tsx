@@ -42,7 +42,7 @@ export default async function MemberSummaryPage({
 
   return (
     <RegistrarShell title="Member Financial Overview" subtitle="Consolidated real-time billing and payment summary for all members">
-      <div className="max-width-container">
+      <div className={view === 'infographic' ? 'max-width-container-wide' : 'max-width-container'}>
         
         {/* ── VIEW SWITCHER TABS ── */}
         <div className="tab-container">
