@@ -8,30 +8,62 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { qrText, meetingId } = body;
 
-    // Parse QR code format: [origin]/verify/[member-id]
-    const idMatch = qrText.match(/\/verify\/([0-9a-fA-F-]+)/);
-    if (!idMatch) {
+    // Parse QR code format: supports URLs (/verify/[id]), raw UUIDs, and KSJI short IDs
+    let extractedId: string | null = null;
+    const str = (qrText || '').trim();
+
+    const verifyMatch = str.match(/\/verify\/([0-9a-fA-F-]{8,36})/i);
+    const uuidMatch = str.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
+    const ksjiMatch = str.match(/KSJI-([0-9a-fA-F]{8})/i);
+
+    if (verifyMatch) {
+      extractedId = verifyMatch[1];
+    } else if (uuidMatch) {
+      extractedId = uuidMatch[0];
+    } else if (ksjiMatch) {
+      extractedId = ksjiMatch[1];
+    } else if (/^[0-9a-fA-F-]{8,36}$/.test(str)) {
+      extractedId = str;
+    }
+
+    if (!extractedId) {
       return NextResponse.json(
-        { error: 'Invalid QR code format. Expected: /verify/[member-id]' },
+        { error: 'Invalid QR code format. Expected a valid member ID or verification URL.' },
         { status: 400 }
       );
     }
 
-    const memberId = idMatch[1];
-
-    // Look up member
-    const { data: member, error: memberError } = await supabase
+    // Look up member (support full UUID or short ID prefix)
+    let member = null;
+    const { data: exactMember } = await supabase
       .from('members')
       .select('*')
-      .eq('id', memberId)
-      .single();
+      .eq('id', extractedId)
+      .maybeSingle();
 
-    if (memberError || !member) {
+    if (exactMember) {
+      member = exactMember;
+    } else {
+      // Try prefix lookup for short IDs
+      const { data: prefixMember } = await supabase
+        .from('members')
+        .select('*')
+        .ilike('id', `${extractedId}%`)
+        .limit(1)
+        .maybeSingle();
+      if (prefixMember) {
+        member = prefixMember;
+      }
+    }
+
+    if (!member) {
       return NextResponse.json(
         { error: 'Member not found with this QR code' },
         { status: 404 }
       );
     }
+
+    const memberId = member.id;
 
     // Check if already checked in for this meeting
     const { data: existingCheckIn } = await supabase
@@ -62,7 +94,7 @@ export async function POST(request: Request) {
       .insert({
         meeting_id: meetingId,
         member_id: memberId,
-        method: 'manual',
+        method: 'qr_scan',
         verified: true,
         verified_by: user?.id || null,
         commandery_id: member.commandery_id || null,

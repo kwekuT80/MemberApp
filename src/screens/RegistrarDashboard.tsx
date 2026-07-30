@@ -188,12 +188,22 @@ export default function RegistrarDashboard({ navigation }) {
           >
             <Text style={styles.headerReportBtnText}>Reports</Text>
           </TouchableOpacity>
-          {['super_admin', 'financial_registrar'].includes(role as string) && (
+
+          {['super_admin', 'financial_registrar', 'treasurer'].includes(role as string) && (
             <TouchableOpacity
               style={[styles.headerReportBtn, styles.financialHubBtn]}
               onPress={() => navigation.navigate('FinancialHub')}
             >
               <Text style={styles.headerReportBtnText}>Financial Hub</Text>
+            </TouchableOpacity>
+          )}
+
+          {['super_admin', 'welfare_treasurer', 'welfare_officer'].includes(role as string) && (
+            <TouchableOpacity
+              style={[styles.headerReportBtn, styles.welfareHubBtn]}
+              onPress={() => navigation.navigate('WelfareHub')}
+            >
+              <Text style={styles.headerReportBtnText}>Welfare Hub</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -413,6 +423,10 @@ const styles = StyleSheet.create({
   financialHubBtn: {
     backgroundColor: 'rgba(59, 130, 246, 0.2)',
     borderColor: '#3B82F6',
+  },
+  welfareHubBtn: {
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    borderColor: '#F59E0B',
   },
   headerReportBtnText: {
     color: Colors.gold,

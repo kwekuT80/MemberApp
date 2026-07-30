@@ -29,6 +29,7 @@ import DossierScreen       from '../screens/DossierScreen';
 import ScanVerificationScreen from '../screens/ScanVerificationScreen';
 import MeetingsScreen       from '../screens/MeetingsScreen';
 import ViewMemberFinancialsScreen from '../screens/ViewMemberFinancialsScreen';
+import WelfareHubScreen from '../screens/WelfareHubScreen';
 import { Colors } from '../styles/theme';
 
 const Stack = createNativeStackNavigator();
@@ -135,16 +136,16 @@ export default function AppNavigator() {
           ) : (
             // Logged in — always register all screens for navigation to work properly
             <>
-              {/* Always register all screens unconditionally */}
-              {['registrar', 'super_admin', 'financial_registrar'].includes(role) && (
+              {/* Officer & Admin screens */}
+              {['registrar', 'super_admin', 'financial_registrar', 'welfare_treasurer', 'welfare_officer', 'treasurer', 'admin', 'officer', 'commander', 'president'].includes(role) && (
                 <Stack.Screen name="RegistrarDashboard" component={RegistrarDashboard} />
               )}
 
-              {['registrar', 'super_admin', 'financial_registrar'].includes(role) && (
+              {['registrar', 'super_admin', 'financial_registrar', 'welfare_treasurer', 'welfare_officer', 'treasurer', 'admin', 'officer', 'commander', 'president'].includes(role) && (
                 <Stack.Screen name="Reports" component={ReportsScreen} />
               )}
 
-              {['registrar', 'super_admin', 'financial_registrar'].includes(role) && (
+              {['registrar', 'super_admin', 'financial_registrar', 'welfare_treasurer', 'welfare_officer', 'treasurer', 'admin', 'officer', 'commander', 'president'].includes(role) && (
                 <Stack.Screen name="Meetings" component={MeetingsScreen} />
               )}
 
@@ -162,8 +163,9 @@ export default function AppNavigator() {
               <Stack.Screen name="Dossier"          component={DossierScreen} />
               <Stack.Screen name="ScanVerification" component={ScanVerificationScreen} options={{ headerShown: false }} />
 
-              {/* Financial screens — always registered so navigation works */}
+              {/* Financial & Welfare screens — registered so navigation works */}
               <Stack.Screen name="FinancialHub" component={FinancialHubScreen} />
+              <Stack.Screen name="WelfareHub" component={WelfareHubScreen} />
               <Stack.Screen name="ViewMemberFinancials" component={ViewMemberFinancialsScreen} />
               <Stack.Screen name="FinancialHubPayments" component={FinancialHubStubScreen} />
               <Stack.Screen name="FinancialHubRates" component={FinancialHubStubScreen} />

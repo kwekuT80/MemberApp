@@ -12,16 +12,18 @@ export default function VerificationPage() {
 
   useEffect(() => {
     async function load() {
-      // Use client-side supabase for public read if policies allow
-      const supabase = createClient();
-      const { data } = await supabase
-        .from('members')
-        .select('*, degrees(*), positions(*)')
-        .eq('id', id)
-        .single();
-      
-      if (data) setMember(data);
-      setLoading(false);
+      if (!id) return;
+      try {
+        const res = await fetch(`/api/verify/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setMember(data);
+        }
+      } catch (err) {
+        console.error('Failed to load member verification:', err);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, [id]);

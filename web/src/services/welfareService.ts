@@ -1,0 +1,350 @@
+'use server';
+
+import { createClient } from '@/lib/supabase/server';
+import { 
+  WelfareCategory, 
+  WelfareContribution, 
+  WelfareDisbursement, 
+  WelfareAuditEntry, 
+  WelfareSummary 
+} from '@/types/welfare';
+
+// Helper to log welfare audit trail entries
+async function logWelfareAudit(params: {
+  action: WelfareAuditEntry['action'];
+  entityType: WelfareAuditEntry['entity_type'];
+  entityId: string;
+  memberId?: string | null;
+  oldValues?: Record<string, any> | null;
+  newValues?: Record<string, any> | null;
+}) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    await supabase.from('welfare_audit_log').insert({
+      action: params.action,
+      entity_type: params.entityType,
+      entity_id: params.entityId,
+      member_id: params.memberId || null,
+      old_values: params.oldValues || null,
+      new_values: params.newValues || null,
+      changed_by: user?.id || null,
+      changed_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('Failed to insert welfare audit log:', err);
+  }
+}
+
+// 1. Get Welfare Fund Summary Metrics
+export async function getWelfareSummary(): Promise<WelfareSummary> {
+  const supabase = await createClient();
+  const currentYear = new Date().getFullYear();
+
+  // Contributions total
+  const { data: contributions } = await supabase
+    .from('welfare_contributions')
+    .select('amount, period_year, member_id');
+
+  // Disbursements total
+  const { data: disbursements } = await supabase
+    .from('welfare_disbursements')
+    .select('amount, disbursement_date');
+
+  // Categories count
+  const { count: categoriesCount } = await supabase
+    .from('welfare_categories')
+    .select('id', { count: 'exact', head: true })
+    .eq('is_active', true);
+
+  let totalContributions = 0;
+  let contributionsThisYear = 0;
+  const contributingMembers = new Set<string>();
+
+  (contributions || []).forEach(c => {
+    const amt = Number(c.amount) || 0;
+    totalContributions += amt;
+    if (c.period_year === currentYear) {
+      contributionsThisYear += amt;
+    }
+    if (c.member_id) contributingMembers.add(c.member_id);
+  });
+
+  let totalDisbursements = 0;
+  let disbursementsThisYear = 0;
+
+  (disbursements || []).forEach(d => {
+    const amt = Number(d.amount) || 0;
+    totalDisbursements += amt;
+    const year = new Date(d.disbursement_date).getFullYear();
+    if (year === currentYear) {
+      disbursementsThisYear += amt;
+    }
+  });
+
+  return {
+    totalContributions,
+    totalDisbursements,
+    netFundBalance: totalContributions - totalDisbursements,
+    contributionsThisYear,
+    disbursementsThisYear,
+    contributingMembersCount: contributingMembers.size,
+    activeCategoriesCount: categoriesCount || 0,
+  };
+}
+
+// 2. Welfare Categories CRUD
+export async function getWelfareCategories(): Promise<WelfareCategory[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('welfare_categories')
+    .select('*')
+    .order('name');
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createWelfareCategory(payload: {
+  name: string;
+  description?: string;
+  default_amount: number;
+}): Promise<WelfareCategory> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('welfare_categories')
+    .insert({
+      name: payload.name,
+      description: payload.description || null,
+      default_amount: payload.default_amount,
+      is_active: true,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  await logWelfareAudit({
+    action: 'category_change',
+    entityType: 'welfare_category',
+    entityId: data.id,
+    newValues: data,
+  });
+
+  return data;
+}
+
+// 3. Welfare Contributions CRUD
+export async function getWelfareContributions(filters?: {
+  memberId?: string;
+  year?: number;
+  limit?: number;
+}): Promise<WelfareContribution[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from('welfare_contributions')
+    .select('*, members:member_id (first_name, surname, title), profiles:recorded_by (email)')
+    .order('payment_date', { ascending: false });
+
+  if (filters?.memberId) {
+    query = query.eq('member_id', filters.memberId);
+  }
+  if (filters?.year) {
+    query = query.eq('period_year', filters.year);
+  }
+  if (filters?.limit) {
+    query = query.limit(filters.limit);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data || [];
+}
+
+export async function recordWelfareContribution(payload: {
+  member_id: string;
+  amount: number;
+  payment_date: string;
+  period_year: number;
+  period_month?: number;
+  payment_method: 'cash' | 'mobile_money' | 'bank_transfer' | 'cheque';
+  reference_no?: string;
+  notes?: string;
+}): Promise<WelfareContribution> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data, error } = await supabase
+    .from('welfare_contributions')
+    .insert({
+      member_id: payload.member_id,
+      amount: payload.amount,
+      payment_date: payload.payment_date,
+      period_year: payload.period_year,
+      period_month: payload.period_month || null,
+      payment_method: payload.payment_method,
+      reference_no: payload.reference_no || null,
+      notes: payload.notes || null,
+      recorded_by: user?.id || null,
+    })
+    .select('*, members:member_id(first_name, surname)')
+    .single();
+
+  if (error) throw error;
+
+  await logWelfareAudit({
+    action: 'contribution_add',
+    entityType: 'welfare_contribution',
+    entityId: data.id,
+    memberId: payload.member_id,
+    newValues: data,
+  });
+
+  return data;
+}
+
+export async function deleteWelfareContribution(id: string): Promise<void> {
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from('welfare_contributions')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  const { error } = await supabase
+    .from('welfare_contributions')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+
+  if (existing) {
+    await logWelfareAudit({
+      action: 'contribution_delete',
+      entityType: 'welfare_contribution',
+      entityId: id,
+      memberId: existing.member_id,
+      oldValues: existing,
+    });
+  }
+}
+
+// 4. Welfare Disbursements CRUD
+export async function getWelfareDisbursements(filters?: {
+  memberId?: string;
+  limit?: number;
+}): Promise<WelfareDisbursement[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from('welfare_disbursements')
+    .select('*, members:member_id (first_name, surname, title), profiles:disbursed_by (email)')
+    .order('disbursement_date', { ascending: false });
+
+  if (filters?.memberId) {
+    query = query.eq('member_id', filters.memberId);
+  }
+  if (filters?.limit) {
+    query = query.limit(filters.limit);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data || [];
+}
+
+export async function recordWelfareDisbursement(payload: {
+  member_id: string;
+  category_id?: string;
+  category_name: string;
+  amount: number;
+  disbursement_date: string;
+  payment_method: 'mobile_money' | 'bank_transfer' | 'cash' | 'cheque';
+  reference_no?: string;
+  notes?: string;
+}): Promise<WelfareDisbursement> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data, error } = await supabase
+    .from('welfare_disbursements')
+    .insert({
+      member_id: payload.member_id,
+      category_id: payload.category_id || null,
+      category_name: payload.category_name,
+      amount: payload.amount,
+      disbursement_date: payload.disbursement_date,
+      payment_method: payload.payment_method,
+      reference_no: payload.reference_no || null,
+      notes: payload.notes || null,
+      disbursed_by: user?.id || null,
+    })
+    .select('*, members:member_id(first_name, surname)')
+    .single();
+
+  if (error) throw error;
+
+  await logWelfareAudit({
+    action: 'disbursement_add',
+    entityType: 'welfare_disbursement',
+    entityId: data.id,
+    memberId: payload.member_id,
+    newValues: data,
+  });
+
+  return data;
+}
+
+export async function deleteWelfareDisbursement(id: string): Promise<void> {
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from('welfare_disbursements')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  const { error } = await supabase
+    .from('welfare_disbursements')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+
+  if (existing) {
+    await logWelfareAudit({
+      action: 'disbursement_delete',
+      entityType: 'welfare_disbursement',
+      entityId: id,
+      memberId: existing.member_id,
+      oldValues: existing,
+    });
+  }
+}
+
+// 5. Welfare Audit Log Querying
+export async function getWelfareAuditLog(filters?: {
+  action?: string;
+  memberId?: string;
+  limit?: number;
+}): Promise<WelfareAuditEntry[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from('welfare_audit_log')
+    .select('*, members:member_id (first_name, surname), profiles:changed_by (email)')
+    .order('changed_at', { ascending: false });
+
+  if (filters?.action) {
+    query = query.eq('action', filters.action);
+  }
+  if (filters?.memberId) {
+    query = query.eq('member_id', filters.memberId);
+  }
+  if (filters?.limit) {
+    query = query.limit(filters.limit);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data || [];
+}

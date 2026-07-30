@@ -30,25 +30,52 @@ export default function ScanVerificationScreen({ navigation }) {
     if (scanned || verifying) return;
     setScanned(true);
 
-    // Expected format: https://ksji-members.vercel.app/verify/[id]
-    const idMatch = data.match(/\/verify\/([0-9a-fA-F-]+)/);
-    if (!idMatch) {
+    let extractedId = null;
+    const str = (data || '').trim();
+
+    const verifyMatch = str.match(/\/verify\/([0-9a-fA-F-]{8,36})/i);
+    const uuidMatch = str.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
+    const ksjiMatch = str.match(/KSJI-([0-9a-fA-F]{8})/i);
+
+    if (verifyMatch) {
+      extractedId = verifyMatch[1];
+    } else if (uuidMatch) {
+      extractedId = uuidMatch[0];
+    } else if (ksjiMatch) {
+      extractedId = ksjiMatch[1];
+    } else if (/^[0-9a-fA-F-]{8,36}$/.test(str)) {
+      extractedId = str;
+    }
+
+    if (!extractedId) {
       Alert.alert('Invalid QR Code', 'This does not appear to be a valid KSJI membership ID.', [
         { text: 'Try Again', onPress: () => setScanned(false) }
       ]);
       return;
     }
 
-    const memberId = idMatch[1];
     setVerifying(true);
     try {
-      const { data: memberData, error } = await supabase
+      let memberData = null;
+      const { data: exact } = await supabase
         .from('members')
         .select('*')
-        .eq('id', memberId)
-        .single();
+        .eq('id', extractedId)
+        .maybeSingle();
 
-      if (error || !memberData) throw new Error('Member not found');
+      if (exact) {
+        memberData = exact;
+      } else {
+        const { data: prefix } = await supabase
+          .from('members')
+          .select('*')
+          .ilike('id', `${extractedId}%`)
+          .limit(1)
+          .maybeSingle();
+        if (prefix) memberData = prefix;
+      }
+
+      if (!memberData) throw new Error('Member not found');
       setMember(memberData);
     } catch (e) {
       Alert.alert('Verification Failed', 'Could not find a member with this ID.', [

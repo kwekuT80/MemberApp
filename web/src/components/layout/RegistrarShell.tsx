@@ -34,9 +34,19 @@ export default function RegistrarShell({
 
   const navItems = [];
 
-  // Super Admin / Registrar (Admin) navigation items
-  // During loading, show basic registrar nav so layout doesn't jump aggressively
-  if (role === 'registrar' || role === 'super_admin' || !role) {
+  // Super Admin & Registrar / Officer base navigation items (Dashboard, Members, Reports, Meetings, Communications)
+  if (
+    role === 'super_admin' ||
+    role === 'registrar' ||
+    role === 'admin' ||
+    role === 'financial_registrar' ||
+    role === 'treasurer' ||
+    role === 'welfare_treasurer' ||
+    role === 'welfare_officer' ||
+    role === 'commander' ||
+    role === 'president' ||
+    !role
+  ) {
     navItems.push(
       { href: '/registrar', label: '🏠 Dashboard' },
       { href: '/registrar/members', label: '👥 Members' },
@@ -47,10 +57,10 @@ export default function RegistrarShell({
     );
   }
 
-  // Super Admin gets Financial Ledger tab + all financial sub-pages
-  if (role === 'super_admin') {
+  // Financial Hub navigation items (Super Admin, Financial Registrar, Treasurer)
+  if (role === 'super_admin' || role === 'financial_registrar' || role === 'treasurer') {
     navItems.push(
-      { href: '/registrar/financials', label: '💰 Financial Ledger' },
+      { href: '/registrar/financials', label: '💰 Financial Dashboard' },
       { href: '/registrar/financials/rates', label: '⚙️ Rates & Billing' },
       { href: '/registrar/financials/rates/history', label: '📉 Rate History' },
       { href: '/registrar/financials/payments', label: '💳 Record Payments' },
@@ -61,17 +71,14 @@ export default function RegistrarShell({
     );
   }
 
-  // Financial Registrar gets full financial navigation suite
-  if (role === 'financial_registrar') {
+  // Welfare Hub navigation items (Super Admin, Welfare Treasurer, Welfare Officer)
+  if (role === 'super_admin' || role === 'welfare_treasurer' || role === 'welfare_officer') {
     navItems.push(
-      { href: '/registrar/financials', label: '💰 Financial Dashboard' },
-      { href: '/registrar/financials/rates', label: '⚙️ Rates & Billing' },
-      { href: '/registrar/financials/rates/history', label: '📉 Rate History' },
-      { href: '/registrar/financials/payments', label: '💳 Record Payments' },
-      { href: '/registrar/financials/members', label: '👥 Member Summaries' },
-      { href: '/registrar/financials/dashboards', label: '🏥 Health Dashboard' },
-      { href: '/registrar/financials/delinquency', label: '📉 Delinquency Report' },
-      { href: '/registrar/financials/audit', label: '📋 Audit Trail' }
+      { href: '/registrar/welfare', label: '🤝 Welfare Hub' },
+      { href: '/registrar/welfare/contributions', label: '💳 Welfare Dues' },
+      { href: '/registrar/welfare/disbursements', label: '🎁 Benefit Payouts' },
+      { href: '/registrar/welfare/categories', label: '⚙️ Benefit Rules' },
+      { href: '/registrar/welfare/audit', label: '📋 Welfare Audit' }
     );
   }
 

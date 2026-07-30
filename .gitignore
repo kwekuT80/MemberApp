@@ -12,3 +12,5 @@ tmp/
 android/
 ios/
 .aider*
+supabase/
+*.sql
