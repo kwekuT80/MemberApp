@@ -287,7 +287,7 @@ function actionCardStyle(accentColor: string): React.CSSProperties {
     textDecoration: 'none',
     display: 'flex',
     flexDirection: 'column',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     transition: 'transform 0.2s ease',
   };
 }

@@ -299,7 +299,7 @@ export default function WelfareContributionsPage() {
                   />
                 </div>
 
-                <div style={{ display: 'flex', justify: 'flex-end', gap: 12, marginTop: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
                   <button type="button" onClick={() => setShowModal(false)} style={{ background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '10px 20px', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>
                     Cancel
                   </button>
