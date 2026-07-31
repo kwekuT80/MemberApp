@@ -394,10 +394,16 @@ export default function WelfareHubScreen({ navigation }) {
             </View>
           )}
 
-          {/* Tab 4: Benefit Rules & Categories */}
-          {activeTab === 'categories' && (
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Configured Benefit Categories</Text>
+              <Text style={styles.sectionTitle}>2020 Welfare Constitution Rules</Text>
+              
+              <View style={{ backgroundColor: '#1E293B', padding: 12, borderRadius: 8, marginBottom: 14, borderWidth: 1, borderColor: '#334155' }}>
+                <Text style={{ color: '#F59E0B', fontWeight: '800', fontSize: 12, marginBottom: 4 }}>📜 CONSTITUTIONAL GUIDELINES (ARTICLE 2)</Text>
+                <Text style={{ color: '#94A3B8', fontSize: 11, lineHeight: 16 }}>• Compulsory Monthly Contribution: GH₵ 25.00 / month</Text>
+                <Text style={{ color: '#94A3B8', fontSize: 11, lineHeight: 16 }}>• Age Exemption: Members > 80 yrs exempt from compulsory dues</Text>
+                <Text style={{ color: '#94A3B8', fontSize: 11, lineHeight: 16 }}>• Waiting Period: 6 months after joining before benefit eligibility</Text>
+                <Text style={{ color: '#94A3B8', fontSize: 11, lineHeight: 16 }}>• Good Standing: Minimum 75% contributions paid to enjoy full benefits</Text>
+              </View>
+
               {categories.map((cat) => (
                 <View key={cat.id} style={styles.categoryCard}>
                   <View style={styles.categoryHeader}>

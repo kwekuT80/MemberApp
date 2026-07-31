@@ -62,13 +62,13 @@ export default function WelfareCategoriesPage() {
   };
 
   return (
-    <RegistrarShell title="Welfare Benefit Categories" subtitle="Configure welfare benefit types, entitlement rules, and standard payout amounts">
+    <RegistrarShell title="Welfare Benefit Categories" subtitle="St. Margaret Mary Commandery No. 500 Welfare Constitution (2020) — Benefit types, entitlement rules & default payout quantums">
       <div style={{ padding: '24px 0', fontFamily: 'Inter, sans-serif' }}>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div>
-            <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: '#0F172A' }}>Active Benefit Types & Payout Rules</h2>
-            <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 0' }}>These categories dictate default amounts when logging welfare disbursements.</p>
+            <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: '#0F172A' }}>Active Constitutional Benefit Types & Quantums</h2>
+            <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 0' }}>Established under Article 3 of the Commandery Welfare Constitution (Monthly Dues: GH₵ 25.00).</p>
           </div>
 
           <button 
