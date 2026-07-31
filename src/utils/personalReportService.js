@@ -95,24 +95,45 @@ export async function fetchPersonalReportData(memberId) {
     const lastYearWelfareAssessment = lastMonthlyRate * 12;
     const lastYearWelfareBalance = Math.max(0, lastYearWelfareAssessment - lastYearWelfareContribs);
 
-    // 4. Binary Standing Calculation
-    const isMemberActive = member.status === 'Active';
-    const hasZeroOutstanding = outstandingThisYear <= 0;
+    const totalWelfareAssessed = lastYearWelfareBalance + currentWelfareAssessment;
+    const netWelfareBalance = totalWelfareAssessed - currYearWelfareContribs;
+    const welfareOutstanding = Math.max(0, netWelfareBalance);
+    const welfareCredit = netWelfareBalance < 0 ? Math.abs(netWelfareBalance) : 0;
 
-    const standing = (isMemberActive && hasZeroOutstanding)
+    // 4. Binary Standing Calculation (Financial & Welfare & Overall)
+    const isMemberActive = member.status === 'Active';
+    const hasZeroFinancialOutstanding = outstandingThisYear <= 0;
+    const hasZeroWelfareOutstanding = welfareOutstanding <= 0;
+
+    const financialStanding = (isMemberActive && hasZeroFinancialOutstanding)
       ? 'In Good Standing'
       : 'Not In Good Standing';
 
-    const standingReason = standing === 'In Good Standing'
-      ? 'All annual dues, assessments, and membership requirements are fully satisfied for the current period.'
-      : outstandingThisYear > 0 
-        ? `Member has an outstanding balance of GH¢ ${outstandingThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })} for the ${currentYear} period.`
-        : `Member record status is currently ${member.status}.`;
+    const welfareStanding = (isMemberActive && hasZeroWelfareOutstanding)
+      ? 'In Good Standing'
+      : 'Not In Good Standing';
+
+    const standing = (financialStanding === 'In Good Standing' && welfareStanding === 'In Good Standing')
+      ? 'In Good Standing'
+      : 'Not In Good Standing';
+
+    let standingReason = 'All financial dues, welfare contributions, and membership requirements are fully satisfied for the current period.';
+    if (!isMemberActive) {
+      standingReason = `Member record status is currently ${member.status}.`;
+    } else if (financialStanding === 'Not In Good Standing' && welfareStanding === 'Not In Good Standing') {
+      standingReason = `Member has outstanding financial dues (GH₵ ${outstandingThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })}) and outstanding welfare contributions (GH₵ ${welfareOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })}).`;
+    } else if (financialStanding === 'Not In Good Standing') {
+      standingReason = `Member has an outstanding financial dues balance of GH₵ ${outstandingThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })} for the ${currentYear} period.`;
+    } else if (welfareStanding === 'Not In Good Standing') {
+      standingReason = `Member has an outstanding welfare contribution balance of GH₵ ${welfareOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })} for the ${currentYear} period.`;
+    }
 
     return {
       member,
       standing,
       standingReason,
+      financialStanding,
+      welfareStanding,
       financial: {
         currentYear,
         lastYearArrears,
@@ -131,6 +152,9 @@ export async function fetchPersonalReportData(memberId) {
         contributionsThisYear: currYearWelfareContribs,
         totalContributedAllTime,
         totalBenefitsReceived,
+        totalWelfareAssessed,
+        welfareOutstanding,
+        welfareCredit,
         disbursements: formattedDisbursements
       }
     };

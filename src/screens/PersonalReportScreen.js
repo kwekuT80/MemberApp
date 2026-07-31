@@ -95,8 +95,12 @@ export default function PersonalReportScreen({ navigation, route }) {
             </div>
 
             <div class="standing-card">
-              <div class="standing-badge">${standing}</div>
-              <h2 style="margin:0; font-size: 20px;">${member.title ? member.title + ' ' : ''}${member.first_name} ${member.surname}</h2>
+              <div class="standing-badge">Overall: ${standing}</div>
+              <div style="margin-top: 6px; display: flex; gap: 8px;">
+                <span style="background: rgba(255,255,255,0.25); padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">Dues: ${financialStanding}</span>
+                <span style="background: rgba(255,255,255,0.25); padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">Welfare: ${welfareStanding}</span>
+              </div>
+              <h2 style="margin: 8px 0 0 0; font-size: 20px;">${member.title ? member.title + ' ' : ''}${member.first_name} ${member.surname}</h2>
               <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">Status: ${member.status} • Year: ${financial.currentYear}</div>
               <div style="margin-top: 12px; font-size: 11px; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 8px;">
                 ${standingReason}
@@ -239,11 +243,24 @@ export default function PersonalReportScreen({ navigation, route }) {
             </View>
           </View>
 
-          {/* Binary Standing Badge */}
+          {/* Standing Badges */}
           <View style={[styles.badge, { backgroundColor: isGoodStanding ? '#10B981' : '#F59E0B' }]}>
             <Text style={[styles.badgeText, { color: isGoodStanding ? '#064E3B' : '#78350F' }]}>
-              {isGoodStanding ? '✓ ' : '⚠️ '}{standing}
+              {isGoodStanding ? '✓ ' : '⚠️ '}Overall: {standing}
             </Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+              <Text style={{ color: financialStanding === 'In Good Standing' ? '#A7F3D0' : '#FDE68A', fontSize: 11, fontWeight: '800' }}>
+                Dues: {financialStanding}
+              </Text>
+            </View>
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+              <Text style={{ color: welfareStanding === 'In Good Standing' ? '#A7F3D0' : '#FDE68A', fontSize: 11, fontWeight: '800' }}>
+                Welfare: {welfareStanding}
+              </Text>
+            </View>
           </View>
 
           <Text style={styles.reasonText}>{standingReason}</Text>

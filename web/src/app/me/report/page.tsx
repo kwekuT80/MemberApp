@@ -28,8 +28,10 @@ export default async function PersonalReportPage() {
     );
   }
 
-  const { member, standing, standingReason, financial, welfare } = report;
+  const { member, standing, standingReason, financialStanding, welfareStanding, financial, welfare } = report;
   const isGoodStanding = standing === 'In Good Standing';
+  const isFinancialGood = financialStanding === 'In Good Standing';
+  const isWelfareGood = welfareStanding === 'In Good Standing';
 
   const formatCurrency = (val: number) =>
     `GH₵ ${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -74,21 +76,50 @@ export default async function PersonalReportPage() {
               </div>
             </div>
 
-            {/* Binary Standing Badge */}
-            <div style={{
-              background: isGoodStanding ? '#10B981' : '#F59E0B',
-              color: isGoodStanding ? '#064E3B' : '#78350F',
-              padding: '12px 24px',
-              borderRadius: 50,
-              fontSize: 16,
-              fontWeight: 900,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-            }}>
-              <span>{isGoodStanding ? '✓' : '⚠️'}</span>
-              <span>{standing}</span>
+            {/* Standing Badges Stack */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+              {/* Overall Standing Badge */}
+              <div style={{
+                background: isGoodStanding ? '#10B981' : '#F59E0B',
+                color: isGoodStanding ? '#064E3B' : '#78350F',
+                padding: '10px 22px',
+                borderRadius: 50,
+                fontSize: 15,
+                fontWeight: 900,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+              }}>
+                <span>{isGoodStanding ? '✓' : '⚠️'}</span>
+                <span>Overall: {standing}</span>
+              </div>
+
+              {/* Breakdown Pills */}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{
+                  background: 'rgba(255,255,255,0.18)',
+                  padding: '4px 12px',
+                  borderRadius: 100,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  border: `1px solid ${isFinancialGood ? 'rgba(52,211,153,0.5)' : 'rgba(251,191,36,0.5)'}`,
+                  color: isFinancialGood ? '#A7F3D0' : '#FDE68A'
+                }}>
+                  Dues: {financialStanding}
+                </span>
+                <span style={{
+                  background: 'rgba(255,255,255,0.18)',
+                  padding: '4px 12px',
+                  borderRadius: 100,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  border: `1px solid ${isWelfareGood ? 'rgba(52,211,153,0.5)' : 'rgba(251,191,36,0.5)'}`,
+                  color: isWelfareGood ? '#A7F3D0' : '#FDE68A'
+                }}>
+                  Welfare: {welfareStanding}
+                </span>
+              </div>
             </div>
           </div>
 

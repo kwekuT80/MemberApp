@@ -174,6 +174,8 @@ export interface PersonalReportData {
   member: any;
   standing: 'In Good Standing' | 'Not In Good Standing';
   standingReason: string;
+  financialStanding: 'In Good Standing' | 'Not In Good Standing';
+  welfareStanding: 'In Good Standing' | 'Not In Good Standing';
   financial: {
     currentYear: number;
     lastYearArrears: number;
@@ -192,6 +194,9 @@ export interface PersonalReportData {
     contributionsThisYear: number;
     totalContributedAllTime: number;
     totalBenefitsReceived: number;
+    totalWelfareAssessed: number;
+    welfareOutstanding: number;
+    welfareCredit: number;
     disbursements: any[];
   };
 }
@@ -291,25 +296,45 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   const lastYearWelfareAssessment = lastMonthlyRate * 12;
   const lastYearWelfareBalance = Math.max(0, lastYearWelfareAssessment - lastYearWelfareContribs);
 
+  const totalWelfareAssessed = lastYearWelfareBalance + currentWelfareAssessment;
+  const netWelfareBalance = totalWelfareAssessed - currYearWelfareContribs;
+  const welfareOutstanding = Math.max(0, netWelfareBalance);
+  const welfareCredit = netWelfareBalance < 0 ? Math.abs(netWelfareBalance) : 0;
 
-  // 3. Binary Standing Calculation
+  // 3. Binary Standing Calculation (Financial & Welfare & Overall)
   const isMemberActive = member.status === 'Active';
-  const hasZeroOutstanding = outstandingThisYear <= 0;
-  
-  const standing: 'In Good Standing' | 'Not In Good Standing' = (isMemberActive && hasZeroOutstanding) 
-    ? 'In Good Standing' 
+  const hasZeroFinancialOutstanding = outstandingThisYear <= 0;
+  const hasZeroWelfareOutstanding = welfareOutstanding <= 0;
+
+  const financialStanding: 'In Good Standing' | 'Not In Good Standing' = (isMemberActive && hasZeroFinancialOutstanding)
+    ? 'In Good Standing'
     : 'Not In Good Standing';
 
-  const standingReason = standing === 'In Good Standing'
-    ? 'All annual dues, assessments, and membership requirements are fully satisfied for the current period.'
-    : outstandingThisYear > 0 
-      ? `Member has an outstanding balance of GH¢ ${outstandingThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })} for the ${currentYear} period.`
-      : `Member record is currently flagged as ${member.status}.`;
+  const welfareStanding: 'In Good Standing' | 'Not In Good Standing' = (isMemberActive && hasZeroWelfareOutstanding)
+    ? 'In Good Standing'
+    : 'Not In Good Standing';
+
+  const standing: 'In Good Standing' | 'Not In Good Standing' = (financialStanding === 'In Good Standing' && welfareStanding === 'In Good Standing')
+    ? 'In Good Standing'
+    : 'Not In Good Standing';
+
+  let standingReason = 'All financial dues, welfare contributions, and membership requirements are fully satisfied for the current period.';
+  if (!isMemberActive) {
+    standingReason = `Member record is currently flagged as ${member.status}.`;
+  } else if (financialStanding === 'Not In Good Standing' && welfareStanding === 'Not In Good Standing') {
+    standingReason = `Member has outstanding financial dues (GH₵ ${outstandingThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })}) and outstanding welfare contributions (GH₵ ${welfareOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })}).`;
+  } else if (financialStanding === 'Not In Good Standing') {
+    standingReason = `Member has an outstanding financial dues balance of GH₵ ${outstandingThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })} for the ${currentYear} period.`;
+  } else if (welfareStanding === 'Not In Good Standing') {
+    standingReason = `Member has an outstanding welfare contribution balance of GH₵ ${welfareOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })} for the ${currentYear} period.`;
+  }
 
   return {
     member,
     standing,
     standingReason,
+    financialStanding,
+    welfareStanding,
     financial: {
       currentYear,
       lastYearArrears,
@@ -328,6 +353,9 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
       contributionsThisYear: currYearWelfareContribs,
       totalContributedAllTime,
       totalBenefitsReceived,
+      totalWelfareAssessed,
+      welfareOutstanding,
+      welfareCredit,
       disbursements: formattedDisbursements
     }
   };
