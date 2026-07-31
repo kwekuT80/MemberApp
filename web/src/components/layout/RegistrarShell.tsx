@@ -34,17 +34,12 @@ export default function RegistrarShell({
 
   const navItems = [];
 
-  // Super Admin & Registrar / Officer base navigation items (Dashboard, Members, Reports, Meetings, Communications)
+  // Base navigation items (Dashboard, Members, Reports, Meetings, Communications)
   if (
     role === 'super_admin' ||
     role === 'registrar' ||
-    role === 'admin' ||
     role === 'financial_registrar' ||
-    role === 'treasurer' ||
     role === 'welfare_treasurer' ||
-    role === 'welfare_officer' ||
-    role === 'commander' ||
-    role === 'president' ||
     !role
   ) {
     navItems.push(
@@ -57,8 +52,8 @@ export default function RegistrarShell({
     );
   }
 
-  // Financial Hub navigation items (Super Admin, Financial Registrar, Treasurer)
-  if (role === 'super_admin' || role === 'financial_registrar' || role === 'treasurer') {
+  // Financial Hub navigation items (Super Admin, Financial Registrar)
+  if (role === 'super_admin' || role === 'financial_registrar') {
     navItems.push(
       { href: '/registrar/financials', label: '💰 Financial Dashboard' },
       { href: '/registrar/financials/rates', label: '⚙️ Rates & Billing' },
@@ -71,8 +66,8 @@ export default function RegistrarShell({
     );
   }
 
-  // Welfare Hub navigation items (Super Admin, Welfare Treasurer, Welfare Officer)
-  if (role === 'super_admin' || role === 'welfare_treasurer' || role === 'welfare_officer') {
+  // Welfare Hub navigation items (Super Admin, Welfare Treasurer)
+  if (role === 'super_admin' || role === 'welfare_treasurer') {
     navItems.push(
       { href: '/registrar/welfare', label: '🤝 Welfare Hub' },
       { href: '/registrar/welfare/contributions', label: '💳 Welfare Dues' },

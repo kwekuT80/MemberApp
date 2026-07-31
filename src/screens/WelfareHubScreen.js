@@ -19,7 +19,7 @@ import { supabase } from '../db/supabase';
 import { Colors } from '../styles/theme';
 import { AuthContext } from '../navigation/AppNavigator';
 
-const WELFARE_ROLES = ['super_admin', 'welfare_treasurer', 'welfare_officer'];
+const WELFARE_ROLES = ['super_admin', 'welfare_treasurer'];
 
 export default function WelfareHubScreen({ navigation }) {
   const { role } = useContext(AuthContext);

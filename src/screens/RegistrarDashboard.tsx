@@ -189,7 +189,7 @@ export default function RegistrarDashboard({ navigation }) {
             <Text style={styles.headerReportBtnText}>Reports</Text>
           </TouchableOpacity>
 
-          {['super_admin', 'financial_registrar', 'treasurer'].includes(role as string) && (
+          {['super_admin', 'financial_registrar'].includes(role as string) && (
             <TouchableOpacity
               style={[styles.headerReportBtn, styles.financialHubBtn]}
               onPress={() => navigation.navigate('FinancialHub')}
@@ -198,7 +198,7 @@ export default function RegistrarDashboard({ navigation }) {
             </TouchableOpacity>
           )}
 
-          {['super_admin', 'welfare_treasurer', 'welfare_officer'].includes(role as string) && (
+          {['super_admin', 'welfare_treasurer'].includes(role as string) && (
             <TouchableOpacity
               style={[styles.headerReportBtn, styles.welfareHubBtn]}
               onPress={() => navigation.navigate('WelfareHub')}

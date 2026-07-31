@@ -138,15 +138,15 @@ export default function AppNavigator() {
             // Logged in — always register all screens for navigation to work properly
             <>
               {/* Officer & Admin screens */}
-              {['registrar', 'super_admin', 'financial_registrar', 'welfare_treasurer', 'welfare_officer', 'treasurer', 'admin', 'officer', 'commander', 'president'].includes(role) && (
+              {['registrar', 'super_admin', 'financial_registrar', 'welfare_treasurer'].includes(role) && (
                 <Stack.Screen name="RegistrarDashboard" component={RegistrarDashboard} />
               )}
 
-              {['registrar', 'super_admin', 'financial_registrar', 'welfare_treasurer', 'welfare_officer', 'treasurer', 'admin', 'officer', 'commander', 'president'].includes(role) && (
+              {['registrar', 'super_admin', 'financial_registrar', 'welfare_treasurer'].includes(role) && (
                 <Stack.Screen name="Reports" component={ReportsScreen} />
               )}
 
-              {['registrar', 'super_admin', 'financial_registrar', 'welfare_treasurer', 'welfare_officer', 'treasurer', 'admin', 'officer', 'commander', 'president'].includes(role) && (
+              {['registrar', 'super_admin', 'financial_registrar', 'welfare_treasurer'].includes(role) && (
                 <Stack.Screen name="Meetings" component={MeetingsScreen} />
               )}
 
