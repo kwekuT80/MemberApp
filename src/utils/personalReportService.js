@@ -73,8 +73,27 @@ export async function fetchPersonalReportData(memberId) {
     const totalContributedAllTime = welfareContribs.reduce((sum, c) => sum + Number(c.amount || 0), 0);
     const totalBenefitsReceived = disbursements.reduce((sum, d) => sum + Number(d.amount || 0), 0);
 
-    const currentWelfareAssessment = 240;
-    const lastYearWelfareBalance = Math.max(0, currentWelfareAssessment - lastYearWelfareContribs);
+    // 3b. Fetch configured welfare contribution rates (monthly × 12 = annual expected)
+    const [currRateRes, lastRateRes] = await Promise.all([
+      supabase
+        .from('welfare_contribution_rates')
+        .select('monthly_rate')
+        .eq('year', currentYear)
+        .maybeSingle(),
+      supabase
+        .from('welfare_contribution_rates')
+        .select('monthly_rate')
+        .eq('year', lastYear)
+        .maybeSingle(),
+    ]);
+
+    // Fallback: GH₵25.00/month if no rate configured for the year
+    const DEFAULT_MONTHLY_RATE = 25.00;
+    const currMonthlyRate = Number(currRateRes.data?.monthly_rate ?? DEFAULT_MONTHLY_RATE);
+    const lastMonthlyRate = Number(lastRateRes.data?.monthly_rate ?? DEFAULT_MONTHLY_RATE);
+    const currentWelfareAssessment = currMonthlyRate * 12;
+    const lastYearWelfareAssessment = lastMonthlyRate * 12;
+    const lastYearWelfareBalance = Math.max(0, lastYearWelfareAssessment - lastYearWelfareContribs);
 
     // 4. Binary Standing Calculation
     const isMemberActive = member.status === 'Active';
@@ -108,6 +127,7 @@ export async function fetchPersonalReportData(memberId) {
       welfare: {
         lastYearBalance: lastYearWelfareBalance,
         currentAssessment: currentWelfareAssessment,
+        monthlyRate: currMonthlyRate,
         contributionsThisYear: currYearWelfareContribs,
         totalContributedAllTime,
         totalBenefitsReceived,

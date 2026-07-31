@@ -186,7 +186,9 @@ export default async function PersonalReportPage() {
               <div style={{ fontSize: 22, fontWeight: 900, color: '#2563EB', fontFamily: 'monospace' }}>
                 {formatCurrency(welfare.currentAssessment)}
               </div>
-              <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>Target Contribution</div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>
+                {formatCurrency(welfare.monthlyRate)}/mo × 12 months
+              </div>
             </div>
 
             <div style={metricCardStyle}>

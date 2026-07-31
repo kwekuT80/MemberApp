@@ -132,6 +132,11 @@ export default function PersonalReportScreen({ navigation, route }) {
                 <div class="val">${formatCurrency(welfare.lastYearBalance)}</div>
               </div>
               <div class="card">
+                <div class="label">Current Year Welfare Assessment</div>
+                <div class="val" style="color: #2563EB;">${formatCurrency(welfare.currentAssessment)}</div>
+                <div style="font-size: 10px; color: #64748B; margin-top: 2px;">${formatCurrency(welfare.monthlyRate || 25)}/mo × 12 months</div>
+              </div>
+              <div class="card">
                 <div class="label">Welfare Contributions This Year</div>
                 <div class="val" style="color: #10B981;">${formatCurrency(welfare.contributionsThisYear)}</div>
               </div>
@@ -304,7 +309,13 @@ export default function PersonalReportScreen({ navigation, route }) {
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.cardLabel}>Welfare Contributions This Year</Text>
+              <Text style={styles.cardLabel}>Current Year Dues</Text>
+              <Text style={[styles.cardVal, { color: '#2563EB' }]}>{formatCurrency(welfare.currentAssessment)}</Text>
+              <Text style={styles.cardSub}>{formatCurrency(welfare.monthlyRate || 25)}/mo × 12m</Text>
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.cardLabel}>Contributions Paid</Text>
               <Text style={[styles.cardVal, { color: '#10B981' }]}>{formatCurrency(welfare.contributionsThisYear)}</Text>
             </View>
           </View>
