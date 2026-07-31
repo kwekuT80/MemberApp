@@ -78,6 +78,7 @@ export default function RegistrarShell({
       { href: '/registrar/welfare/contributions', label: '💳 Welfare Dues' },
       { href: '/registrar/welfare/disbursements', label: '🎁 Benefit Payouts' },
       { href: '/registrar/welfare/categories', label: '⚙️ Benefit Rules' },
+      { href: '/registrar/welfare/rates', label: '📐 Contribution Rates' },
       { href: '/registrar/welfare/audit', label: '📋 Welfare Audit' }
     );
   }

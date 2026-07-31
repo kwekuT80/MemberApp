@@ -6,8 +6,10 @@ import {
   WelfareContribution, 
   WelfareDisbursement, 
   WelfareAuditEntry, 
-  WelfareSummary 
+  WelfareSummary,
+  WelfareContributionRate 
 } from '@/types/welfare';
+
 
 // Helper to log welfare audit trail entries
 async function logWelfareAudit(params: {
@@ -348,3 +350,95 @@ export async function getWelfareAuditLog(filters?: {
   if (error) throw error;
   return data || [];
 }
+
+// 6. Welfare Contribution Rate Settings (monthly rate per year)
+export async function getWelfareContributionRate(year: number): Promise<WelfareContributionRate | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('welfare_contribution_rates')
+    .select('*')
+    .eq('year', year)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function getAllWelfareContributionRates(): Promise<WelfareContributionRate[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('welfare_contribution_rates')
+    .select('*')
+    .order('year', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function upsertWelfareContributionRate(payload: {
+  year: number;
+  monthly_rate: number;
+  notes?: string;
+}): Promise<WelfareContributionRate> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated.');
+
+  // ── Server-side role guard ──────────────────────────────────────
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, email')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || !['super_admin', 'welfare_treasurer'].includes(profile.role)) {
+    throw new Error('Access denied. Only a Super Administrator or Welfare Treasurer may set welfare contribution rates.');
+  }
+
+  // ── Read existing rate so we can record old values in the audit trail ─
+  const { data: existing } = await supabase
+    .from('welfare_contribution_rates')
+    .select('*')
+    .eq('year', payload.year)
+    .maybeSingle();
+
+  // ── Upsert ──────────────────────────────────────────────────────
+  const { data, error } = await supabase
+    .from('welfare_contribution_rates')
+    .upsert({
+      year: payload.year,
+      monthly_rate: payload.monthly_rate,
+      notes: payload.notes || null,
+      set_by: user.id,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'year' })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // ── Audit trail ─────────────────────────────────────────────────
+  await logWelfareAudit({
+    action: 'rate_change',
+    entityType: 'welfare_rate',
+    entityId: String(payload.year),
+    oldValues: existing
+      ? {
+          year: existing.year,
+          monthly_rate: existing.monthly_rate,
+          annual_equivalent: existing.monthly_rate * 12,
+          notes: existing.notes,
+        }
+      : null,
+    newValues: {
+      year: payload.year,
+      monthly_rate: payload.monthly_rate,
+      annual_equivalent: payload.monthly_rate * 12,
+      notes: payload.notes || null,
+      set_by_email: profile.email,
+      set_by_role: profile.role,
+      action: existing ? 'amended' : 'created',
+    },
+  });
+
+  return data;
+}
+

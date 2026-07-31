@@ -58,8 +58,8 @@ export interface WelfareDisbursement {
 
 export interface WelfareAuditEntry {
   id: string;
-  action: 'contribution_add' | 'contribution_edit' | 'contribution_delete' | 'disbursement_add' | 'disbursement_edit' | 'disbursement_delete' | 'category_change';
-  entity_type: 'welfare_contribution' | 'welfare_disbursement' | 'welfare_category';
+  action: 'contribution_add' | 'contribution_edit' | 'contribution_delete' | 'disbursement_add' | 'disbursement_edit' | 'disbursement_delete' | 'category_change' | 'rate_change';
+  entity_type: 'welfare_contribution' | 'welfare_disbursement' | 'welfare_category' | 'welfare_rate';
   entity_id: string;
   member_id?: string | null;
   old_values?: Record<string, any> | null;
@@ -83,4 +83,15 @@ export interface WelfareSummary {
   disbursementsThisYear: number;
   contributingMembersCount: number;
   activeCategoriesCount: number;
+}
+
+export interface WelfareContributionRate {
+  id: string;
+  year: number;
+  monthly_rate: number;
+  notes?: string | null;
+  set_by?: string | null;
+  commandery_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }

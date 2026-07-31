@@ -13,6 +13,7 @@ const ACTION_LABELS: Record<string, string> = {
   disbursement_edit: '✏️ Disbursement Edited',
   disbursement_delete: '🗑️ Disbursement Deleted',
   category_change: '⚙️ Category Rule Change',
+  rate_change: '📐 Contribution Rate Set',
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -21,6 +22,7 @@ const ACTION_COLORS: Record<string, string> = {
   disbursement_add: 'bg-rose-100 text-rose-800 border-rose-300',
   disbursement_delete: 'bg-amber-100 text-amber-800 border-amber-300',
   category_change: 'bg-blue-100 text-blue-800 border-blue-300',
+  rate_change: 'bg-violet-100 text-violet-800 border-violet-300',
 };
 
 export default function WelfareAuditClient() {
@@ -81,6 +83,7 @@ export default function WelfareAuditClient() {
           <option value="disbursement_add">Disbursement Added</option>
           <option value="disbursement_delete">Disbursement Deleted</option>
           <option value="category_change">Category Rule Change</option>
+          <option value="rate_change">Contribution Rate Set</option>
         </select>
 
         <div style={{ display: 'flex', gap: 12 }}>
@@ -131,8 +134,14 @@ export default function WelfareAuditClient() {
                           borderRadius: 100, 
                           fontSize: 12, 
                           fontWeight: 700,
-                          background: entry.action.includes('delete') ? '#FEF2F2' : entry.action.includes('disbursement') ? '#FFFBEB' : '#ECFDF5',
-                          color: entry.action.includes('delete') ? '#991B1B' : entry.action.includes('disbursement') ? '#B45309' : '#065F46'
+                          background: entry.action === 'rate_change'
+                            ? '#EDE9FE'
+                            : entry.action.includes('delete') ? '#FEF2F2'
+                            : entry.action.includes('disbursement') ? '#FFFBEB' : '#ECFDF5',
+                          color: entry.action === 'rate_change'
+                            ? '#5B21B6'
+                            : entry.action.includes('delete') ? '#991B1B'
+                            : entry.action.includes('disbursement') ? '#B45309' : '#065F46'
                         }}>
                           {ACTION_LABELS[entry.action] || entry.action}
                         </span>
