@@ -137,22 +137,30 @@ export default async function PersonalReportPage() {
 
             <div style={{
               ...metricCardStyle,
-              background: financial.outstandingThisYear > 0 ? '#FEF2F2' : '#F0FDF4',
-              borderColor: financial.outstandingThisYear > 0 ? '#FECACA' : '#BBF7D0',
+              background: financial.creditBalance > 0 ? '#EFF6FF' : (financial.outstandingThisYear > 0 ? '#FEF2F2' : '#F0FDF4'),
+              borderColor: financial.creditBalance > 0 ? '#BFDBFE' : (financial.outstandingThisYear > 0 ? '#FECACA' : '#BBF7D0'),
             }}>
-              <div style={{ ...metricLabelStyle, color: financial.outstandingThisYear > 0 ? '#991B1B' : '#166534' }}>
-                OUTSTANDING BALANCE
+              <div style={{
+                ...metricLabelStyle,
+                color: financial.creditBalance > 0 ? '#1E40AF' : (financial.outstandingThisYear > 0 ? '#991B1B' : '#166534')
+              }}>
+                {financial.creditBalance > 0 ? '💳 CREDIT BALANCE' : 'ACCOUNT BALANCE'}
               </div>
               <div style={{
                 fontSize: 22,
                 fontWeight: 900,
-                color: financial.outstandingThisYear > 0 ? '#DC2626' : '#166534',
+                color: financial.creditBalance > 0 ? '#2563EB' : (financial.outstandingThisYear > 0 ? '#DC2626' : '#166534'),
                 fontFamily: 'monospace'
               }}>
-                {formatCurrency(financial.outstandingThisYear)}
+                {financial.creditBalance > 0 ? formatCurrency(financial.creditBalance) : formatCurrency(financial.outstandingThisYear)}
               </div>
-              <div style={{ fontSize: 11, fontWeight: 800, color: financial.outstandingThisYear > 0 ? '#991B1B' : '#166534', marginTop: 4 }}>
-                Status: {financial.yearStatus}
+              <div style={{
+                fontSize: 11,
+                fontWeight: 800,
+                color: financial.creditBalance > 0 ? '#1E40AF' : (financial.outstandingThisYear > 0 ? '#991B1B' : '#166534'),
+                marginTop: 4
+              }}>
+                {financial.creditBalance > 0 ? '✨ Advance Credit Available' : `Status: ${financial.yearStatus}`}
               </div>
             </div>
           </div>

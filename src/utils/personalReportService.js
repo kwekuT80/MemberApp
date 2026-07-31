@@ -32,10 +32,14 @@ export async function fetchPersonalReportData(memberId) {
     const currentAssessment = currAss ? Number(currAss.annual_assessment || 0) : 0;
     const totalAssessed = lastYearArrears + currentAssessment;
     const paymentsThisYear = currPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
-    const outstandingThisYear = Math.max(0, totalAssessed - paymentsThisYear);
+    const netBalance = totalAssessed - paymentsThisYear;
+    const outstandingThisYear = Math.max(0, netBalance);
+    const creditBalance = netBalance < 0 ? Math.abs(netBalance) : 0;
 
     let yearStatus = 'Unpaid';
-    if (paymentsThisYear >= totalAssessed && totalAssessed > 0) {
+    if (creditBalance > 0) {
+      yearStatus = 'Credit Balance';
+    } else if (paymentsThisYear >= totalAssessed && totalAssessed > 0) {
       yearStatus = 'Fully Paid';
     } else if (paymentsThisYear > 0) {
       yearStatus = 'Partially Paid';
@@ -97,6 +101,8 @@ export async function fetchPersonalReportData(memberId) {
         totalAssessed,
         paymentsThisYear,
         outstandingThisYear,
+        creditBalance,
+        netBalance,
         yearStatus
       },
       welfare: {

@@ -118,8 +118,10 @@ export default function PersonalReportScreen({ navigation, route }) {
                 <div class="val" style="color: #10B981;">${formatCurrency(financial.paymentsThisYear)}</div>
               </div>
               <div class="card">
-                <div class="label">Outstanding Balance</div>
-                <div class="val" style="color: ${financial.outstandingThisYear > 0 ? '#DC2626' : '#166534'};">${formatCurrency(financial.outstandingThisYear)}</div>
+                <div class="label">${financial.creditBalance > 0 ? 'Credit Balance' : 'Outstanding Balance'}</div>
+                <div class="val" style="color: ${financial.creditBalance > 0 ? '#2563EB' : (financial.outstandingThisYear > 0 ? '#DC2626' : '#166534')};">
+                  ${financial.creditBalance > 0 ? formatCurrency(financial.creditBalance) : formatCurrency(financial.outstandingThisYear)}
+                </div>
               </div>
             </div>
 
@@ -265,13 +267,27 @@ export default function PersonalReportScreen({ navigation, route }) {
               <Text style={styles.cardSub}>Paid Received</Text>
             </View>
 
-            <View style={[styles.card, { backgroundColor: financial.outstandingThisYear > 0 ? '#FEF2F2' : '#F0FDF4' }]}>
-              <Text style={[styles.cardLabel, { color: financial.outstandingThisYear > 0 ? '#991B1B' : '#166534' }]}>Outstanding Balance</Text>
-              <Text style={[styles.cardVal, { color: financial.outstandingThisYear > 0 ? '#DC2626' : '#166534' }]}>
-                {formatCurrency(financial.outstandingThisYear)}
+            <View style={[
+              styles.card, 
+              { backgroundColor: financial.creditBalance > 0 ? '#EFF6FF' : (financial.outstandingThisYear > 0 ? '#FEF2F2' : '#F0FDF4') }
+            ]}>
+              <Text style={[
+                styles.cardLabel, 
+                { color: financial.creditBalance > 0 ? '#1E40AF' : (financial.outstandingThisYear > 0 ? '#991B1B' : '#166534') }
+              ]}>
+                {financial.creditBalance > 0 ? 'Credit Balance' : 'Outstanding Balance'}
               </Text>
-              <Text style={[styles.cardSub, { color: financial.outstandingThisYear > 0 ? '#991B1B' : '#166534', fontWeight: '800' }]}>
-                Status: {financial.yearStatus}
+              <Text style={[
+                styles.cardVal, 
+                { color: financial.creditBalance > 0 ? '#2563EB' : (financial.outstandingThisYear > 0 ? '#DC2626' : '#166534') }
+              ]}>
+                {financial.creditBalance > 0 ? formatCurrency(financial.creditBalance) : formatCurrency(financial.outstandingThisYear)}
+              </Text>
+              <Text style={[
+                styles.cardSub, 
+                { color: financial.creditBalance > 0 ? '#1E40AF' : (financial.outstandingThisYear > 0 ? '#991B1B' : '#166534'), fontWeight: '800' }
+              ]}>
+                {financial.creditBalance > 0 ? '✨ Advance Credit' : `Status: ${financial.yearStatus}`}
               </Text>
             </View>
           </View>
