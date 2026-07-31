@@ -14,3 +14,12 @@ ios/
 .aider*
 supabase/
 *.sql
+
+# IDE & Editor Settings / Caches
+.claude/
+.idea/
+*.tsbuildinfo
+
+# Local Test Scripts
+scripts/test_*.js
+

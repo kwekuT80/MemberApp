@@ -109,11 +109,16 @@ export default function FinancialsScreen({ navigation, route }) {
           <Text style={styles.headerEyebrow}>K.S.J.I MEMBER SERVICE</Text>
           <Text style={styles.headerTitle}>Financial Ledger</Text>
         </View>
-        {['super_admin', 'financial_registrar'].includes(role) && (
-          <TouchableOpacity onPress={() => navigation.navigate('FinancialHub')} style={styles.hubBtn}>
-            <Text style={styles.hubBtnText}>🏠 Hub</Text>
+        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => navigation.navigate('PersonalReport')} style={[styles.hubBtn, { backgroundColor: Colors.gold }]}>
+            <Text style={[styles.hubBtnText, { color: Colors.navy }]}>📊 Personal Report</Text>
           </TouchableOpacity>
-        )}
+          {['super_admin', 'financial_registrar'].includes(role) && (
+            <TouchableOpacity onPress={() => navigation.navigate('FinancialHub')} style={styles.hubBtn}>
+              <Text style={styles.hubBtnText}>🏠 Hub</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <View style={styles.yearBadge}>
           <Text style={styles.yearBadgeText}>{currentYear}</Text>
         </View>

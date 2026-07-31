@@ -11,6 +11,7 @@ const memberNav = [
   { href: '/me/attendance', label: '📋 Attendance' },
   { href: '/me/financials', label: '💰 Financials' },
   { href: '/me/welfare', label: '🤝 Welfare Scheme' },
+  { href: '/me/report', label: '📊 Personal Standing Report' },
   { href: '/registrar', label: '🛡️ Registrar Portal (If Officer)' },
 ];
 

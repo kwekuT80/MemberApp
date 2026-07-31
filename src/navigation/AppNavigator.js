@@ -30,6 +30,7 @@ import ScanVerificationScreen from '../screens/ScanVerificationScreen';
 import MeetingsScreen       from '../screens/MeetingsScreen';
 import ViewMemberFinancialsScreen from '../screens/ViewMemberFinancialsScreen';
 import WelfareHubScreen from '../screens/WelfareHubScreen';
+import PersonalReportScreen from '../screens/PersonalReportScreen';
 import { Colors } from '../styles/theme';
 
 const Stack = createNativeStackNavigator();
@@ -159,6 +160,7 @@ export default function AppNavigator() {
               <Stack.Screen name="Spouse"            component={SpouseScreen} />
               <Stack.Screen name="Dependents"        component={DependentsScreen} />
               <Stack.Screen name="Financials"        component={FinancialsScreen} />
+              <Stack.Screen name="PersonalReport"    component={PersonalReportScreen} />
               <Stack.Screen name="MembershipCard"   component={MembershipCardScreen} />
               <Stack.Screen name="Dossier"          component={DossierScreen} />
               <Stack.Screen name="ScanVerification" component={ScanVerificationScreen} options={{ headerShown: false }} />

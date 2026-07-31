@@ -31,6 +31,8 @@ export default async function MePage() {
           <Link href='/me/emergency' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Emergency</Link>
           <Link href='/me/family' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Family</Link>
           <Link href='/me/financials' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Financials</Link>
+          <Link href='/me/welfare' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Welfare Scheme</Link>
+          <Link href='/me/report' style={{ textDecoration: 'none', color: '#2563EB', fontWeight: 900, background: '#EFF6FF', padding: '4px 12px', borderRadius: 8 }}>📊 Personal Report</Link>
           <Link href='/me/military' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Military</Link>
           <Link href='/me/positions' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Positions</Link>
         </div>

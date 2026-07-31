@@ -211,6 +211,6 @@ eas build --platform android --profile production   # AAB for store
 
 **Latest (2026-05):** Financial Ledger system — assessment/collections management with annual bill generation, rate configuration, payment recording, materialized summary views, age-based discounts, RLS policies for financial data. Separation of duties: registrar vs financial_registrar roles + super_admin. Provider-agnostic messaging abstraction layer (Brevo/Twilio) implemented as foundation for automated reminders.
 
-**Completed features this sprint:** F1 (Rate History & Comparison View), F2 (Member Financial Summary Page via Materialized Views), C3 (GPS Geofencing Attendance Tracking), C4 (QR Code Manual Check-In Fallback), C1a (Messaging Abstraction Layer), D3 (Dashboard Analytics), G1 (Delinquency Report Print-Ready), D1a (Audit Trail UI), G2 (Attendance Reports), C5 (Communications Hub & History).
+**Completed features this sprint:** F1 (Rate History & Comparison View), F2 (Member Financial Summary Page via Materialized Views), C3 (GPS Geofencing Attendance Tracking), C4 (QR Code Manual Check-In Fallback), C1a (Messaging Abstraction Layer), D3 (Dashboard Analytics), G1 (Delinquency Report Print-Ready), D1a (Audit Trail UI), G2 (Attendance Reports), C5 (Communications Hub & History), Personal Standing & Financial/Welfare Statement Report (Web & Android).
 
 **Previous:** offline caching, QR codes, bulk import, verification page, rank display fixes, Android photo upload improvements.
