@@ -18,6 +18,8 @@ export default async function WelfareDashboardPage() {
     contributionsThisYear: 0,
     disbursementsThisYear: 0,
     contributingMembersCount: 0,
+    inactiveMembersCount: 0,
+    totalMembersCount: 0,
     activeCategoriesCount: 0,
   };
 
@@ -104,7 +106,7 @@ export default async function WelfareDashboardPage() {
             </div>
           </div>
 
-          {/* Card 4: Contributing Members */}
+          {/* Card 4: Subscribers Breakdown (Active vs Inactive) */}
           <div style={{ 
             background: 'white', 
             borderRadius: 16, 
@@ -113,13 +115,26 @@ export default async function WelfareDashboardPage() {
             boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
           }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>
-              Active Subscribers
+              Welfare Subscribers
             </div>
-            <div style={{ fontSize: 28, fontWeight: 900, color: '#3B82F6', marginTop: 8 }}>
-              {summary.contributingMembersCount} Members
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 8 }}>
+              <span style={{ fontSize: 28, fontWeight: 900, color: '#10B981' }}>
+                {summary.contributingMembersCount} Active
+              </span>
+              <span style={{ 
+                fontSize: 13, 
+                fontWeight: 700, 
+                color: '#EF4444', 
+                background: '#FEF2F2', 
+                padding: '2px 8px', 
+                borderRadius: 12,
+                border: '1px solid #FCA5A5'
+              }}>
+                {summary.inactiveMembersCount} Inactive
+              </span>
             </div>
-            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 8 }}>
-              {summary.activeCategoriesCount} Active Benefit Categories
+            <div style={{ fontSize: 12, color: '#64748B', marginTop: 8 }}>
+              Roster: {summary.totalMembersCount} Total Members ({summary.activeCategoriesCount} Active Categories)
             </div>
           </div>
         </div>

@@ -82,6 +82,8 @@ export interface WelfareSummary {
   contributionsThisYear: number;
   disbursementsThisYear: number;
   contributingMembersCount: number;
+  inactiveMembersCount: number;
+  totalMembersCount: number;
   activeCategoriesCount: number;
 }
 

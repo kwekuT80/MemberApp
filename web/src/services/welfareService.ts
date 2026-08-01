@@ -60,6 +60,11 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
     .select('id', { count: 'exact', head: true })
     .eq('is_active', true);
 
+  // Total members count
+  const { count: membersCount } = await supabase
+    .from('members')
+    .select('id', { count: 'exact', head: true });
+
   let totalContributions = 0;
   let contributionsThisYear = 0;
   const contributingMembers = new Set<string>();
@@ -85,13 +90,19 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
     }
   });
 
+  const totalMembers = membersCount || 0;
+  const activeSubscribers = contributingMembers.size;
+  const inactiveSubscribers = Math.max(0, totalMembers - activeSubscribers);
+
   return {
     totalContributions,
     totalDisbursements,
     netFundBalance: totalContributions - totalDisbursements,
     contributionsThisYear,
     disbursementsThisYear,
-    contributingMembersCount: contributingMembers.size,
+    contributingMembersCount: activeSubscribers,
+    inactiveMembersCount: inactiveSubscribers,
+    totalMembersCount: totalMembers,
     activeCategoriesCount: categoriesCount || 0,
   };
 }
