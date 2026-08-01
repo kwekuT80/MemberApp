@@ -20,6 +20,7 @@ supabase/
 .idea/
 *.tsbuildinfo
 
-# Local Test Scripts
-scripts/test_*.js
+# Local Test & Data Processing Scripts
+scripts/
+
 

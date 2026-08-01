@@ -292,6 +292,10 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   const DEFAULT_MONTHLY_RATE = 25.00;
   const currMonthlyRate  = Number(currRateRes.data?.monthly_rate  ?? DEFAULT_MONTHLY_RATE);
   const lastMonthlyRate  = Number(lastRateRes.data?.monthly_rate  ?? DEFAULT_MONTHLY_RATE);
+  
+  // Welfare is billed monthly: calculate expected contributions up to the current month of the current year
+  const currentMonth = new Date().getMonth() + 1; // 1-12
+  const proRataWelfareAssessment = currMonthlyRate * currentMonth;
   const currentWelfareAssessment = currMonthlyRate * 12;
   const lastYearWelfareAssessment = lastMonthlyRate * 12;
   const lastYearWelfareBalance = Math.max(0, lastYearWelfareAssessment - lastYearWelfareContribs);
@@ -301,16 +305,23 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   const welfareOutstanding = Math.max(0, netWelfareBalance);
   const welfareCredit = netWelfareBalance < 0 ? Math.abs(netWelfareBalance) : 0;
 
+  // Monthly Welfare Standing: Members remain in Good Standing if unpaid welfare dues do not exceed 3 months (GH₵ 75.00)
+  const MAX_ALLOWED_WELFARE_ARREARS_MONTHS = 3;
+  const maxAllowedWelfareArrears = currMonthlyRate * MAX_ALLOWED_WELFARE_ARREARS_MONTHS;
+  
+  // Pro-rata arrears up to current month plus prior year balance
+  const currentProRataArrears = Math.max(0, (lastYearWelfareBalance + proRataWelfareAssessment) - currYearWelfareContribs);
+  const hasAcceptableWelfareStanding = currentProRataArrears <= maxAllowedWelfareArrears;
+
   // 3. Binary Standing Calculation (Financial & Welfare & Overall)
   const isMemberActive = member.status === 'Active';
   const hasZeroFinancialOutstanding = outstandingThisYear <= 0;
-  const hasZeroWelfareOutstanding = welfareOutstanding <= 0;
 
   const financialStanding: 'In Good Standing' | 'Not In Good Standing' = (isMemberActive && hasZeroFinancialOutstanding)
     ? 'In Good Standing'
     : 'Not In Good Standing';
 
-  const welfareStanding: 'In Good Standing' | 'Not In Good Standing' = (isMemberActive && hasZeroWelfareOutstanding)
+  const welfareStanding: 'In Good Standing' | 'Not In Good Standing' = (isMemberActive && hasAcceptableWelfareStanding)
     ? 'In Good Standing'
     : 'Not In Good Standing';
 
@@ -322,11 +333,11 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   if (!isMemberActive) {
     standingReason = `Member record is currently flagged as ${member.status}.`;
   } else if (financialStanding === 'Not In Good Standing' && welfareStanding === 'Not In Good Standing') {
-    standingReason = `Member has outstanding financial dues (GH₵ ${outstandingThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })}) and outstanding welfare contributions (GH₵ ${welfareOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })}).`;
+    standingReason = `Member has outstanding financial dues (GH₵ ${outstandingThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })}) and excessive welfare arrears exceeding the ${MAX_ALLOWED_WELFARE_ARREARS_MONTHS}-month grace period (GH₵ ${currentProRataArrears.toLocaleString('en-US', { minimumFractionDigits: 2 })}).`;
   } else if (financialStanding === 'Not In Good Standing') {
     standingReason = `Member has an outstanding financial dues balance of GH₵ ${outstandingThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })} for the ${currentYear} period.`;
   } else if (welfareStanding === 'Not In Good Standing') {
-    standingReason = `Member has an outstanding welfare contribution balance of GH₵ ${welfareOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })} for the ${currentYear} period.`;
+    standingReason = `Member has an outstanding welfare contribution balance of GH₵ ${currentProRataArrears.toLocaleString('en-US', { minimumFractionDigits: 2 })}, which exceeds the allowable ${MAX_ALLOWED_WELFARE_ARREARS_MONTHS}-month grace threshold.`;
   }
 
   return {
