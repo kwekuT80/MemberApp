@@ -1,27 +1,86 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 import { Member } from '@/types/member';
 import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 export default function MemberSearchTable({ members, basePath='/registrar/members', emptyMessage='No member records found.' }: { members: any[]; basePath?: string; emptyMessage?: string }) {
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'deceased' | 'inactive'>('all');
+
+  const filteredMembers = members.filter(m => {
+    if (statusFilter === 'active') return !['Deceased', 'Dismissed', 'Transfer-Out', 'Suspended'].includes(m.status || '') && !m.is_deceased;
+    if (statusFilter === 'deceased') return m.status === 'Deceased' || m.is_deceased;
+    if (statusFilter === 'inactive') return ['Dismissed', 'Suspended', 'Transfer-Out'].includes(m.status || '');
+    return true;
+  });
+
   if (!members.length) {
     return <div className="card" style={{ textAlign: 'center', color: 'var(--grey)' }}>{emptyMessage}</div>;
   }
 
+  const activeCount = members.filter(m => !['Deceased', 'Dismissed', 'Transfer-Out', 'Suspended'].includes(m.status || '') && !m.is_deceased).length;
+  const deceasedCount = members.filter(m => m.status === 'Deceased' || m.is_deceased).length;
+  const inactiveCount = members.filter(m => ['Dismissed', 'Suspended', 'Transfer-Out'].includes(m.status || '')).length;
+
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table className="member-table">
-        <thead>
-          <tr>
-            <th align='left'>Brother Name</th>
-            <th align='left'>Phone</th>
-            <th align='left'>Children</th>
-            <th align='left'>Latest Position</th>
-            <th align='left'>Joined</th>
-            <th align='center'>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-            {members.map((member) => {
+    <div>
+      {/* Filter Chips */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: '#53657d', marginRight: 2 }}>Quick Filter:</span>
+        <button
+          type="button"
+          onClick={() => setStatusFilter('all')}
+          style={chipStyle(statusFilter === 'all', '#10233f')}
+        >
+          All ({members.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter('active')}
+          style={chipStyle(statusFilter === 'active', '#1f6f43')}
+        >
+          Active ({activeCount})
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter('deceased')}
+          style={chipStyle(statusFilter === 'deceased', '#111827')}
+        >
+          🕯️ Final Roll ({deceasedCount})
+        </button>
+        {inactiveCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setStatusFilter('inactive')}
+            style={chipStyle(statusFilter === 'inactive', '#991b1b')}
+          >
+            Dismissed / Suspended ({inactiveCount})
+          </button>
+        )}
+      </div>
+
+      <div style={{ overflowX: 'auto' }}>
+        <table className="member-table">
+          <thead>
+            <tr>
+              <th align='left'>Brother Name</th>
+              <th align='left'>Phone</th>
+              <th align='left'>Children</th>
+              <th align='left'>Latest Position</th>
+              <th align='left'>Joined</th>
+              <th align='center'>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredMembers.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: 24, color: '#64748b' }}>
+                  No members found in this filtered view.
+                </td>
+              </tr>
+            ) : (
+              filteredMembers.map((member) => {
               const latestPos = (member.positions || []).sort((a: any, b: any) => 
                 String(b.date_from || '').localeCompare(String(a.date_from || ''))
               )[0];
@@ -82,5 +141,21 @@ export default function MemberSearchTable({ members, basePath='/registrar/member
         </tbody>
       </table>
     </div>
+    </div>
   );
 }
+
+function chipStyle(active: boolean, activeBg: string): React.CSSProperties {
+  return {
+    background: active ? activeBg : '#f1f5f9',
+    color: active ? '#ffffff' : '#334155',
+    border: active ? `1px solid ${activeBg}` : '1px solid #cbd5e1',
+    borderRadius: 20,
+    padding: '4px 12px',
+    fontSize: 12,
+    fontWeight: active ? 700 : 600,
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  };
+}
+

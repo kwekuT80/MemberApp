@@ -12,22 +12,22 @@ Generated: 2026-05-26
 |---|---------|----------------|--------|
 | ~~A1~~ | **Export Financial Reports to PDF/Excel** | Current financials page shows data but lacks export capability for meetings and audits — G1 now provides print-ready delinquency reports | ✅ Completed (via G1) |
 | A2 | **Delinquency Aging Report** | Track members overdue by 90/180/365 days — critical for collection prioritization (superseded by G1 with print capability) | Superseded by G1 |
-| A3 | **Chapter Health Dashboard** | Aggregate metrics: membership growth, payment compliance rate, active member ratio | Pending |
+| ~~A3~~ | **Chapter Health Dashboard** | Aggregate metrics: membership growth, payment compliance rate, active member ratio | ✅ Completed (`/registrar/financials/dashboards`) |
 
 ### Category B — Member Self-Service
 
 | # | Feature | Why It Matters | Status |
 |---|---------|----------------|--------|
-| B1 | **Member Portal Payment History** | Members currently see financial status on login but cannot view historical payment timeline | Pending |
-| B2 | **Self-Service Profile Updates** | Members can update contact info without registrar intervention — reduces administrative overhead | Pending |
+| ~~B1~~ | **Member Portal Payment History** | Members currently see financial status on login but cannot view historical payment timeline | ✅ Completed (`/me/financials`) |
+| ~~B2~~ | **Self-Service Profile Updates** | Members can update contact info without registrar intervention — reduces administrative overhead | ✅ Completed (`/me/edit`) |
 
 ### Category C — Automation & Notifications
 
 | # | Feature | Why It Matters | Status |
 |---|---------|----------------|--------|
-| ~~C1a~~ | **Messaging Abstraction Layer (Provider-agnostic)** | Unified messaging interface with Brevo/Twilio providers via factory pattern. Enables future reminder orchestration without code changes to application layer. | ✅ Completed |
-| ~~C1b~~ | **Automated Payment Reminders** | SMS/email notifications for upcoming due dates and overdue balances — requires edge function orchestration + cron scheduler on top of C1a foundation | Pending (Depends on C1a) |
-| C2 | **Annual Bill Auto-Generation** | Currently manual; automation would flag members for renewal before new year | Pending |
+| ~~C1a~~ | **Messaging Abstraction Layer (Resend Email)** | Unified messaging interface with Resend as primary email provider ([providerFactory.ts](file:///d:/App/Memberapp/MemberApp/web/src/services/messaging/providerFactory.ts)). SMS deferred due to lack of a free SMS gateway tier for small scale. | ✅ Completed |
+| ~~C1b~~ | **Automated Payment Reminders (Email via Resend)** | Scheduled email notifications for upcoming due dates and overdue balances via Resend | Pending (Depends on C1a) |
+| ~~C2~~ | **Annual Bill Generation** | Server-side annual bill generation with arrears rollover, age-based discounts, and rate tier mapping | ✅ Completed (`/registrar/financials/rates`) |
 | ~~C3~~ | **Meeting Attendance Tracking via GPS Geofencing (Self-Service)** | Members automatically checked in when entering meeting area — fully self-service, no registrar involvement. Existing system uses GPS tracking as primary workflow with manual check-in as safeguard. | ✅ Completed |
 
 ### Category D — Data Management & Integrity

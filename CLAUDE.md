@@ -153,7 +153,7 @@ Documentation: `docs/communications_workflow.md`
 - Application workflows emit communication requests; orchestrator resolves recipient, renders template, dispatches via configured provider
 - Delivery state machine tracks CREATED → QUEUED → SENT → DELIVERED → OPENED → COMPLETE with exception states (FAILED, BOUNCED, ESCALATED)
 
-**Current Implementation**: Provider abstraction layer and Brevo/Twilio implementations are complete. Full workflow orchestration (cron scheduler, reminder discovery, escalation engine) is planned per `docs/communications_workflow.md`.
+**Current Implementation**: Provider abstraction layer (`web/src/services/messaging/`) uses **Resend** as the primary active provider for email servicing (`RESEND_API_KEY`). SMS provider integration is currently deferred due to the absence of a free SMS gateway tier for small project scale. Automated reminders focus on email dispatch via Resend.
 
 ## Key Patterns & Conventions
 
@@ -167,7 +167,10 @@ Documentation: `docs/communications_workflow.md`
 9. **Deceased Member Archival & Billing Policy**:
    - **Never Delete**: Deceased members are permanently retained in the database (`status = 'Deceased'` or `is_deceased = true`) for historical, honor roll, biographical, and archival purposes (e.g. Master Record, Service Bio, Final Roll reports).
    - **Billing & Welfare Exclusion**: All financial billing/invoicing, dues assessments, delinquency tracking, welfare inactive subscriber metrics, and automated notices MUST explicitly exclude `Deceased`, `Dismissed`, and `Transfer-Out` members (`.not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')`). Sending bills or inactive welfare reminders to deceased members is strictly forbidden.
-10. **Build**: EAS for mobile distribution; `next build` for web
+10. **Documentation & User Manuals Pending**:
+    - **Member User Manual**: Practical guide for general members (`/me` portal, mobile app).
+    - **Officer & Admin Manual**: Operational handbook for elevated permissions (`registrar`, `financial_registrar`, `welfare_registrar`, '`super_admin`).
+11. **Build**: EAS for mobile distribution; `next build` for web
 
 ---
 
