@@ -137,10 +137,10 @@ export default function MemberSearchTable({ members, basePath='/registrar/member
                   </td>
                 </tr>
               );
-            })}
-        </tbody>
-      </table>
-    </div>
+            }))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
