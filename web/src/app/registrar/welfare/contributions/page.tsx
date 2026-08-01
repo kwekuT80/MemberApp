@@ -42,12 +42,16 @@ export default function WelfareContributionsPage() {
         getWelfareContributions(),
         supabase
           .from('members')
-          .select('id, first_name, surname, title')
-          .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+          .select('id, first_name, surname, title, status, is_deceased')
           .order('surname'),
       ]);
       setContributions(list);
-      setMembers(memberList || []);
+      const filtered = (memberList || []).filter(m => {
+        if (m.is_deceased) return false;
+        const s = String(m.status || '').trim().toLowerCase();
+        return !['deceased', 'dismissed', 'transfer-out'].includes(s);
+      });
+      setMembers(filtered);
     } catch (err) {
       console.error('Failed to load welfare contributions:', err);
     } finally {

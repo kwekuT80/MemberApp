@@ -61,12 +61,16 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
     .eq('is_active', true);
 
   // Active living members count (excluding Dismissed, Transfer-Out, Deceased)
-  const { data: activeMembers } = await supabase
+  const { data: allMembers } = await supabase
     .from('members')
-    .select('id, status, is_deceased')
-    .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")');
+    .select('id, status, is_deceased');
 
-  const eligibleMembers = (activeMembers || []).filter(m => !m.is_deceased);
+  const eligibleMembers = (allMembers || []).filter(m => {
+    if (m.is_deceased) return false;
+    const s = String(m.status || '').trim().toLowerCase();
+    if (s === 'deceased' || s === 'dismissed' || s === 'transfer-out') return false;
+    return true;
+  });
   const eligibleMemberIds = new Set(eligibleMembers.map(m => m.id));
 
   let totalContributions = 0;
