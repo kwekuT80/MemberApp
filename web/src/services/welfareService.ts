@@ -47,7 +47,8 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
   // Contributions total
   const { data: contributions } = await supabase
     .from('welfare_contributions')
-    .select('amount, period_year, member_id');
+    .select('amount, period_year, member_id')
+    .limit(10000);
 
   // Disbursements total
   const { data: disbursements } = await supabase
@@ -75,7 +76,7 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
 
   let totalContributions = 0;
   let contributionsThisYear = 0;
-  const activeContributingMembers = new Set<string>();
+  const memberContribMap = new Map<string, number>();
 
   (contributions || []).forEach(c => {
     const amt = Number(c.amount) || 0;
@@ -84,7 +85,8 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
       contributionsThisYear += amt;
     }
     if (c.member_id && eligibleMemberIds.has(c.member_id)) {
-      activeContributingMembers.add(c.member_id);
+      const prev = memberContribMap.get(c.member_id) || 0;
+      memberContribMap.set(c.member_id, prev + amt);
     }
   });
 
@@ -100,8 +102,21 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
     }
   });
 
+  // Calculate cumulative arrears for active vs inactive standing
+  const fullYearsCount = Math.max(0, currentYear - 2022);
+  const currentMonth = new Date().getMonth() + 1;
+  const expectedCumulativePerMember = (fullYearsCount * 12 * 25.00) + (currentMonth * 25.00);
+
+  let activeSubscribers = 0;
+  eligibleMemberIds.forEach(id => {
+    const totalPaid = memberContribMap.get(id) || 0;
+    const arrears = Math.max(0, expectedCumulativePerMember - totalPaid);
+    if (arrears <= 75.00) {
+      activeSubscribers++;
+    }
+  });
+
   const totalMembers = eligibleMemberIds.size;
-  const activeSubscribers = activeContributingMembers.size;
   const inactiveSubscribers = Math.max(0, totalMembers - activeSubscribers);
 
   return {

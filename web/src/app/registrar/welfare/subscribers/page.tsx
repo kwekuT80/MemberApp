@@ -12,7 +12,8 @@ interface SubscriberItem {
   status: string;
   totalContributed: number;
   currentYearContrib: number;
-  arrears: number;
+  expectedCumulative: number;
+  cumulativeArrears: number;
   isSubscriber: boolean;
 }
 
@@ -25,15 +26,16 @@ export default function WelfareSubscribersPage() {
   const supabase = createClient();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
-  const expectedYtdDues = 25.00 * currentMonth;
+  const fullYearsCount = Math.max(0, currentYear - 2022); // 4 full years (2022-2025 = 48 months × 25 = 1200)
+  const expectedCumulative = (fullYearsCount * 12 * 25.00) + (currentMonth * 25.00);
 
   useEffect(() => {
     async function loadRoster() {
       setLoading(true);
       try {
         const [membersRes, contribsRes] = await Promise.all([
-          supabase.from('members').select('id, first_name, surname, title, status, is_deceased'),
-          supabase.from('welfare_contributions').select('member_id, amount, period_year')
+          supabase.from('members').select('id, first_name, surname, title, status, is_deceased').limit(1000),
+          supabase.from('welfare_contributions').select('member_id, amount, period_year').limit(10000)
         ]);
 
         const members = membersRes.data || [];
@@ -53,8 +55,8 @@ export default function WelfareSubscribersPage() {
             .filter(c => c.period_year === currentYear)
             .reduce((acc, c) => acc + Number(c.amount || 0), 0);
           
-          const arrears = Math.max(0, expectedYtdDues - currentYearContrib);
-          const isSubscriber = mContribs.length > 0;
+          const cumulativeArrears = Math.max(0, expectedCumulative - totalContributed);
+          const isSubscriber = cumulativeArrears <= 75.00;
 
           return {
             id: m.id,
@@ -63,7 +65,8 @@ export default function WelfareSubscribersPage() {
             status: m.status || 'Active',
             totalContributed,
             currentYearContrib,
-            arrears,
+            expectedCumulative,
+            cumulativeArrears,
             isSubscriber
           };
         });
@@ -82,24 +85,25 @@ export default function WelfareSubscribersPage() {
   const filtered = subscribers.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
     if (!matchesSearch) return false;
-    if (filter === 'active') return s.isSubscriber && s.arrears <= 75;
-    if (filter === 'inactive') return !s.isSubscriber || s.arrears > 75;
+    if (filter === 'active') return s.isSubscriber;
+    if (filter === 'inactive') return !s.isSubscriber;
     return true;
   });
 
-  const activeCount = subscribers.filter(s => s.isSubscriber && s.arrears <= 75).length;
+  const activeCount = subscribers.filter(s => s.isSubscriber).length;
   const inactiveCount = subscribers.length - activeCount;
 
   const exportToCSV = () => {
-    const headers = ['Member Name', 'Title', 'Status', 'Total Contributed (GHc)', '2026 Paid (GHc)', 'Current Arrears (GHc)', 'Subscription Status'];
+    const headers = ['Member Name', 'Title', 'Status', 'Total Contributed (GHc)', '2026 Paid (GHc)', 'Total Expected (GHc)', 'Cumulative Arrears (GHc)', 'Subscription Status'];
     const rows = filtered.map(s => [
       `"${s.name}"`,
       `"${s.title}"`,
       `"${s.status}"`,
       s.totalContributed.toFixed(2),
       s.currentYearContrib.toFixed(2),
-      s.arrears.toFixed(2),
-      s.arrears <= 75 ? 'Active Subscriber' : 'Inactive / Arrears'
+      s.expectedCumulative.toFixed(2),
+      s.cumulativeArrears.toFixed(2),
+      s.isSubscriber ? 'Active Subscriber' : 'Inactive / Arrears'
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
@@ -187,39 +191,43 @@ export default function WelfareSubscribersPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead>
                 <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', textAlign: 'left' }}>
-                  <th style={{ padding: '14px 20px' }}>Member Name</th>
-                  <th style={{ padding: '14px 20px' }}>Title</th>
-                  <th style={{ padding: '14px 20px' }}>Total Contributed</th>
-                  <th style={{ padding: '14px 20px' }}>{currentYear} Paid</th>
-                  <th style={{ padding: '14px 20px' }}>Current Arrears</th>
-                  <th style={{ padding: '14px 20px' }}>Status</th>
+                  <th style={{ padding: '14px 16px' }}>Member Name</th>
+                  <th style={{ padding: '14px 16px' }}>Title</th>
+                  <th style={{ padding: '14px 16px' }}>Total Paid (All-Time)</th>
+                  <th style={{ padding: '14px 16px' }}>{currentYear} Paid</th>
+                  <th style={{ padding: '14px 16px' }}>Expected (2022–{currentYear})</th>
+                  <th style={{ padding: '14px 16px' }}>Cumulative Arrears</th>
+                  <th style={{ padding: '14px 16px' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(s => (
                   <tr key={s.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '14px 20px', fontWeight: 700, color: '#0F172A' }}>
+                    <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F172A' }}>
                       <Link href={`/registrar/members/${s.id}`} style={{ textDecoration: 'none', color: '#0F172A' }}>
                         {s.name}
                       </Link>
                     </td>
-                    <td style={{ padding: '14px 20px', color: '#64748B' }}>{s.title}</td>
-                    <td style={{ padding: '14px 20px', fontWeight: 800, color: '#10B981', fontFamily: 'monospace' }}>
+                    <td style={{ padding: '14px 16px', color: '#64748B' }}>{s.title}</td>
+                    <td style={{ padding: '14px 16px', fontWeight: 800, color: '#10B981', fontFamily: 'monospace' }}>
                       GH₵ {s.totalContributed.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
-                    <td style={{ padding: '14px 20px', fontWeight: 700, color: '#2563EB', fontFamily: 'monospace' }}>
+                    <td style={{ padding: '14px 16px', fontWeight: 700, color: '#2563EB', fontFamily: 'monospace' }}>
                       GH₵ {s.currentYearContrib.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
-                    <td style={{ padding: '14px 20px', fontWeight: 800, color: s.arrears > 0 ? '#EF4444' : '#10B981', fontFamily: 'monospace' }}>
-                      GH₵ {s.arrears.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <td style={{ padding: '14px 16px', fontWeight: 700, color: '#64748B', fontFamily: 'monospace' }}>
+                      GH₵ {s.expectedCumulative.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
-                    <td style={{ padding: '14px 20px' }}>
+                    <td style={{ padding: '14px 16px', fontWeight: 800, color: s.cumulativeArrears > 0 ? '#EF4444' : '#10B981', fontFamily: 'monospace' }}>
+                      GH₵ {s.cumulativeArrears.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td style={{ padding: '14px 16px' }}>
                       <span style={{ 
                         padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 800,
-                        background: s.arrears <= 75 ? '#D1FAE5' : '#FEE2E2',
-                        color: s.arrears <= 75 ? '#065F46' : '#991B1B'
+                        background: s.isSubscriber ? '#D1FAE5' : '#FEE2E2',
+                        color: s.isSubscriber ? '#065F46' : '#991B1B'
                       }}>
-                        {s.arrears <= 75 ? '✓ Active Subscriber' : '⚠️ Inactive / Arrears'}
+                        {s.isSubscriber ? '✓ Active Subscriber' : '⚠️ Inactive / Arrears'}
                       </span>
                     </td>
                   </tr>
