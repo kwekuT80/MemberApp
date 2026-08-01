@@ -44,4 +44,6 @@ export interface Member {
   date_of_reinstatement?: string | null;
   created_at?: string | null;
   photo_url?: string | null;
+  member_number?: string | null;
+  rank?: string | null;
 }

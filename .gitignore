@@ -22,5 +22,8 @@ supabase/
 
 # Local Test & Data Processing Scripts
 scripts/
+ledger_excel_sheets/
+*.csv
+
 
 
