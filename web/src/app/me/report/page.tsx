@@ -255,33 +255,85 @@ export default async function PersonalReportPage() {
             );
           })()}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
-            <div style={metricCardStyle}>
-              <div style={metricLabelStyle}>PREVIOUS YEAR WELFARE BALANCE</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#0F172A', fontFamily: 'monospace' }}>
-                {formatCurrency(welfare.lastYearBalance)}
-              </div>
-              <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>Unpaid Welfare B/F</div>
-            </div>
+          {/* 5-Card Welfare Metric Grid */}
+          {(() => {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const currentMonthIdx = new Date().getMonth(); // 0-11
+            const currentMonthName = monthNames[currentMonthIdx];
+            const monthlyRate = welfare.monthlyRate || 25.00;
+            const monthsPaid = Math.floor((welfare.contributionsThisYear || 0) / monthlyRate);
+            
+            const overdueMonthsList = monthNames.slice(monthsPaid, currentMonthIdx);
+            const overdueCount = overdueMonthsList.length;
+            const outstandingArrears = overdueCount * monthlyRate;
 
-            <div style={metricCardStyle}>
-              <div style={metricLabelStyle}>CURRENT YEAR WELFARE DUES</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#2563EB', fontFamily: 'monospace' }}>
-                {formatCurrency(welfare.currentAssessment)}
-              </div>
-              <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>
-                {formatCurrency(welfare.monthlyRate)}/mo × 12 months
-              </div>
-            </div>
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
+                <div style={metricCardStyle}>
+                  <div style={metricLabelStyle}>PREVIOUS YEAR WELFARE BALANCE</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#0F172A', fontFamily: 'monospace' }}>
+                    {formatCurrency(welfare.lastYearBalance)}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>Unpaid Welfare B/F</div>
+                </div>
 
-            <div style={metricCardStyle}>
-              <div style={metricLabelStyle}>WELFARE CONTRIBUTIONS THIS YEAR</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#10B981', fontFamily: 'monospace' }}>
-                {formatCurrency(welfare.contributionsThisYear)}
+                <div style={metricCardStyle}>
+                  <div style={metricLabelStyle}>CURRENT YEAR WELFARE DUES</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#2563EB', fontFamily: 'monospace' }}>
+                    {formatCurrency(welfare.currentAssessment)}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>
+                    {formatCurrency(monthlyRate)}/mo × 12 months
+                  </div>
+                </div>
+
+                <div style={metricCardStyle}>
+                  <div style={metricLabelStyle}>CONTRIBUTIONS THIS YEAR</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#10B981', fontFamily: 'monospace' }}>
+                    {formatCurrency(welfare.contributionsThisYear)}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>Paid Received ({monthsPaid} mos)</div>
+                </div>
+
+                {/* Card 4: Outstanding Contributions / Arrears */}
+                <div style={{
+                  ...metricCardStyle,
+                  background: outstandingArrears > 0 ? '#FEF2F2' : '#F0FDF4',
+                  borderColor: outstandingArrears > 0 ? '#FECACA' : '#BBF7D0'
+                }}>
+                  <div style={{
+                    ...metricLabelStyle,
+                    color: outstandingArrears > 0 ? '#991B1B' : '#166534'
+                  }}>
+                    OUTSTANDING ARREARS
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: outstandingArrears > 0 ? '#DC2626' : '#166534', fontFamily: 'monospace' }}>
+                    {formatCurrency(outstandingArrears)}
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: outstandingArrears > 0 ? '#B45309' : '#15803D', marginTop: 4 }}>
+                    {overdueCount > 0 ? `⚠️ ${overdueMonthsList.join(', ')} Overdue` : '✓ All Up To Date'}
+                  </div>
+                </div>
+
+                {/* Card 5: Current Month Due */}
+                <div style={{
+                  ...metricCardStyle,
+                  background: '#FFFBEB',
+                  borderColor: '#FCD34D'
+                }}>
+                  <div style={{ ...metricLabelStyle, color: '#92400E' }}>
+                    CURRENT MONTH DUE
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#B45309', fontFamily: 'monospace' }}>
+                    {formatCurrency(monthlyRate)}
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#92400E', marginTop: 4 }}>
+                    🔔 {currentMonthName} {financial.currentYear} Dues
+                  </div>
+                </div>
               </div>
-              <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>Paid Received</div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Received Benefits / Claims Table */}
           <div style={{ background: 'white', borderRadius: 16, border: '1px solid #E2E8F0', overflow: 'hidden' }}>

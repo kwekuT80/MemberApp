@@ -1,12 +1,50 @@
-import React from 'react';
-import Link from 'next/link';
-import { requireUser } from '@/lib/auth/requireUser';
-import { getMyMember } from '@/services/memberService';
-import MemberShell from '@/components/layout/MemberShell';
+'use client';
 
-export default async function MyIDCardPage() {
-  await requireUser();
-  const member = await getMyMember();
+import React, { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import MemberShell from '@/components/layout/MemberShell';
+import { Member } from '@/types/member';
+
+export default function MyIDCardPage() {
+  const [member, setMember] = useState<Member | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('member_id')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          if (profile?.member_id) {
+            const { data } = await supabase.from('members').select('*').eq('id', profile.member_id).maybeSingle();
+            if (data) setMember(data);
+          } else {
+            const { data } = await supabase.from('members').select('*').eq('user_id', user.id).limit(1);
+            if (data && data.length > 0) setMember(data[0]);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load member ID card:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <MemberShell title="Digital ID Card" subtitle="Your official KSJI membership credential.">
+        <div style={{ padding: 60, textAlign: 'center', color: '#64748B' }}>Loading Digital ID Card...</div>
+      </MemberShell>
+    );
+  }
 
   if (!member) {
     return (
