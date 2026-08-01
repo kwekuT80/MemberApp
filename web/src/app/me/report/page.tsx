@@ -226,7 +226,7 @@ export default async function PersonalReportPage() {
                 marginBottom: 20,
                 display: 'flex',
                 alignItems: 'center',
-                justify: 'space-between',
+                justifyContent: 'space-between',
                 gap: 16,
                 flexWrap: 'wrap'
               }}>
