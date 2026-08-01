@@ -200,8 +200,60 @@ export default async function PersonalReportPage() {
         {/* Section 2: Welfare Scheme Statement */}
         <div style={{ marginBottom: 36 }}>
           <h2 style={{ fontSize: 20, fontWeight: 900, color: '#0F172A', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            🤝 Commandery Welfare Scheme
+            🤝 Commandery Welfare Scheme Statement ({financial.currentYear})
           </h2>
+
+          {/* Monthly Billing & Outstanding Month Notice Banner */}
+          {(() => {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const currentMonthIdx = new Date().getMonth(); // 0-11
+            const currentMonthName = monthNames[currentMonthIdx];
+            const monthlyRate = welfare.monthlyRate || 25.00;
+            const monthsPaid = Math.floor((welfare.contributionsThisYear || 0) / monthlyRate);
+            
+            const overdueMonths: string[] = [];
+            for (let m = monthsPaid; m < currentMonthIdx; m++) {
+              overdueMonths.push(monthNames[m]);
+            }
+            const isCurrentMonthDue = monthsPaid <= currentMonthIdx;
+
+            return (
+              <div style={{ 
+                background: overdueMonths.length > 0 ? '#FFFBEB' : '#F0FDF4', 
+                border: `1px solid ${overdueMonths.length > 0 ? '#FCD34D' : '#86EFAC'}`, 
+                borderRadius: 12, 
+                padding: '16px 20px', 
+                marginBottom: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justify: 'space-between',
+                gap: 16,
+                flexWrap: 'wrap'
+              }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: overdueMonths.length > 0 ? '#92400E' : '#166534' }}>
+                    🗓️ Monthly Welfare Schedule: Paid {monthsPaid} of {currentMonthIdx + 1} months to date
+                  </div>
+                  <div style={{ fontSize: 13, color: overdueMonths.length > 0 ? '#78350F' : '#15803D', marginTop: 4 }}>
+                    {overdueMonths.length > 0 ? (
+                      <>
+                        ⚠️ <strong style={{ color: '#B45309' }}>{overdueMonths.join(', ')} {financial.currentYear}</strong> contribution ({formatCurrency(overdueMonths.length * monthlyRate)}) is <strong>outstanding</strong>.
+                        {isCurrentMonthDue && <> 🔔 <strong>{currentMonthName} {financial.currentYear}</strong> ({formatCurrency(monthlyRate)}) is now <strong>due</strong>.</>}
+                      </>
+                    ) : (
+                      <>
+                        ✓ All welfare dues up to {monthNames[Math.max(0, monthsPaid - 1)]} {financial.currentYear} are fully paid.
+                        {isCurrentMonthDue && <> 🔔 <strong>{currentMonthName} {financial.currentYear}</strong> ({formatCurrency(monthlyRate)}) is now due.</>}
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 800, background: overdueMonths.length > 0 ? '#FEF3C7' : '#DCFCE7', color: overdueMonths.length > 0 ? '#92400E' : '#166534', padding: '6px 14px', borderRadius: 20 }}>
+                  {overdueMonths.length > 0 ? `${overdueMonths.length} Month Outstanding` : 'Current & Up To Date'}
+                </div>
+              </div>
+            );
+          })()}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
             <div style={metricCardStyle}>

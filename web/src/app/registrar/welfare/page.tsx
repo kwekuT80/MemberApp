@@ -41,102 +41,164 @@ export default async function WelfareDashboardPage() {
     >
       <div style={{ padding: '24px 0', color: '#1E293B', fontFamily: 'Inter, sans-serif' }}>
         
-        {/* Metric Cards Row */}
+        {/* Metric Cards Grid - All Cards Clickable */}
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', 
           gap: 20, 
           marginBottom: 32 
         }}>
           {/* Card 1: Fund Balance */}
-          <div style={{ 
-            background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', 
-            borderRadius: 16, 
-            padding: 24, 
-            color: 'white',
-            boxShadow: '0 10px 25px rgba(15, 23, 42, 0.25)',
-            border: '1px solid #334155'
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1 }}>
-              Net Welfare Fund Balance
+          <Link href="/registrar/welfare/audit" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div style={{ 
+              background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', 
+              borderRadius: 16, 
+              padding: 24, 
+              color: 'white',
+              boxShadow: '0 10px 25px rgba(15, 23, 42, 0.25)',
+              border: '1px solid #334155',
+              cursor: 'pointer',
+              height: '100%'
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1 }}>
+                Net Welfare Fund Balance
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 900, color: '#F59E0B', marginTop: 8, fontFamily: 'monospace' }}>
+                GH₵ {summary.netFundBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <div style={{ fontSize: 12, color: '#CBD5E1', marginTop: 8, fontWeight: 700 }}>
+                Cumulative Reserves →
+              </div>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 900, color: '#F59E0B', marginTop: 8, fontFamily: 'monospace' }}>
-              GH₵ {summary.netFundBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div style={{ fontSize: 12, color: '#CBD5E1', marginTop: 8 }}>
-              Cumulative Fund Reserves
-            </div>
-          </div>
+          </Link>
 
-          {/* Card 2: YTD Contributions */}
-          <div style={{ 
-            background: 'white', 
-            borderRadius: 16, 
-            padding: 24, 
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>
-              Contributions (This Year)
+          {/* Card 2: Contributions (This Year) */}
+          <Link href="/registrar/welfare/contributions" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div style={{ 
+              background: 'white', 
+              borderRadius: 16, 
+              padding: 24, 
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+              cursor: 'pointer',
+              height: '100%'
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>
+                Contributions (This Year)
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: '#10B981', marginTop: 8, fontFamily: 'monospace' }}>
+                GH₵ {summary.contributionsThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+              <div style={{ fontSize: 12, color: '#2563EB', marginTop: 8, fontWeight: 700 }}>
+                View 2026 Dues Ledger →
+              </div>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 900, color: '#10B981', marginTop: 8, fontFamily: 'monospace' }}>
-              GH₵ {summary.contributionsThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </div>
-            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 8 }}>
-              Total All-Time: GH₵ {summary.totalContributions.toLocaleString()}
-            </div>
-          </div>
+          </Link>
 
-          {/* Card 3: YTD Disbursements */}
-          <div style={{ 
-            background: 'white', 
-            borderRadius: 16, 
-            padding: 24, 
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>
-              Benefit Payouts (This Year)
+          {/* Card 3: Contributions To Date (All-Time) */}
+          <Link href="/registrar/welfare/contributions" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div style={{ 
+              background: 'white', 
+              borderRadius: 16, 
+              padding: 24, 
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+              cursor: 'pointer',
+              height: '100%'
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>
+                Contributions To Date
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: '#059669', marginTop: 8, fontFamily: 'monospace' }}>
+                GH₵ {summary.totalContributions.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+              <div style={{ fontSize: 12, color: '#2563EB', marginTop: 8, fontWeight: 700 }}>
+                All-Time Contributions Ledger →
+              </div>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 900, color: '#EF4444', marginTop: 8, fontFamily: 'monospace' }}>
-              GH₵ {summary.disbursementsThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </div>
-            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 8 }}>
-              Total All-Time: GH₵ {summary.totalDisbursements.toLocaleString()}
-            </div>
-          </div>
+          </Link>
 
-          {/* Card 4: Subscribers Breakdown (Active vs Inactive) */}
-          <div style={{ 
-            background: 'white', 
-            borderRadius: 16, 
-            padding: 24, 
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>
-              Welfare Subscribers
+          {/* Card 4: Benefit Payouts (This Year) */}
+          <Link href="/registrar/welfare/disbursements" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div style={{ 
+              background: 'white', 
+              borderRadius: 16, 
+              padding: 24, 
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+              cursor: 'pointer',
+              height: '100%'
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>
+                Benefit Payouts (This Year)
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: '#EF4444', marginTop: 8, fontFamily: 'monospace' }}>
+                GH₵ {summary.disbursementsThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+              <div style={{ fontSize: 12, color: '#2563EB', marginTop: 8, fontWeight: 700 }}>
+                View 2026 Benefit Disbursements →
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 8 }}>
-              <span style={{ fontSize: 28, fontWeight: 900, color: '#10B981' }}>
-                {summary.contributingMembersCount} Active
-              </span>
-              <span style={{ 
-                fontSize: 13, 
-                fontWeight: 700, 
-                color: '#EF4444', 
-                background: '#FEF2F2', 
-                padding: '2px 8px', 
-                borderRadius: 12,
-                border: '1px solid #FCA5A5'
-              }}>
-                {summary.inactiveMembersCount} Inactive
-              </span>
+          </Link>
+
+          {/* Card 5: Benefits To Date (All-Time) */}
+          <Link href="/registrar/welfare/disbursements" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div style={{ 
+              background: 'white', 
+              borderRadius: 16, 
+              padding: 24, 
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+              cursor: 'pointer',
+              height: '100%'
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>
+                Benefits To Date
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: '#DC2626', marginTop: 8, fontFamily: 'monospace' }}>
+                GH₵ {summary.totalDisbursements.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+              <div style={{ fontSize: 12, color: '#2563EB', marginTop: 8, fontWeight: 700 }}>
+                All-Time Benefit History →
+              </div>
             </div>
-            <div style={{ fontSize: 12, color: '#64748B', marginTop: 8 }}>
-              Roster: {summary.totalMembersCount} Total Members ({summary.activeCategoriesCount} Active Categories)
+          </Link>
+
+          {/* Card 6: Welfare Subscribers Breakdown */}
+          <Link href="/registrar/welfare/subscribers" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div style={{ 
+              background: 'white', 
+              borderRadius: 16, 
+              padding: 24, 
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+              cursor: 'pointer',
+              height: '100%'
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>
+                Welfare Subscribers
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 8 }}>
+                <span style={{ fontSize: 26, fontWeight: 900, color: '#10B981' }}>
+                  {summary.contributingMembersCount} Active
+                </span>
+                <span style={{ 
+                  fontSize: 12, 
+                  fontWeight: 700, 
+                  color: '#EF4444', 
+                  background: '#FEF2F2', 
+                  padding: '2px 8px', 
+                  borderRadius: 12,
+                  border: '1px solid #FCA5A5'
+                }}>
+                  {summary.inactiveMembersCount} Inactive
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: '#2563EB', marginTop: 8, fontWeight: 700 }}>
+                View & Export Full Subscriber Roster →
+              </div>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Quick Action Navigation Grid */}
