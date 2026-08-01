@@ -88,7 +88,7 @@ export default function MyIDCardPage() {
           <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 20 }}>
             <div style={{ width: 90, height: 110, borderRadius: 12, background: '#334155', overflow: 'hidden', border: '2px solid #D4AF37', flexShrink: 0 }}>
               {member.photo_url ? (
-                <img src={member.photo_url} alt={member.surname} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={member.photo_url ?? undefined} alt={member.surname ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, color: '#94a3b8' }}>
                   👤
