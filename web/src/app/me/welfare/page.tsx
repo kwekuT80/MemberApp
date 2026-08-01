@@ -59,6 +59,14 @@ export default function MemberWelfarePage() {
     loadData();
   }, []);
 
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1; // 1-12
+  const currentYearContrib = contributions
+    .filter(c => c.period_year === currentYear)
+    .reduce((acc, c) => acc + Number(c.amount || 0), 0);
+
+  const expectedProRataDues = 25.00 * currentMonth;
+  const currentArrears = Math.max(0, expectedProRataDues - currentYearContrib);
   const totalMyContrib = contributions.reduce((acc, c) => acc + Number(c.amount || 0), 0);
   const totalMyDisb = disbursements.reduce((acc, d) => acc + Number(d.amount || 0), 0);
 
@@ -82,25 +90,39 @@ export default function MemberWelfarePage() {
             {member ? `${member.first_name} ${member.surname}` : 'Member Welfare Account'}
           </h1>
           
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, marginTop: 24, borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: 20 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, marginTop: 24, borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: 20 }}>
             <div>
               <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800 }}>TOTAL CONTRIBUTED</div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: '#10B981', fontFamily: 'monospace' }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#10B981', fontFamily: 'monospace' }}>
                 GH₵ {totalMyContrib.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
             </div>
 
             <div>
+              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800 }}>{currentYear} PAID</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#60A5FA', fontFamily: 'monospace' }}>
+                GH₵ {currentYearContrib.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800 }}>CURRENT ARREARS</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: currentArrears > 0 ? '#F87171' : '#34D399', fontFamily: 'monospace' }}>
+                GH₵ {currentArrears.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+
+            <div>
               <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800 }}>BENEFITS RECEIVED</div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: '#F59E0B', fontFamily: 'monospace' }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#F59E0B', fontFamily: 'monospace' }}>
                 GH₵ {totalMyDisb.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
             </div>
 
             <div>
               <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800 }}>SUBSCRIPTION STATUS</div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: '#34D399', marginTop: 4 }}>
-                ✓ ACTIVE SUBSCRIBER
+              <div style={{ fontSize: 16, fontWeight: 900, color: currentArrears <= 75 ? '#34D399' : '#F87171', marginTop: 4 }}>
+                {currentArrears <= 75 ? '✓ ACTIVE SUBSCRIBER' : '⚠️ ARREARS NOTICE'}
               </div>
             </div>
           </div>

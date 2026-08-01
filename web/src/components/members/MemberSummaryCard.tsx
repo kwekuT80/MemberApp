@@ -57,9 +57,14 @@ export default function MemberSummaryCard({ member, editHref='/me/edit', showOwn
             {!emailText && !phoneText && <span>No contact info registered</span>}
           </div>
         </div>
-        <Link href={editHref} style={{ textDecoration:'none', background:'#10233f', color:'#fff', padding:'10px 14px', borderRadius:10, fontWeight:700 }}>
-          Edit main record
-        </Link>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Link href={showOwner && member.id ? `/registrar/members/${member.id}/id-card` : '/me/id-card'} style={{ textDecoration:'none', background:'#D4AF37', color:'#0f172a', padding:'10px 14px', borderRadius:10, fontWeight:800 }}>
+            🪪 ID Card
+          </Link>
+          <Link href={editHref} style={{ textDecoration:'none', background:'#10233f', color:'#fff', padding:'10px 14px', borderRadius:10, fontWeight:700 }}>
+            Edit main record
+          </Link>
+        </div>
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:16, marginTop:20 }}>

@@ -2,6 +2,7 @@ import AppShell from './AppShell';
 
 const memberNav = [
   { href: '/me', label: '🏠 Overview' },
+  { href: '/me/id-card', label: '🪪 Digital ID Card' },
   { href: '/me/edit', label: '✏️ Edit Main Record' },
   { href: '/me/family', label: '👨‍👩‍👧‍👦 Family' },
   { href: '/me/education', label: '📜 Exemplification' },
