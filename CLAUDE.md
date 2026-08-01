@@ -163,8 +163,11 @@ Documentation: `docs/communications_workflow.md`
 4. **Type Safety**: Full TypeScript across web (`@types/react`, `typescript ^5.8`); mobile has `~5.3.3`
 5. **API Layer**: Services in `web/src/services/` (memberService, photoService, financialService)
 6. **Validation**: Dedicated validation modules (`web/src/lib/validation/`)
-7. **Layout Shells**: `AppShell` for general admin; `RegistrarShell` for registrar-specific navigation with role-aware menu items.
-8. **Build**: EAS for mobile distribution; `next build` for web
+8. **Layout Shells**: `AppShell` for general admin; `RegistrarShell` for registrar-specific navigation with role-aware menu items.
+9. **Deceased Member Archival & Billing Policy**:
+   - **Never Delete**: Deceased members are permanently retained in the database (`status = 'Deceased'` or `is_deceased = true`) for historical, honor roll, biographical, and archival purposes (e.g. Master Record, Service Bio, Final Roll reports).
+   - **Billing & Welfare Exclusion**: All financial billing/invoicing, dues assessments, delinquency tracking, welfare inactive subscriber metrics, and automated notices MUST explicitly exclude `Deceased`, `Dismissed`, and `Transfer-Out` members (`.not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')`). Sending bills or inactive welfare reminders to deceased members is strictly forbidden.
+10. **Build**: EAS for mobile distribution; `next build` for web
 
 ---
 

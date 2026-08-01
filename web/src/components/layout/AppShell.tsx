@@ -1,7 +1,16 @@
+'use client';
+
+import { useEffect } from 'react';
 import Sidebar, { SidebarItem } from './Sidebar';
 import SignOutButton from '@/components/auth/SignOutButton';
 
 export default function AppShell({ children, title, subtitle, navItems }: { children: React.ReactNode; title: string; subtitle?: string; navItems: SidebarItem[]; }) {
+  useEffect(() => {
+    if (title) {
+      document.title = `${title} | KSJI`;
+    }
+  }, [title]);
+
   return (
     <div style={{ minHeight: '100vh' }}>
       <header className="premium-header no-print">
@@ -30,3 +39,4 @@ export default function AppShell({ children, title, subtitle, navItems }: { chil
     </div>
   );
 }
+

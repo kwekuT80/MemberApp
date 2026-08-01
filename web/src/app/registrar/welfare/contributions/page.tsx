@@ -40,7 +40,11 @@ export default function WelfareContributionsPage() {
     try {
       const [list, { data: memberList }] = await Promise.all([
         getWelfareContributions(),
-        supabase.from('members').select('id, first_name, surname, title').order('surname'),
+        supabase
+          .from('members')
+          .select('id, first_name, surname, title')
+          .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+          .order('surname'),
       ]);
       setContributions(list);
       setMembers(memberList || []);

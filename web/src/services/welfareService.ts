@@ -60,14 +60,18 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
     .select('id', { count: 'exact', head: true })
     .eq('is_active', true);
 
-  // Total members count
-  const { count: membersCount } = await supabase
+  // Active living members count (excluding Dismissed, Transfer-Out, Deceased)
+  const { data: activeMembers } = await supabase
     .from('members')
-    .select('id', { count: 'exact', head: true });
+    .select('id, status, is_deceased')
+    .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")');
+
+  const eligibleMembers = (activeMembers || []).filter(m => !m.is_deceased);
+  const eligibleMemberIds = new Set(eligibleMembers.map(m => m.id));
 
   let totalContributions = 0;
   let contributionsThisYear = 0;
-  const contributingMembers = new Set<string>();
+  const activeContributingMembers = new Set<string>();
 
   (contributions || []).forEach(c => {
     const amt = Number(c.amount) || 0;
@@ -75,7 +79,9 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
     if (c.period_year === currentYear) {
       contributionsThisYear += amt;
     }
-    if (c.member_id) contributingMembers.add(c.member_id);
+    if (c.member_id && eligibleMemberIds.has(c.member_id)) {
+      activeContributingMembers.add(c.member_id);
+    }
   });
 
   let totalDisbursements = 0;
@@ -90,8 +96,8 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
     }
   });
 
-  const totalMembers = membersCount || 0;
-  const activeSubscribers = contributingMembers.size;
+  const totalMembers = eligibleMemberIds.size;
+  const activeSubscribers = activeContributingMembers.size;
   const inactiveSubscribers = Math.max(0, totalMembers - activeSubscribers);
 
   return {
@@ -106,6 +112,7 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
     activeCategoriesCount: categoriesCount || 0,
   };
 }
+
 
 // 2. Welfare Categories CRUD
 export async function getWelfareCategories(): Promise<WelfareCategory[]> {
