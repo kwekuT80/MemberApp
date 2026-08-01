@@ -33,13 +33,39 @@ export default function WelfareSubscribersPage() {
     async function loadRoster() {
       setLoading(true);
       try {
-        const [membersRes, contribsRes] = await Promise.all([
-          supabase.from('members').select('id, first_name, surname, title, status, is_deceased').limit(1000),
-          supabase.from('welfare_contributions').select('member_id, amount, period_year').limit(10000)
-        ]);
+        const { data: membersData } = await supabase
+          .from('members')
+          .select('id, first_name, surname, title, status, is_deceased')
+          .limit(1000);
 
-        const members = membersRes.data || [];
-        const contribs = contribsRes.data || [];
+        // Paginated fetch across PostgREST 1000 row cap
+        let allContribs: any[] = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+          const from = page * pageSize;
+          const to = (page + 1) * pageSize - 1;
+          const { data: cChunk, error: cErr } = await supabase
+            .from('welfare_contributions')
+            .select('member_id, amount, period_year')
+            .range(from, to);
+
+          if (cErr || !cChunk || cChunk.length === 0) {
+            hasMore = false;
+          } else {
+            allContribs = allContribs.concat(cChunk);
+            if (cChunk.length < pageSize) {
+              hasMore = false;
+            } else {
+              page++;
+            }
+          }
+        }
+
+        const members = membersData || [];
+        const contribs = allContribs;
 
         // Exclude deceased/dismissed members per archival business rule
         const eligible = members.filter(m => {

@@ -39,16 +39,43 @@ async function logWelfareAudit(params: {
   }
 }
 
+export async function getAllWelfareContributions() {
+  const supabase = await createClient();
+  let allContribs: any[] = [];
+  let page = 0;
+  const pageSize = 1000;
+  let hasMore = true;
+
+  while (hasMore) {
+    const from = page * pageSize;
+    const to = (page + 1) * pageSize - 1;
+    const { data, error } = await supabase
+      .from('welfare_contributions')
+      .select('member_id, amount, period_year')
+      .range(from, to);
+
+    if (error || !data || data.length === 0) {
+      hasMore = false;
+    } else {
+      allContribs = allContribs.concat(data);
+      if (data.length < pageSize) {
+        hasMore = false;
+      } else {
+        page++;
+      }
+    }
+  }
+
+  return allContribs;
+}
+
 // 1. Get Welfare Fund Summary Metrics
 export async function getWelfareSummary(): Promise<WelfareSummary> {
   const supabase = await createClient();
   const currentYear = new Date().getFullYear();
 
-  // Contributions total
-  const { data: contributions } = await supabase
-    .from('welfare_contributions')
-    .select('amount, period_year, member_id')
-    .limit(10000);
+  // Contributions total (paginated fetch across PostgREST 1000 row cap)
+  const contributions = await getAllWelfareContributions();
 
   // Disbursements total
   const { data: disbursements } = await supabase
