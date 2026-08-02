@@ -12,7 +12,8 @@ tmp/
 android/
 ios/
 .aider*
-supabase/
+/supabase/
+!web/src/lib/supabase/
 *.sql
 
 # IDE & Editor Settings / Caches
