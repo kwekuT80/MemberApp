@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { requireFinancialRegistrar } from '@/lib/auth/requireFinancialRegistrar';
 import RegistrarShell from '@/components/layout/RegistrarShell';
+import Link from 'next/link';
 import { getAssessmentsForYear, getPaymentsForYear } from '@/services/financialService';
 import ActionCard from '@/components/financials/ActionCard';
 
