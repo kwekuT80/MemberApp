@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { requireFinancialRegistrar } from '@/lib/auth/requireFinancialRegistrar';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllPaginated } from '@/lib/supabase/pagination';
 import Link from 'next/link';
 import DelinquencyPrintView from './DelinquencyPrintView';
 
@@ -33,11 +34,14 @@ export default async function DelinquencyAgingPage({
   const params = await searchParams;
   const currentYear = parseInt(params.year || new Date().getFullYear().toString());
 
-  // Fetch all members with financial summaries
+  // Fetch all members with financial summaries using pagination helper
   const supabase = await createClient();
-  const { data: summaries }: any[] | any = await supabase
-    .from('member_financial_summary')
-    .select('*');
+  const summaries: any[] = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('member_financial_summary')
+      .select('*')
+      .range(from, to)
+  );
 
   if (!summaries) return (
     <RegistrarShell title="Delinquency Report" subtitle="">
