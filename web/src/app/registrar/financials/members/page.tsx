@@ -112,24 +112,38 @@ export default async function MemberSummaryPage({
 
         {view === 'table' ? (
           <>
-            {/* ── AGGREGATE STATS BOARD ── */}
+            {/* ── AGGREGATE STATS BOARD (CLICKABLE CARDS) ── */}
             <div className="stats-grid">
               
               {/* Card 1: Assessed */}
-              <div className="metric-card metric-card-navy">
+              <Link 
+                href="/registrar/financials/rates" 
+                className="metric-card metric-card-navy"
+                style={{ textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+              >
                 <div>
-                  <p className="metric-label">Total Assessed</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <p className="metric-label">Total Assessed</p>
+                    <span style={{ fontSize: 11, color: 'var(--gold)', fontWeight: 700 }}>Rates & Billing →</span>
+                  </div>
                   <div className="metric-value">
                     ₵{totalAssessed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
-                <p className="metric-desc">Cumulative historical billing</p>
-              </div>
+                <p className="metric-desc">Cumulative historical billing • Click to manage rates</p>
+              </Link>
 
               {/* Card 2: Collected */}
-              <div className="metric-card metric-card-white">
+              <Link 
+                href="/registrar/financials/members?status=paid" 
+                className="metric-card metric-card-white"
+                style={{ textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+              >
                 <div>
-                  <p className="metric-label" style={{ color: 'var(--success)' }}>Total Collected</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <p className="metric-label" style={{ color: 'var(--success)' }}>Total Collected</p>
+                    <span style={{ fontSize: 11, color: 'var(--success)', fontWeight: 700 }}>Filter Paid →</span>
+                  </div>
                   <div className="metric-value" style={{ color: 'var(--success)' }}>
                     ₵{totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
@@ -146,29 +160,43 @@ export default async function MemberSummaryPage({
                     />
                   </div>
                 </div>
-              </div>
+              </Link>
 
               {/* Card 3: Outstanding */}
-              <div className="metric-card metric-card-white">
+              <Link 
+                href="/registrar/financials/members?status=partially_paid" 
+                className="metric-card metric-card-white"
+                style={{ textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+              >
                 <div>
-                  <p className="metric-label" style={{ color: 'var(--warning)' }}>Outstanding</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <p className="metric-label" style={{ color: 'var(--warning)' }}>Outstanding</p>
+                    <span style={{ fontSize: 11, color: 'var(--warning)', fontWeight: 700 }}>Filter Partial →</span>
+                  </div>
                   <div className="metric-value" style={{ color: 'var(--warning)' }}>
                     ₵{totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
-                <p className="metric-desc">Pending dues balance</p>
-              </div>
+                <p className="metric-desc">Pending dues balance • Click to filter partially paid</p>
+              </Link>
 
               {/* Card 4: Delinquent */}
-              <div className="metric-card metric-card-white">
+              <Link 
+                href="/registrar/financials/delinquency" 
+                className="metric-card metric-card-white"
+                style={{ textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+              >
                 <div>
-                  <p className="metric-label" style={{ color: 'var(--danger)' }}>Delinquent</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <p className="metric-label" style={{ color: 'var(--danger)' }}>Delinquent</p>
+                    <span style={{ fontSize: 11, color: 'var(--danger)', fontWeight: 700 }}>Aging Report →</span>
+                  </div>
                   <div className="metric-value" style={{ color: 'var(--danger)' }}>
                     {delinquentCount} Brothers
                   </div>
                 </div>
-                <p className="metric-desc">Zero payments recorded</p>
-              </div>
+                <p className="metric-desc">Zero payments recorded • Click for delinquency report</p>
+              </Link>
 
             </div>
 

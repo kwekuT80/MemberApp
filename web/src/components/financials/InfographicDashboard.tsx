@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { 
   FaUsers, 
   FaFileInvoiceDollar, 
@@ -760,6 +761,21 @@ export default function InfographicDashboard({ summaries }: InfographicDashboard
               {selectedCard === 7 && renderCard7(true)}
               {selectedCard === 8 && renderCard8(true)}
               {selectedCard === 9 && renderCard9(true)}
+
+              <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
+                <Link 
+                  href={
+                    selectedCard === 2 ? "/registrar/financials/members?status=paid" :
+                    selectedCard === 3 || selectedCard === 8 ? "/registrar/financials/members?status=partially_paid" :
+                    selectedCard === 7 ? "/registrar/financials/delinquency" :
+                    "/registrar/financials/members"
+                  } 
+                  className="btn btn-gold" 
+                  style={{ textDecoration: 'none', fontWeight: 800, padding: '10px 20px', borderRadius: 8 }}
+                >
+                  🔍 View Detailed Member Ledger & Particulars →
+                </Link>
+              </div>
             </div>
           </div>
         </div>

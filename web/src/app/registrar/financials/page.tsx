@@ -61,15 +61,17 @@ export default async function FinancialsHubPage() {
 
       {/* Stats Summary + Action Cards (only when setup is complete) */}
       {!setupRequired && <>
-      <div className="grid-cols-3" style={{ marginBottom: 32 }}>
-        <StatCard label="Members Billed" value={String(assessments.length)} icon="📋" color="var(--navy)" />
-        <StatCard label="Total Assessed" value={fmt(totalAssessed)} icon="📊" color="var(--navy)" />
-        <StatCard label="Total Collected" value={fmt(totalCollected)} icon="✅" color="#166534" />
+      <div className="grid-cols-4" style={{ marginBottom: 32 }}>
+        <StatCard label="Members Billed" value={String(assessments.length)} icon="📋" color="var(--navy)" href="/registrar/financials/members" hint="View Summaries →" />
+        <StatCard label="Total Assessed" value={fmt(totalAssessed)} icon="📊" color="var(--navy)" href="/registrar/financials/rates" hint="Rates & Billing →" />
+        <StatCard label="Total Collected" value={fmt(totalCollected)} icon="✅" color="#166534" href="/registrar/financials/payments" hint="Log Payments →" />
         <StatCard
           label="Outstanding Balance"
           value={fmt(totalOutstanding)}
           icon={totalOutstanding > 0 ? '⚠️' : '🎉'}
           color={totalOutstanding > 0 ? '#991B1B' : '#166534'}
+          href="/registrar/financials/delinquency"
+          hint="Aging Report →"
         />
       </div>
 
@@ -121,9 +123,9 @@ export default async function FinancialsHubPage() {
   );
 }
 
-function StatCard({ label, value, icon, color }: { label: string; value: string; icon: string; color: string }) {
-  return (
-    <div className="summary-card" style={{ padding: 20 }}>
+function StatCard({ label, value, icon, color, href, hint }: { label: string; value: string; icon: string; color: string; href?: string; hint?: string }) {
+  const content = (
+    <div className="summary-card" style={{ padding: 20, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: href ? 'pointer' : 'default', transition: 'all 0.2s' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <div className="label" style={{ marginBottom: 6 }}>{label}</div>
@@ -131,6 +133,21 @@ function StatCard({ label, value, icon, color }: { label: string; value: string;
         </div>
         <div style={{ fontSize: 28 }}>{icon}</div>
       </div>
+      {hint && (
+        <div style={{ marginTop: 12, fontSize: 11, fontWeight: 700, color: 'var(--grey)', textAlign: 'right' }}>
+          {hint}
+        </div>
+      )}
     </div>
   );
+
+  if (href) {
+    return (
+      <Link href={href} style={{ textDecoration: 'none' }}>
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 }

@@ -5,16 +5,25 @@ import { useParams, useRouter } from 'next/navigation';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { createClient } from '@/lib/supabase/client';
 import { formatMemberTitle, formatExemplification, formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { getMemberPersonalReport, PersonalReportData } from '@/services/memberService';
 
 export default function MemberDossierPage() {
   const { id } = useParams();
   const router = useRouter();
   const [member, setMember] = useState<any>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [reportData, setReportData] = useState<PersonalReportData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: prof } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        if (prof) setRole(prof.role);
+      }
+
       const { data, error } = await supabase
         .from('members')
         .select('*, spouse(*), children(*), positions(*), degrees(*), military(*), uniformed_rank_records(*)')
@@ -22,6 +31,16 @@ export default function MemberDossierPage() {
         .single();
       
       if (data) setMember(data);
+
+      if (id) {
+        try {
+          const report = await getMemberPersonalReport(id as string);
+          if (report) setReportData(report);
+        } catch (e) {
+          console.error('Failed to load report data for dossier:', e);
+        }
+      }
+
       setLoading(false);
     }
     load();
@@ -34,8 +53,6 @@ export default function MemberDossierPage() {
   const firstName = String(member.first_name || '').trim();
   const otherNames = String(member.other_names || '').trim();
   const surname = String(member.surname || '').trim();
-
-  // Use formatDisplayDate from ksji-logic
 
   // Cast Iron Array Handling
   const safeDegrees = Array.isArray(member.degrees) ? [...member.degrees] : [];
@@ -56,6 +73,10 @@ export default function MemberDossierPage() {
     const db = b.date_from ? new Date(b.date_from).getTime() : 0;
     return (isNaN(da) ? 0 : da) - (isNaN(db) ? 0 : db);
   });
+
+  const isSuperAdmin = role === 'super_admin';
+  const isFinancialRegistrar = role === 'financial_registrar' || isSuperAdmin;
+  const isWelfareTreasurer = role === 'welfare_treasurer' || isSuperAdmin;
 
   return (
     <RegistrarShell title="Master Member Record" subtitle={`Full Dossier for ${displayTitle} ${surname}`}>
@@ -304,6 +325,148 @@ export default function MemberDossierPage() {
                   </table>
                 </div>
               )}
+            </section>
+          )}
+
+          {/* SECTION VI: SUPER ADMIN GOOD STANDING & ISSUES ANALYSIS */}
+          {isSuperAdmin && reportData && (
+            <section style={section}>
+              <h2 style={sectionLabel}>VI. Standing & Compliance Audit (Super Admin)</h2>
+              <div style={{
+                padding: '20px',
+                borderRadius: '8px',
+                background: reportData.standing === 'In Good Standing' ? '#f0fdf4' : '#fff5f5',
+                border: reportData.standing === 'In Good Standing' ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                marginBottom: 16
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Overall Standing Status</span>
+                    <h3 style={{
+                      fontSize: 22,
+                      margin: '4px 0 0',
+                      color: reportData.standing === 'In Good Standing' ? '#15803d' : '#b91c1c',
+                      fontWeight: 900
+                    }}>
+                      {reportData.standing === 'In Good Standing' ? '✅ IN GOOD STANDING' : '⚠️ NOT IN GOOD STANDING'}
+                    </h3>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      background: reportData.financialStanding === 'In Good Standing' ? '#dcfce7' : '#fee2e2',
+                      color: reportData.financialStanding === 'In Good Standing' ? '#166534' : '#991b1b'
+                    }}>
+                      Dues: {reportData.financialStanding}
+                    </span>
+                    <span style={{
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      background: reportData.welfareStanding === 'In Good Standing' ? '#dcfce7' : '#fee2e2',
+                      color: reportData.welfareStanding === 'In Good Standing' ? '#166534' : '#991b1b'
+                    }}>
+                      Welfare: {reportData.welfareStanding}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 16, borderTop: '1px dashed #cbd5e1', paddingTop: 14 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#334155', marginBottom: 6 }}>
+                    Compliance Audit & Non-Standing Issues:
+                  </div>
+                  <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.6, background: '#ffffff', padding: '12px 16px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                    {reportData.standingReason}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* SECTION VII: FINANCIAL DUES SUMMARY */}
+          {isFinancialRegistrar && reportData && (
+            <section style={section}>
+              <h2 style={sectionLabel}>VII. Financial Dues Ledger Summary</h2>
+              <table style={table}>
+                <tbody>
+                  <tr>
+                    <th style={th}>Billing Year</th>
+                    <td style={td}>{reportData.financial.currentYear}</td>
+                    <th style={th}>Payment Status</th>
+                    <td style={td}>
+                      <span style={{
+                        fontWeight: 800,
+                        color: reportData.financial.yearStatus === 'Fully Paid' || reportData.financial.yearStatus === 'Credit Balance'
+                          ? '#15803d'
+                          : reportData.financial.yearStatus === 'Partially Paid' ? '#d97706' : '#b91c1c'
+                      }}>
+                        {reportData.financial.yearStatus}
+                      </span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th style={th}>Arrears Brought Forward</th>
+                    <td style={td}>GH₵ {reportData.financial.lastYearArrears.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                    <th style={th}>Current Year Assessment</th>
+                    <td style={td}>GH₵ {reportData.financial.currentAssessment.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                  <tr>
+                    <th style={th}>Total Assessed Dues</th>
+                    <td style={{ ...td, fontWeight: 700 }}>GH₵ {reportData.financial.totalAssessed.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                    <th style={th}>Total Paid This Year</th>
+                    <td style={{ ...td, fontWeight: 700, color: '#15803d' }}>GH₵ {reportData.financial.paymentsThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                  <tr>
+                    <th style={th}>Net Outstanding Balance</th>
+                    <td colSpan={3} style={{ ...td, fontWeight: 900, color: reportData.financial.outstandingThisYear > 0 ? '#b91c1c' : '#15803d' }}>
+                      {reportData.financial.outstandingThisYear > 0
+                        ? `GH₵ ${reportData.financial.outstandingThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })} (Owed)`
+                        : reportData.financial.creditBalance > 0
+                        ? `GH₵ ${reportData.financial.creditBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })} (Credit)`
+                        : 'GH₵ 0.00 (Fully Settled)'}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+          )}
+
+          {/* SECTION VIII: WELFARE SCHEME SUMMARY */}
+          {isWelfareTreasurer && reportData && (
+            <section style={section}>
+              <h2 style={sectionLabel}>VIII. Welfare Scheme Summary</h2>
+              <table style={table}>
+                <tbody>
+                  <tr>
+                    <th style={th}>Monthly Rate</th>
+                    <td style={td}>GH₵ {reportData.welfare.monthlyRate.toLocaleString('en-US', { minimumFractionDigits: 2 })} / month</td>
+                    <th style={th}>Annual Assessment</th>
+                    <td style={td}>GH₵ {reportData.welfare.currentAssessment.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                  <tr>
+                    <th style={th}>Paid This Year</th>
+                    <td style={{ ...td, fontWeight: 700, color: '#15803d' }}>GH₵ {reportData.welfare.contributionsThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                    <th style={th}>Total Contributed All-Time</th>
+                    <td style={{ ...td, fontWeight: 700 }}>GH₵ {reportData.welfare.totalContributedAllTime.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                  <tr>
+                    <th style={th}>Total Benefits Payouts</th>
+                    <td style={td}>GH₵ {reportData.welfare.totalBenefitsReceived.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                    <th style={th}>Welfare Outstanding / Credit</th>
+                    <td style={{ ...td, fontWeight: 900, color: reportData.welfare.welfareOutstanding > 0 ? '#b91c1c' : '#15803d' }}>
+                      {reportData.welfare.welfareOutstanding > 0
+                        ? `GH₵ ${reportData.welfare.welfareOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })} (Arrears)`
+                        : reportData.welfare.welfareCredit > 0
+                        ? `GH₵ ${reportData.welfare.welfareCredit.toLocaleString('en-US', { minimumFractionDigits: 2 })} (Credit)`
+                        : 'GH₵ 0.00 (Up to Date)'}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </section>
           )}
 

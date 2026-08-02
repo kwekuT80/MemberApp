@@ -10,6 +10,7 @@ interface DashboardMetric {
   value: string | number;
   trend?: 'up' | 'down' | 'neutral';
   description?: string;
+  href: string;
 }
 
 export default async function CommanderyHealthPage() {
@@ -74,37 +75,43 @@ export default async function CommanderyHealthPage() {
     {
       label: 'Active Brothers',
       value: totalMembers || 0,
-      description: 'Total active registered roster',
+      description: 'Total active registered roster • Click to view members',
+      href: '/registrar/members',
     },
     {
       label: 'Assessed Members',
       value: assessedCount || 0,
       trend: 'neutral',
-      description: `Members ledgered for ${currentYear}`,
+      description: `Members ledgered for ${currentYear} • Click for summaries`,
+      href: '/registrar/financials/members',
     },
     {
       label: 'Payment Compliance',
       value: `${paymentComplianceRate}%`,
       trend: (parseFloat(paymentComplianceRate) > 80 ? 'up' : 'down'),
-      description: 'Members current on dues obligations',
+      description: 'Members current on dues obligations • Click for paid list',
+      href: '/registrar/financials/members?status=paid',
     },
     {
       label: 'Active Member Ratio',
       value: activeMemberRatio,
       trend: 'neutral',
-      description: 'Assessed vs total registered members',
+      description: 'Assessed vs total registered members • Click for roster',
+      href: '/registrar/members',
     },
     {
       label: 'Delinquent Members',
       value: delinquentMembers || 0,
       trend: (delinquentMembers || 0) > 5 ? 'down' : 'neutral',
-      description: 'Zero payments registered this year',
+      description: 'Zero payments registered • Click for delinquency report',
+      href: '/registrar/financials/delinquency',
     },
     {
       label: 'Total Revenue Collected',
       value: `₵${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       trend: 'up',
-      description: `${currentYear} financial collections`,
+      description: `${currentYear} financial collections • Click to log payments`,
+      href: '/registrar/financials/payments',
     },
   ];
 
@@ -112,12 +119,17 @@ export default async function CommanderyHealthPage() {
     <RegistrarShell title="Commandery Health Dashboard" subtitle="Aggregate metrics for chapter financial oversight and strategic planning">
       <div className="max-width-container">
 
-        {/* ── KEY METRICS BOARD ── */}
+        {/* ── KEY METRICS BOARD (CLICKABLE CARDS) ── */}
         <div className="stats-grid">
           {metrics.map((metric) => {
             const isNavyCard = metric.label.includes('Revenue') || metric.label.includes('Compliance');
             return (
-              <div key={metric.label} className={`metric-card ${isNavyCard ? 'metric-card-navy' : 'metric-card-white'}`}>
+              <Link 
+                key={metric.label} 
+                href={metric.href}
+                className={`metric-card ${isNavyCard ? 'metric-card-navy' : 'metric-card-white'}`}
+                style={{ textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+              >
                 <div style={{ width: '100%' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <p className="metric-label" style={{ margin: 0 }}>{metric.label}</p>
@@ -138,7 +150,7 @@ export default async function CommanderyHealthPage() {
                 </div>
 
                 <p className="metric-desc" style={{ marginTop: 12, marginBottom: 0 }}>{metric.description}</p>
-              </div>
+              </Link>
             );
           })}
         </div>
