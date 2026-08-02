@@ -3,7 +3,7 @@
  * Runs range queries iteratively until all rows have been fetched.
  */
 export async function fetchAllPaginated<T = any>(
-  fetchPage: (from: number, to: number) => Promise<{ data: T[] | null; error: any }>
+  fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>
 ): Promise<T[]> {
   let allRows: T[] = [];
   let page = 0;
