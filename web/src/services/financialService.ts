@@ -1,6 +1,7 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
 import { logFinancialChange, type AuditAction, type EntityType } from './auditService';
+import { fetchAllPaginated } from '@/lib/supabase/pagination';
 
 function getPaymentFields(payment: any) {
   return { amount: payment.amount, month: payment.month, assessment_year: payment.assessment_year };
@@ -108,23 +109,32 @@ export async function generateAnnualAssessments(year: number) {
     .single();
   if (ratesErr || !rates) throw new Error('Please set annual rates for ' + year + ' before generating bills.');
 
-  // 2. Get all active members with birth year
-  const { data: members, error: membErr } = await supabase
-    .from('members')
-    .select('id, first_name, surname, date_of_birth, membership_type, status')
-    .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")');
-  if (membErr) throw membErr;
+  // 2. Get all active members with birth year (paginated across 1000-row cap)
+  const members = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('members')
+      .select('id, first_name, surname, date_of_birth, membership_type, status')
+      .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+      .range(from, to)
+  );
 
-  // 3. Get prior year payments & assessments to calculate arrears rollover
+  // 3. Get prior year payments & assessments to calculate arrears rollover (paginated)
   const priorYear = year - 1;
-  const { data: priorAssessments } = await supabase
-    .from('financial_assessments')
-    .select('member_id, arrears_brought_forward, annual_assessment')
-    .eq('year', priorYear);
-  const { data: priorPayments } = await supabase
-    .from('financial_payments')
-    .select('member_id, amount')
-    .eq('assessment_year', priorYear);
+  const priorAssessments = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('financial_assessments')
+      .select('member_id, arrears_brought_forward, annual_assessment')
+      .eq('year', priorYear)
+      .range(from, to)
+  );
+
+  const priorPayments = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('financial_payments')
+      .select('member_id, amount')
+      .eq('assessment_year', priorYear)
+      .range(from, to)
+  );
 
   // Build prior year balance map
   const priorMap: Record<string, number> = {};
@@ -165,13 +175,14 @@ export async function generateAnnualAssessments(year: number) {
 
 export async function getAssessmentsForYear(year: number) {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('financial_assessments')
-    .select('*, members(id, first_name, surname, title, membership_type, date_of_birth)')
-    .eq('year', year)
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return data || [];
+  return fetchAllPaginated((from, to) =>
+    supabase
+      .from('financial_assessments')
+      .select('*, members(id, first_name, surname, title, membership_type, date_of_birth)')
+      .eq('year', year)
+      .order('created_at', { ascending: true })
+      .range(from, to)
+  );
 }
 
 export async function updateIndividualAssessment(
@@ -249,13 +260,14 @@ export async function recordPayment(payment: {
 
 export async function getPaymentsForYear(year: number) {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('financial_payments')
-    .select('*, members(first_name, surname, title)')
-    .eq('assessment_year', year)
-    .order('payment_date', { ascending: false });
-  if (error) throw error;
-  return data || [];
+  return fetchAllPaginated((from, to) =>
+    supabase
+      .from('financial_payments')
+      .select('*, members(first_name, surname, title)')
+      .eq('assessment_year', year)
+      .order('payment_date', { ascending: false })
+      .range(from, to)
+  );
 }
 
 export async function deletePayment(id: string) {
@@ -286,14 +298,15 @@ export async function deletePayment(id: string) {
 
 export async function getActiveMembers() {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('members')
-    .select('id, first_name, surname, title, membership_type')
-    .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
-    .order('surname')
-    .order('first_name');
-  if (error) throw error;
-  return data || [];
+  return fetchAllPaginated((from, to) =>
+    supabase
+      .from('members')
+      .select('id, first_name, surname, title, membership_type')
+      .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+      .order('surname')
+      .order('first_name')
+      .range(from, to)
+  );
 }
 
 // ─── Member Financial Summaries ─────────────────────────────────────────────
@@ -303,35 +316,36 @@ export async function getAllMemberSummaries(filters?: {
   search?: string;
 }) {
   const supabase = await createClient();
-  let query = supabase.from('member_financial_summary').select('*');
 
-  if (filters?.status) {
-    query = query.eq('payment_status', filters.status);
-  }
+  // Paginated query for member_financial_summary
+  const summaryRows = await fetchAllPaginated((from, to) => {
+    let query = supabase.from('member_financial_summary').select('*');
+    if (filters?.status) {
+      query = query.eq('payment_status', filters.status);
+    }
+    if (filters?.search) {
+      query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
+    }
+    return query.order('outstanding_balance', { ascending: false }).range(from, to);
+  });
 
-  if (filters?.search) {
-    query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
-  }
-
-  const [summaryResult, assessmentsResult] = await Promise.all([
-    query.order('outstanding_balance', { ascending: false }),
+  // Paginated query for financial_assessments
+  const assessmentRows = await fetchAllPaginated((from, to) =>
     supabase
       .from('financial_assessments')
       .select('member_id, annual_assessment')
-  ]);
-
-  if (summaryResult.error) throw summaryResult.error;
-  if (assessmentsResult.error) throw assessmentsResult.error;
+      .range(from, to)
+  );
 
   // Sum annual_assessment (excluding arrears_brought_forward) per member
   const annualSumByMember: Record<string, number> = {};
-  for (const a of assessmentsResult.data || []) {
+  for (const a of assessmentRows || []) {
     const id = a.member_id;
     annualSumByMember[id] = (annualSumByMember[id] || 0) + parseFloat(a.annual_assessment || 0);
   }
 
   // Attach annual_assessment_sum to each summary row
-  return (summaryResult.data || []).map((row: any) => ({
+  return summaryRows.map((row: any) => ({
     ...row,
     annual_assessment_sum: annualSumByMember[row.member_id ?? row.id] ?? 0,
   }));

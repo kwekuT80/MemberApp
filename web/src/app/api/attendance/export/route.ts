@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireRegistrar } from '@/lib/auth/requireRegistrar';
+import { fetchAllPaginated } from '@/lib/supabase/pagination';
 
 // CSV-safe value - escape quotes and wrap in quotes if contains commas
 function csvEscape(value: string | number | null): string {
@@ -36,109 +37,40 @@ export async function GET(request: NextRequest) {
   try {
     await requireRegistrar();
 
+    const { searchParams } = new URL(request.url);
+    const fromDate = searchParams.get('from_date');
+    const toDate = searchParams.get('to_date');
+    const commanderyId = searchParams.get('commandery_id');
+    const statusFilter = searchParams.get('status');
+
     const supabase = await createClient();
 
-    const searchParams =
-      request.nextUrl.searchParams;
+    // Fetch meetings with date filtering (paginated across 1000-row cap)
+    const meetings = await fetchAllPaginated((from, to) => {
+      let meetingQuery = supabase.from('meetings').select('*');
+      if (fromDate) meetingQuery = meetingQuery.gte('date', fromDate);
+      if (toDate) meetingQuery = meetingQuery.lte('date', toDate);
+      if (commanderyId) meetingQuery = meetingQuery.eq('commandery_id', commanderyId);
+      return meetingQuery.order('date').range(from, to);
+    });
 
-    // Parse optional filters
-    const fromDate =
-      searchParams.get('from');
-
-    const toDate =
-      searchParams.get('to');
-
-    const commanderyId =
-      searchParams.get(
-        'commandery_id'
-      );
-
-    const statusFilter =
-      searchParams.get('status');
-
-    // Build query for meetings with date filtering
-    let meetingQuery = supabase
-      .from('meetings')
-      .select('*');
-
-    if (fromDate) {
-      meetingQuery =
-        meetingQuery.gte(
-          'date',
-          fromDate
-        );
-    }
-
-    if (toDate) {
-      meetingQuery =
-        meetingQuery.lte(
-          'date',
-          toDate
-        );
-    }
-
-    if (commanderyId) {
-      meetingQuery =
-        meetingQuery.eq(
-          'commandery_id',
-          commanderyId
-        );
-    }
-
-    const {
-      data: meetings,
-      error: meetingsError,
-    } = await meetingQuery.order(
-      'date'
-    );
-
-    if (meetingsError) {
-      throw meetingsError;
-    }
-
-    if (
-      !meetings ||
-      meetings.length === 0
-    ) {
+    if (!meetings || meetings.length === 0) {
       return NextResponse.json(
-        {
-          error:
-            'No meetings found for the selected filters',
-        },
+        { error: 'No meetings found for the selected filters' },
         { status: 404 }
       );
     }
 
-    // Get all members (optionally filtered by commandery)
-    let memberQuery = supabase
-      .from('members')
-      .select('*');
-
-    if (commanderyId) {
-      memberQuery =
-        memberQuery.eq(
-          'commandery_id',
-          commanderyId
-        );
-    }
-
-    const {
-      data: members,
-      error: membersError,
-    } = await memberQuery.order(
-      'surname'
-    );
-
-    if (membersError) {
-      throw membersError;
-    }
+    // Get all members (optionally filtered by commandery, paginated)
+    const members = await fetchAllPaginated((from, to) => {
+      let memberQuery = supabase.from('members').select('*');
+      if (commanderyId) memberQuery = memberQuery.eq('commandery_id', commanderyId);
+      return memberQuery.order('surname').range(from, to);
+    });
 
     // Build member lookup map for quick access
     const memberMap = new Map();
-
-    (members || []).forEach((m: any) =>
-      memberMap.set(m.id, m)
-    );
+    (members || []).forEach((m: any) => memberMap.set(m.id, m));
 
     // Fetch all attendance and absence data in one pass per meeting
     const csvLines: string[] = [];
@@ -155,21 +87,14 @@ export async function GET(request: NextRequest) {
     ];
 
     for (const meeting of meetings) {
-      // Fetch attendance records for this meeting
-      const {
-        data: attendance,
-        error: attendanceError,
-      } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq(
-          'meeting_id',
-          meeting.id
-        );
-
-      if (attendanceError) {
-        throw attendanceError;
-      }
+      // Fetch attendance records for this meeting (paginated)
+      const attendance = await fetchAllPaginated((from, to) =>
+        supabase
+          .from('attendance')
+          .select('*')
+          .eq('meeting_id', meeting.id)
+          .range(from, to)
+      );
 
       // Fetch approved absence requests
       const {

@@ -43,17 +43,23 @@ export default function FinancialHubScreen({ navigation }) {
     try {
       const currentYear = new Date().getFullYear();
 
-      // Fetch all assessments for the year
-      const { data: assessments } = await supabase
-        .from('financial_assessments')
-        .select('*')
-        .eq('year', currentYear);
+      // Fetch all assessments for the year (paginated across 1000-row cap)
+      const assessments = await fetchAllRows((from, to) =>
+        supabase
+          .from('financial_assessments')
+          .select('*')
+          .eq('year', currentYear)
+          .range(from, to)
+      );
 
-      // Fetch all payments for the year
-      const { data: payments } = await supabase
-        .from('financial_payments')
-        .select('*')
-        .eq('assessment_year', currentYear);
+      // Fetch all payments for the year (paginated across 1000-row cap)
+      const payments = await fetchAllRows((from, to) =>
+        supabase
+          .from('financial_payments')
+          .select('*')
+          .eq('assessment_year', currentYear)
+          .range(from, to)
+      );
 
       // Compute aggregate stats
       if (assessments && assessments.length > 0) {

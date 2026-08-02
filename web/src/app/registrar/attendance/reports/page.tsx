@@ -42,14 +42,17 @@ export default async function AttendanceReportsPage() {
      '@/lib/supabase/server'
    );
 
-   const supabase = await createClient();
-    const { data } = await supabase
-      .from('meetings')
-      .select('*')
-      .gte('date', `${currentYear}-01-01`)
-      .lte('date', `${currentYear}-12-31`)
-      .order('date', { ascending: false });
-    meetings = data || [];
+    const supabase = await createClient();
+    const { fetchAllPaginated } = await import('@/lib/supabase/pagination');
+    meetings = await fetchAllPaginated((from, to) =>
+      supabase
+        .from('meetings')
+        .select('*')
+        .gte('date', `${currentYear}-01-01`)
+        .lte('date', `${currentYear}-12-31`)
+        .order('date', { ascending: false })
+        .range(from, to)
+    );
   } catch (err) {
     // Meetings table may not exist yet
   }

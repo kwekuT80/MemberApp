@@ -4,6 +4,7 @@ import { requireFinancialRegistrar } from '@/lib/auth/requireFinancialRegistrar'
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllPaginated } from '@/lib/supabase/pagination';
 
 interface DashboardMetric {
   label: string;
@@ -41,17 +42,20 @@ export default async function CommanderyHealthPage() {
   // NOTE: member_financial_summary SQL view now filters these members server-side.
   // Keeping this query as-is since the view already handles exclusion.
 
-  // Total payments this year
-  const { data: payments } = await supabase
-    .from('financial_payments')
-    .select('amount')
-    .eq('assessment_year', currentYear);
+  // Total payments this year (paginated across 1000-row cap)
+  const payments = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('financial_payments')
+      .select('amount')
+      .eq('assessment_year', currentYear)
+      .range(from, to)
+  );
 
   const totalPaymentsSum =
-    payments?.reduce(
+    (payments || []).reduce(
       (total, row) => total + (Number(row.amount) || 0),
       0
-    ) ?? 0;
+    );
 
   // Calculate metrics
   const paymentComplianceRate =

@@ -1,5 +1,6 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllPaginated } from '@/lib/supabase/pagination';
 
 // ─── CSV Export Helper ──────────────────────────────────────────────────────
 
@@ -15,10 +16,10 @@ function escapeCsvField(value: string | number | null | undefined): string {
 export async function generateFinancialReportCsv(year: number) {
   const supabase = await createClient();
 
-  // Fetch assessments and payments for the year
-  const [{ data: assessments }, { data: payments }] = await Promise.all([
-    supabase.from('financial_assessments').select('*').eq('year', year),
-    supabase.from('financial_payments').select('*').eq('assessment_year', year),
+  // Fetch assessments and payments for the year (paginated across 1000-row cap)
+  const [assessments, payments] = await Promise.all([
+    fetchAllPaginated((from, to) => supabase.from('financial_assessments').select('*').eq('year', year).range(from, to)),
+    fetchAllPaginated((from, to) => supabase.from('financial_payments').select('*').eq('assessment_year', year).range(from, to)),
   ]);
 
   // Aggregate by member
@@ -62,8 +63,10 @@ export async function generateDelinquencyReportCsv() {
   const today = new Date();
   const nowMs = today.getTime();
 
-  // Get all members with financial data using member_financial_summary view
-  const { data: summaries } = await supabase.from('member_financial_summary').select('*');
+  // Get all members with financial data using member_financial_summary view (paginated)
+  const summaries = await fetchAllPaginated((from, to) =>
+    supabase.from('member_financial_summary').select('*').range(from, to)
+  );
 
   if (!summaries || summaries.length === 0) return '';
 

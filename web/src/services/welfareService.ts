@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllPaginated } from '@/lib/supabase/pagination';
 import { 
   WelfareCategory, 
   WelfareContribution, 
@@ -41,32 +42,12 @@ async function logWelfareAudit(params: {
 
 export async function getAllWelfareContributions() {
   const supabase = await createClient();
-  let allContribs: any[] = [];
-  let page = 0;
-  const pageSize = 1000;
-  let hasMore = true;
-
-  while (hasMore) {
-    const from = page * pageSize;
-    const to = (page + 1) * pageSize - 1;
-    const { data, error } = await supabase
+  return fetchAllPaginated((from, to) =>
+    supabase
       .from('welfare_contributions')
       .select('member_id, amount, period_year')
-      .range(from, to);
-
-    if (error || !data || data.length === 0) {
-      hasMore = false;
-    } else {
-      allContribs = allContribs.concat(data);
-      if (data.length < pageSize) {
-        hasMore = false;
-      } else {
-        page++;
-      }
-    }
-  }
-
-  return allContribs;
+      .range(from, to)
+  );
 }
 
 // 1. Get Welfare Fund Summary Metrics
@@ -77,10 +58,13 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
   // Contributions total (paginated fetch across PostgREST 1000 row cap)
   const contributions = await getAllWelfareContributions();
 
-  // Disbursements total
-  const { data: disbursements } = await supabase
-    .from('welfare_disbursements')
-    .select('amount, disbursement_date');
+  // Disbursements total (paginated fetch across PostgREST 1000 row cap)
+  const disbursements = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('welfare_disbursements')
+      .select('amount, disbursement_date')
+      .range(from, to)
+  );
 
   // Categories count
   const { count: categoriesCount } = await supabase
@@ -88,10 +72,13 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
     .select('id', { count: 'exact', head: true })
     .eq('is_active', true);
 
-  // Active living members count (excluding Dismissed, Transfer-Out, Deceased)
-  const { data: allMembers } = await supabase
-    .from('members')
-    .select('id, status, is_deceased');
+  // Active living members count (excluding Dismissed, Transfer-Out, Deceased - paginated)
+  const allMembers = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('members')
+      .select('id, status, is_deceased')
+      .range(from, to)
+  );
 
   const eligibleMembers = (allMembers || []).filter(m => {
     if (m.is_deceased) return false;

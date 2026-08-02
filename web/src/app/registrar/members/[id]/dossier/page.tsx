@@ -376,6 +376,18 @@ export default function MemberDossierPage() {
                 </div>
 
                 <div style={{ marginTop: 16, borderTop: '1px dashed #cbd5e1', paddingTop: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 12 }}>
+                    <div style={{ background: '#ffffff', padding: '10px 14px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', display: 'block', textTransform: 'uppercase' }}>Active Evaluation Benchmark</span>
+                      <strong style={{ fontSize: 13, color: '#1e293b' }}>{reportData.financial.benchmarkName}</strong>
+                    </div>
+                    <div style={{ background: '#ffffff', padding: '10px 14px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', display: 'block', textTransform: 'uppercase' }}>Required Payment for Standing</span>
+                      <strong style={{ fontSize: 14, color: reportData.financialStanding === 'In Good Standing' ? '#15803d' : '#b91c1c' }}>
+                        GH₵ {reportData.financial.requiredDuesThreshold.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </strong>
+                    </div>
+                  </div>
                   <div style={{ fontSize: 13, fontWeight: 800, color: '#334155', marginBottom: 6 }}>
                     Compliance Audit & Non-Standing Issues:
                   </div>
@@ -419,6 +431,14 @@ export default function MemberDossierPage() {
                     <td style={{ ...td, fontWeight: 700 }}>GH₵ {reportData.financial.totalAssessed.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                     <th style={th}>Total Paid This Year</th>
                     <td style={{ ...td, fontWeight: 700, color: '#15803d' }}>GH₵ {reportData.financial.paymentsThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                  <tr>
+                    <th style={th}>Standing Dues Benchmark</th>
+                    <td style={td}>{reportData.financial.benchmarkName}</td>
+                    <th style={th}>Standing Target Required</th>
+                    <td style={{ ...td, fontWeight: 800, color: reportData.financialStanding === 'In Good Standing' ? '#15803d' : '#b91c1c' }}>
+                      GH₵ {reportData.financial.requiredDuesThreshold.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </td>
                   </tr>
                   <tr>
                     <th style={th}>Net Outstanding Balance</th>

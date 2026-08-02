@@ -131,6 +131,13 @@ export default async function RegistrarMemberDetailPage({ params }: { params: Pr
                             : 'GH₵ 0.00 (Paid in Full)'}
                         </strong>
                       </div>
+                      <div style={{ gridColumn: 'span 2', marginTop: 6, paddingTop: 8, borderTop: '1px dashed #cbd5e1', fontSize: 12 }}>
+                        <span style={{ color: 'var(--grey)', display: 'block', fontWeight: 600 }}>Standing Policy Benchmark:</span>
+                        <span style={{ color: '#334155', fontWeight: 700 }}>{reportData.financial.benchmarkName}</span>
+                        <div style={{ marginTop: 2 }}>
+                          Required Threshold: <strong style={{ color: reportData.financialStanding === 'In Good Standing' ? 'var(--success)' : 'var(--danger)' }}>GH₵ {reportData.financial.requiredDuesThreshold.toFixed(2)}</strong>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

@@ -53,10 +53,8 @@ export default function MeetingsScreen({ navigation }) {
   const fetchMeetings = async () => {
     setLoading(true);
     try {
-      // Get current user's profile to filter by commandery_id
       const { data: userData } = await supabase.auth.getUser();
 
-      // Fetch user's profile/commandery association
       let commanderyId = null;
       if (userData?.user) {
         const { data: profile } = await supabase
@@ -67,25 +65,19 @@ export default function MeetingsScreen({ navigation }) {
         commanderyId = profile?.commandery_id;
       }
 
-      let query = supabase.from('meetings').select('*');
-
-      // If user has a commandery assignment, filter by it
-      if (commanderyId) {
-        query = query.eq('commandery_id', commanderyId);
-      } else if (!userData?.user) {
-        // Not logged in — show nothing
+      if (!commanderyId && !userData?.user) {
         setMeetings([]);
         setLoading(false);
         return;
       }
 
-      const { data, error } = await query.order('date', { ascending: false });
+      const meetingsData = await fetchAllRows((from, to) => {
+        let q = supabase.from('meetings').select('*');
+        if (commanderyId) q = q.eq('commandery_id', commanderyId);
+        return q.order('date', { ascending: false }).range(from, to);
+      });
 
-      if (error) {
-        Alert.alert('Error', `Failed to load meetings: ${error.message}`);
-      } else if (data) {
-        setMeetings(data);
-      }
+      setMeetings(meetingsData || []);
     } catch (err) {
       console.error('fetchMeetings error:', err);
       Alert.alert('Error', 'Unable to connect. Please check your network.');
@@ -96,20 +88,27 @@ export default function MeetingsScreen({ navigation }) {
 
   const fetchMeetingDashboard = async (meetingId) => {
     setLoading(true);
-    const [
-      { data: membersData },
-      { data: attendanceData },
-      { data: requestsData }
-    ] = await Promise.all([
-      supabase.from('members').select('id, first_name, surname, status').eq('status', 'Active').order('surname'),
-      supabase.from('attendance').select('*').eq('meeting_id', meetingId),
-      supabase.from('absence_requests').select('*').eq('meeting_id', meetingId)
-    ]);
+    try {
+      const [membersData, attendanceData, requestsData] = await Promise.all([
+        fetchAllRows((from, to) =>
+          supabase.from('members').select('id, first_name, surname, status').eq('status', 'Active').order('surname').range(from, to)
+        ),
+        fetchAllRows((from, to) =>
+          supabase.from('attendance').select('*').eq('meeting_id', meetingId).range(from, to)
+        ),
+        fetchAllRows((from, to) =>
+          supabase.from('absence_requests').select('*').eq('meeting_id', meetingId).range(from, to)
+        )
+      ]);
 
-    if (membersData) setActiveMembers(membersData);
-    if (attendanceData) setAttendance(attendanceData);
-    if (requestsData) setRequests(requestsData);
-    setLoading(false);
+      if (membersData) setActiveMembers(membersData);
+      if (attendanceData) setAttendance(attendanceData);
+      if (requestsData) setRequests(requestsData);
+    } catch (err) {
+      console.error('fetchMeetingDashboard error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePinLocation = async () => {

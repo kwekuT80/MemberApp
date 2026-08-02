@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllPaginated } from '@/lib/supabase/pagination';
 
 export async function getCommanderies() {
   const supabase = await createClient();
@@ -14,13 +15,14 @@ export async function getCommanderies() {
 
 export async function getMeetings(commanderyId: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('meetings')
-    .select('*')
-    .eq('commandery_id', commanderyId)
-    .order('date', { ascending: false });
-  if (error) throw error;
-  return data || [];
+  return fetchAllPaginated((from, to) =>
+    supabase
+      .from('meetings')
+      .select('*')
+      .eq('commandery_id', commanderyId)
+      .order('date', { ascending: false })
+      .range(from, to)
+  );
 }
 
 export async function createMeeting(payload: {
@@ -132,13 +134,14 @@ export async function registrarGrantExcuse(payload: {
 
 export async function getAbsenceRequests(meetingId: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('absence_requests')
-    .select('*, members(*)')
-    .eq('meeting_id', meetingId)
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return data || [];
+  return fetchAllPaginated((from, to) =>
+    supabase
+      .from('absence_requests')
+      .select('*, members(*)')
+      .eq('meeting_id', meetingId)
+      .order('created_at', { ascending: false })
+      .range(from, to)
+  );
 }
 
 export async function submitAbsenceRequest(payload: {
@@ -175,27 +178,33 @@ export async function reviewAbsenceRequest(payload: {
 export async function getAttendanceReport(meetingId: string, commanderyId: string) {
   const supabase = await createClient();
 
-  // 1. Fetch all members in this commandery who are on the active roll
-  const { data: members, error: memError } = await supabase
-    .from('members')
-    .select('*')
-    .eq('commandery_id', commanderyId)
-    .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")');
-  if (memError) throw memError;
+  // 1. Fetch all members in this commandery who are on the active roll (paginated)
+  const members = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('members')
+      .select('*')
+      .eq('commandery_id', commanderyId)
+      .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+      .range(from, to)
+  );
 
-  // 2. Fetch all verified check-ins for this meeting
-  const { data: attendance, error: attError } = await supabase
-    .from('attendance')
-    .select('*')
-    .eq('meeting_id', meetingId);
-  if (attError) throw attError;
+  // 2. Fetch all verified check-ins for this meeting (paginated)
+  const attendance = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('attendance')
+      .select('*')
+      .eq('meeting_id', meetingId)
+      .range(from, to)
+  );
 
-  // 3. Fetch all absence requests for this meeting
-  const { data: absences, error: absError } = await supabase
-    .from('absence_requests')
-    .select('*')
-    .eq('meeting_id', meetingId);
-  if (absError) throw absError;
+  // 3. Fetch all absence requests for this meeting (paginated)
+  const absences = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('absence_requests')
+      .select('*')
+      .eq('meeting_id', meetingId)
+      .range(from, to)
+  );
 
   // 4. Map everything together
   return (members || []).map(m => {
