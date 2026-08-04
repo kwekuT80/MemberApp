@@ -162,6 +162,52 @@ export default function ReportsPage() {
 
   return (
     <RegistrarShell title="Reporting Hub" subtitle="Generate and export official commandery records">
+      {/* Batch ID Cards Generator Hero Banner */}
+      <div style={{
+        background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+        borderRadius: 16,
+        padding: '24px 28px',
+        color: 'white',
+        marginBottom: 24,
+        display: 'flex',
+        justify: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 16,
+        boxShadow: '0 10px 25px rgba(15,23,42,0.15)',
+        border: '1px solid #334155'
+      }} className="no-print">
+        <div>
+          <div style={{ color: '#FCD34D', fontSize: 11, fontWeight: 900, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+            BATCH CARD GENERATOR • 6 CARDS PER A4 PAGE
+          </div>
+          <h2 style={{ margin: '6px 0 4px', fontSize: 20, fontWeight: 900, color: 'white' }}>
+            🪪 Batch Print Member ID Cards
+          </h2>
+          <p style={{ margin: 0, fontSize: 13, color: '#94A3B8', maxWidth: 600 }}>
+            Generate and print pre-formatted ID cards for all active members. Optimized at 6 cards per A4 page for fast event check-in and QR verification.
+          </p>
+        </div>
+        <a 
+          href="/registrar/members/id-cards"
+          style={{
+            background: '#D4AF37',
+            color: '#0F172A',
+            textDecoration: 'none',
+            padding: '12px 24px',
+            borderRadius: 10,
+            fontWeight: 900,
+            fontSize: 14,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            boxShadow: '0 4px 12px rgba(212,175,55,0.3)'
+          }}
+        >
+          <span>🖨️ Open Batch Card Studio</span>
+        </a>
+      </div>
+
       <div className="card">
         <div style={{ display: 'flex', gap: 12, marginBottom: 32, flexWrap: 'wrap' }} className="no-print">
           {[

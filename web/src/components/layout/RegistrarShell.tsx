@@ -46,6 +46,7 @@ export default function RegistrarShell({
       { href: '/registrar', label: '🏠 Dashboard' },
       { href: '/registrar/members', label: '👥 Members' },
       { href: '/registrar/members/new', label: '➕ Create Member' },
+      { href: '/registrar/members/id-cards', label: '🪪 Batch ID Cards' },
       { href: '/registrar/reports', label: '📊 Reporting Hub' },
       { href: '/registrar/meetings', label: '📅 Meetings' },
       { href: '/registrar/communications', label: '📣 Communications' }
