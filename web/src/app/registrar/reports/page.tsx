@@ -14,9 +14,9 @@ export default function ReportsPage() {
   async function generateReport(type: string) {
     setLoading(true);
     setReportType(type);
-    
+
     let query = supabase.from('members').select('*');
-    
+
     if (['el_2nd_3rd', 'el_4th', 'el_5th', 'birthdays'].includes(type)) {
       query = supabase.from('members').select('*, degrees(*), military(*)').eq('status', 'Active');
     } else if (type === 'master') {
@@ -47,7 +47,7 @@ export default function ReportsPage() {
       finalData = finalData.filter((member: any) => {
         const degrees = member.degrees || [];
         const military = Array.isArray(member.military) ? member.military[0] : member.military;
-        
+
         const has2nd = degrees.some((d: any) => d.degree_type?.toLowerCase().includes('2nd') || d.degree_type?.toLowerCase().includes('second'));
         const has3rd = degrees.some((d: any) => d.degree_type?.toLowerCase().includes('3rd') || d.degree_type?.toLowerCase().includes('third'));
         const has4th = degrees.some((d: any) => d.degree_type?.toLowerCase().includes('4th') || d.degree_type?.toLowerCase().includes('fourth'));
@@ -55,7 +55,7 @@ export default function ReportsPage() {
 
         const firstDegreeObj = degrees.find((d: any) => d.degree_type?.toLowerCase().includes('1st') || d.degree_type?.toLowerCase().includes('first'));
         const firstDegreeDate = firstDegreeObj?.degree_date ? new Date(firstDegreeObj.degree_date) : null;
-        
+
         const uniformDate = military?.first_uniform_use_date ? new Date(military.first_uniform_use_date) : null;
         const joinedDate = member.date_joined ? new Date(member.date_joined) : null;
 
@@ -91,7 +91,7 @@ export default function ReportsPage() {
 
   const downloadCSV = () => {
     if (!data.length) return;
-    
+
     // Create CSV header
     let headers = ['Title', 'First Name', 'Surname', 'Occupation', 'Phone', 'Mobile', 'Email'];
     if (reportType === 'final') {
@@ -99,7 +99,7 @@ export default function ReportsPage() {
     } else if (reportType === 'birthdays') {
       headers = ['Title', 'First Name', 'Surname', 'Date of Birth', 'Phone', 'Mobile', 'Email'];
     }
-    
+
     // Create CSV rows
     const rows = data.map(m => {
       if (reportType === 'final') return [m.title, m.first_name, m.surname, m.date_of_death, m.burial_date, m.burial_place];
@@ -170,7 +170,7 @@ export default function ReportsPage() {
         color: 'white',
         marginBottom: 24,
         display: 'flex',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
         gap: 16,
@@ -188,7 +188,7 @@ export default function ReportsPage() {
             Generate and print pre-formatted ID cards for all active members. Optimized at 6 cards per A4 page for fast event check-in and QR verification.
           </p>
         </div>
-        <a 
+        <a
           href="/registrar/members/id-cards"
           style={{
             background: '#D4AF37',
@@ -220,7 +220,7 @@ export default function ReportsPage() {
             { id: 'el_5th', label: 'Eligible: 5th Degree' },
             { id: 'birthdays', label: 'Birthdays This Month' },
           ].map((type) => (
-            <button 
+            <button
               key={type.id}
               onClick={() => generateReport(type.id)}
               style={{
@@ -240,7 +240,7 @@ export default function ReportsPage() {
           ))}
           {data.length > 0 && (
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 12 }}>
-              <button 
+              <button
                 onClick={downloadCSV}
                 style={{
                   background: '#f8fafc',
@@ -255,7 +255,7 @@ export default function ReportsPage() {
               >
                 📥 Download CSV
               </button>
-              <button 
+              <button
                 onClick={handlePrint}
                 style={{
                   background: 'var(--gold)',
@@ -327,9 +327,9 @@ export default function ReportsPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             {m.phone || m.mobile || '---'}
                             {(m.phone || m.mobile) && (
-                              <a 
+                              <a
                                 href={`https://wa.me/${(m.phone || m.mobile).replace(/\D/g, '')}?text=Happy Birthday, Brother ${m.surname}! Wishing you God's blessings on your special day. 🎉`}
-                                target="_blank" 
+                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="no-print"
                                 style={{ background: '#25D366', color: 'white', padding: '4px 10px', borderRadius: 100, fontSize: 11, textDecoration: 'none', fontWeight: 'bold' }}
