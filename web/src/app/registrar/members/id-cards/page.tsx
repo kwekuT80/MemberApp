@@ -69,13 +69,42 @@ export default function BulkIDCardsPage() {
               gap: 8mm 6mm !important;
               width: 100% !important;
             }
+
+            /* Ink-saving and eco-friendly print styles */
             .id-card-item {
               page-break-inside: avoid !important;
               break-inside: avoid !important;
               box-shadow: none !important;
+              background: #FFFFFF !important;
+              color: #0F172A !important;
               border: 2px solid #C9A84C !important;
               height: 82mm !important; /* Fixed height so exactly 6 fit on A4 */
               box-sizing: border-box !important;
+            }
+
+            .id-card-item * {
+              text-shadow: none !important;
+            }
+
+            /* Invert text colors for readability on white background */
+            .id-card-item .card-surname {
+              color: #0F172A !important;
+            }
+            .id-card-item .card-firstname {
+              color: #334155 !important;
+            }
+            .id-card-item .card-subtext {
+              color: #475569 !important;
+            }
+            .id-card-item .card-photo-frame {
+              background: #F8FAFC !important;
+              border: 1.5px solid #CBD5E1 !important;
+            }
+            .id-card-item .card-footer-border {
+              border-top: 1px solid #E2E8F0 !important;
+            }
+            .id-card-item .card-id-number {
+              color: #854D0E !important; /* High contrast dark gold for printing */
             }
           }
         `}</style>
@@ -202,18 +231,18 @@ export default function BulkIDCardsPage() {
                         <div style={{ color: '#C9A84C', fontWeight: 900, letterSpacing: 0.8, fontSize: 11 }}>
                           K.S.J.I REGISTRAR SUITE
                         </div>
-                        <div style={{ color: '#8892B0', fontSize: 8, fontWeight: 700 }}>
+                        <div className="card-subtext" style={{ color: '#8892B0', fontSize: 8, fontWeight: 700 }}>
                           Official Membership ID
                         </div>
                       </div>
-                      <div style={{ background: 'white', borderRadius: '50%', padding: 2, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ background: 'white', borderRadius: '50%', padding: 2, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #E2E8F0' }}>
                         <img src="/logo.png" alt="Logo" style={{ width: '85%', height: '85%', objectFit: 'contain' }} />
                       </div>
                     </div>
 
                     {/* Member Photo + Info Main Block */}
                     <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12 }}>
-                      <div style={{
+                      <div className="card-photo-frame" style={{
                         width: 75,
                         height: 90,
                         background: '#1E293B',
@@ -234,22 +263,22 @@ export default function BulkIDCardsPage() {
 
                       <div style={{ flex: 1, overflow: 'hidden' }}>
                         <div style={{ color: '#C9A84C', fontWeight: 800, fontSize: 11 }}>{member.title || 'Bro.'}</div>
-                        <div style={{ fontSize: 18, fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div className="card-surname" style={{ fontSize: 18, fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {member.surname}
                         </div>
-                        <div style={{ color: '#CCD6F6', fontSize: 13, fontWeight: 600, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div className="card-firstname" style={{ color: '#CCD6F6', fontSize: 13, fontWeight: 600, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {member.first_name} {member.other_names || ''}
                         </div>
                         <div style={{
                           marginTop: 6,
                           display: 'inline-block',
                           background: member.status === 'Active' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                          color: member.status === 'Active' ? '#34D399' : '#FCA5A5',
+                          color: member.status === 'Active' ? '#059669' : '#DC2626',
                           padding: '2px 8px',
                           borderRadius: 100,
                           fontSize: 9,
                           fontWeight: 900,
-                          border: `1px solid ${member.status === 'Active' ? 'rgba(52, 211, 153, 0.3)' : 'rgba(252, 165, 165, 0.3)'}`
+                          border: `1px solid ${member.status === 'Active' ? 'rgba(52, 211, 153, 0.4)' : 'rgba(252, 165, 165, 0.4)'}`
                         }}>
                           STATUS: {member.status?.toUpperCase() || 'ACTIVE'}
                         </div>
@@ -258,14 +287,14 @@ export default function BulkIDCardsPage() {
                   </div>
 
                   {/* Card Bottom Footer with QR */}
-                  <div style={{
+                  <div className="card-footer-border" style={{
                     display: 'flex',
                     alignItems: 'center',
                     borderTop: '1px solid rgba(255,255,255,0.12)',
                     paddingTop: 8,
                     gap: 12
                   }}>
-                    <div style={{ background: 'white', padding: 4, borderRadius: 6, width: 52, height: 52, flexShrink: 0 }}>
+                    <div style={{ background: 'white', padding: 4, borderRadius: 6, width: 52, height: 52, flexShrink: 0, border: '1px solid #E2E8F0' }}>
                       <img
                         src={`https://quickchart.io/qr?text=${encodeURIComponent('https://ksji-members.vercel.app/verify/' + member.id)}&size=120&margin=1`}
                         alt="QR Code"
@@ -274,13 +303,13 @@ export default function BulkIDCardsPage() {
                     </div>
 
                     <div style={{ flex: 1 }}>
-                      <div style={{ color: '#8892B0', fontSize: 8, fontWeight: 800 }}>ID NUMBER</div>
-                      <div style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, color: '#FCD34D' }}>
+                      <div className="card-subtext" style={{ color: '#8892B0', fontSize: 8, fontWeight: 800 }}>ID NUMBER</div>
+                      <div className="card-id-number" style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, color: '#FCD34D' }}>
                         KSJI-{member.id?.slice(0, 8).toUpperCase()}
                       </div>
 
-                      <div style={{ color: '#8892B0', fontSize: 8, fontWeight: 800, marginTop: 4 }}>JOINED / COMMANDERY</div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#CCD6F6' }}>
+                      <div className="card-subtext" style={{ color: '#8892B0', fontSize: 8, fontWeight: 800, marginTop: 4 }}>JOINED / COMMANDERY</div>
+                      <div className="card-subtext" style={{ fontSize: 10, fontWeight: 700, color: '#CCD6F6' }}>
                         {member.date_joined || '---'} • #500
                       </div>
                     </div>
