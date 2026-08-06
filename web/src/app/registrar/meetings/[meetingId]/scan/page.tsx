@@ -83,12 +83,16 @@ export default function MeetingScanPage() {
           d.label.toLowerCase().includes('wide')
         );
         cameraIdRef.current = rearCamera?.id || devices[0].id;
-      } else {
-        return;
-      }
-
       if (!scannerRef.current) {
         scannerRef.current = new Html5Qrcode('qr-reader');
+      } else {
+        try {
+          scannerRef.current.resume();
+          setScanning(true);
+          return;
+        } catch (e) {
+          try { await scannerRef.current.stop(); } catch (err) {}
+        }
       }
 
       await scannerRef.current.start(
@@ -101,10 +105,10 @@ export default function MeetingScanPage() {
             useBarCodeDetectorIfSupported: true,
           }
         } as any,
-        async (decodedText: string) => {
+        (decodedText: string) => {
           const text = (decodedText || '').trim();
 
-          // Require a valid KSJI member QR format (UUID, verify URL, or KSJI ID) so camera blur/reflections are ignored until focused
+          // Require a valid KSJI member QR format so camera blur/reflections are ignored until focused
           const isValidMemberFormat =
             text.includes('/verify/') ||
             text.startsWith('KSJI-') ||
@@ -115,15 +119,17 @@ export default function MeetingScanPage() {
             return; // Ignore un-focused camera blur or non-member barcodes
           }
 
-          // Stop scanning once a definitive valid member QR code is focused
+          // Instantly pause scanning feed without waiting for hardware stop promise
           if (scannerRef.current) {
             try {
-              await scannerRef.current.stop();
-            } catch (e) {}
+              scannerRef.current.pause(true);
+            } catch (e) {
+              scannerRef.current.stop().catch(() => {});
+            }
             setScanning(false);
           }
 
-          // Parse and check in the member with database
+          // Fire API check-in immediately without hardware blocking delay
           handleQrCode(decodedText);
         },
         () => {} // Ignore scan failures while camera focuses
