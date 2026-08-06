@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { createMeeting, checkInMember, getAbsenceRequests, reviewAbsenceRequest, getAttendanceReport, registrarGrantExcuse } from '@/services/attendanceService';
+import { createMeeting, checkInMember, getAbsenceRequests, reviewAbsenceRequest, getAttendanceReport, registrarGrantExcuse, deleteMeeting } from '@/services/attendanceService';
 import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 interface Props {
@@ -19,6 +19,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const [attendanceReport, setAttendanceReport] = useState<any[]>([]);
   const [absenceRequests, setAbsenceRequests] = useState<any[]>([]);
   const [loadingReport, setLoadingReport] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [rosterSortOrder, setRosterSortOrder] = useState<'status_priority' | 'name' | 'checkin_time'>('status_priority');
 
   const getStatusPriority = (statusStr: string) => {
@@ -146,6 +147,27 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
       setError(err.message || 'Failed to schedule meeting.');
     } finally {
       setSubmittingMeeting(false);
+    }
+  }
+
+  async function handleDeleteMeeting(meetingId: string, meetingTitle: string) {
+    if (!confirm(`Are you sure you want to delete "${meetingTitle}"?\n\nThis will permanently remove this meeting and all associated check-ins from the database.`)) {
+      return;
+    }
+
+    setDeletingId(meetingId);
+    try {
+      await deleteMeeting(meetingId);
+      const remaining = meetings.filter(m => m.id !== meetingId);
+      setMeetings(remaining);
+      if (selectedMeeting?.id === meetingId) {
+        setSelectedMeeting(remaining[0] || null);
+      }
+      alert(`Meeting "${meetingTitle}" deleted successfully.`);
+    } catch (err: any) {
+      alert(`Failed to delete meeting: ${err.message}`);
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -436,8 +458,8 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
               <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
                 📆 <strong>Date:</strong> {formatDisplayDate(selectedMeeting.date)} | 🎯 <strong>Geofence:</strong> {selectedMeeting.radius_meters}m radius
               </p>
-              {/* QR Scan Quick Action */}
-              <div style={{ marginTop: 16 }}>
+              {/* QR Scan Quick Action & Delete Meeting */}
+              <div style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Link
                   href={`/registrar/meetings/${selectedMeeting.id}/scan`}
                   style={{
@@ -455,6 +477,26 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                 >
                   📱 Start QR Check-In Session
                 </Link>
+
+                <button
+                  onClick={() => handleDeleteMeeting(selectedMeeting.id, selectedMeeting.title)}
+                  disabled={deletingId === selectedMeeting.id}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '12px 20px',
+                    background: '#fee2e2',
+                    color: '#991b1b',
+                    border: '1px solid #fca5a5',
+                    borderRadius: 12,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: deletingId === selectedMeeting.id ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {deletingId === selectedMeeting.id ? 'Deleting…' : '🗑️ Delete Meeting'}
+                </button>
               </div>
             </div>
 

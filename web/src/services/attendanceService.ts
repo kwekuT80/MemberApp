@@ -43,6 +43,23 @@ export async function createMeeting(payload: {
   return data;
 }
 
+export async function deleteMeeting(meetingId: string) {
+  const supabase = await createClient();
+
+  // Clean up associated check-ins and absence requests
+  await supabase.from('attendance').delete().eq('meeting_id', meetingId);
+  await supabase.from('absence_requests').delete().eq('meeting_id', meetingId);
+
+  // Delete meeting
+  const { error } = await supabase
+    .from('meetings')
+    .delete()
+    .eq('id', meetingId);
+
+  if (error) throw error;
+  return true;
+}
+
 export async function checkInMember(payload: {
   meeting_id: string;
   member_id: string;
