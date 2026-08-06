@@ -104,7 +104,7 @@ export default function MeetingScanPage() {
           experimentalFeatures: {
             useBarCodeDetectorIfSupported: true,
           }
-        },
+        } as any,
         async (decodedText) => {
           // Stop scanning once we detect a QR code to avoid double reads
           if (scannerRef.current && scanning) {
