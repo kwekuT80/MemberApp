@@ -26,7 +26,7 @@ export default function BulkIDCardsPage() {
         // Default to selecting all active members
         const initialSelected = new Set<string>();
         data.forEach(m => {
-          if (m.status === 'Active') initialSelected.add(m.id);
+          if (m.status === 'Active' && m.id) initialSelected.add(m.id);
         });
         setSelectedIds(initialSelected);
       }
@@ -57,7 +57,9 @@ export default function BulkIDCardsPage() {
   const selectAllFiltered = () => {
     setSelectedIds(prev => {
       const next = new Set(prev);
-      filteredMembers.forEach(m => next.add(m.id));
+      filteredMembers.forEach(m => {
+        if (m.id) next.add(m.id);
+      });
       return next;
     });
   };
@@ -65,12 +67,14 @@ export default function BulkIDCardsPage() {
   const deselectAllFiltered = () => {
     setSelectedIds(prev => {
       const next = new Set(prev);
-      filteredMembers.forEach(m => next.delete(m.id));
+      filteredMembers.forEach(m => {
+        if (m.id) next.delete(m.id);
+      });
       return next;
     });
   };
 
-  const selectedCountInFilter = filteredMembers.filter(m => selectedIds.has(m.id)).length;
+  const selectedCountInFilter = filteredMembers.filter(m => m.id && selectedIds.has(m.id)).length;
 
   return (
     <RegistrarShell
@@ -283,12 +287,12 @@ export default function BulkIDCardsPage() {
               }}
             >
               {filteredMembers.map((member) => {
-                const isSelected = selectedIds.has(member.id);
+                const isSelected = member.id ? selectedIds.has(member.id) : false;
                 return (
                   <div
-                    key={member.id}
+                    key={member.id || Math.random()}
                     className={`id-card-item ${!isSelected ? 'not-selected-print' : ''}`}
-                    onClick={() => toggleSelectMember(member.id)}
+                    onClick={() => member.id && toggleSelectMember(member.id)}
                     style={{
                       background: isSelected ? '#132135' : '#0f172a',
                       opacity: isSelected ? 1 : 0.4,
