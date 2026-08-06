@@ -2,13 +2,13 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllPaginated } from '@/lib/supabase/pagination';
-import {
-  WelfareCategory,
-  WelfareContribution,
-  WelfareDisbursement,
-  WelfareAuditEntry,
+import { 
+  WelfareCategory, 
+  WelfareContribution, 
+  WelfareDisbursement, 
+  WelfareAuditEntry, 
   WelfareSummary,
-  WelfareContributionRate
+  WelfareContributionRate 
 } from '@/types/welfare';
 
 
@@ -498,11 +498,11 @@ export async function upsertWelfareContributionRate(payload: {
     entityId: String(payload.year),
     oldValues: existing
       ? {
-        year: existing.year,
-        monthly_rate: existing.monthly_rate,
-        annual_equivalent: existing.monthly_rate * 12,
-        notes: existing.notes,
-      }
+          year: existing.year,
+          monthly_rate: existing.monthly_rate,
+          annual_equivalent: existing.monthly_rate * 12,
+          notes: existing.notes,
+        }
       : null,
     newValues: {
       year: payload.year,
