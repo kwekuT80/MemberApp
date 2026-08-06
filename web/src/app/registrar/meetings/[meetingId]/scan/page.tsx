@@ -26,22 +26,34 @@ export default function MeetingScanPage() {
   const [checkingIn, setCheckingIn] = useState(false);
   const [meetingInfo, setMeetingInfo] = useState<{ title?: string; date?: string } | null>(null);
   const [membersWithStatus, setMembersWithStatus] = useState<Map<string, boolean>>(new Map());
+  const [commanderyMembers, setCommanderyMembers] = useState<any[]>([]);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const cameraIdRef = useRef<string>('');
 
   useEffect(() => {
-    // Load meeting info and track which members are already checked in
+    // Load meeting info, commandery members, and track check-ins
     async function loadData() {
       try {
-        const { data: meetings } = await supabase
+        const { data: meeting } = await supabase
           .from('meetings')
           .select('*')
           .eq('id', meetingId)
           .single();
 
-        if (meetings) {
-          setMeetingInfo({ title: meetings.title, date: meetings.date });
+        if (meeting) {
+          setMeetingInfo({ title: meeting.title, date: meeting.date });
+
+          if (meeting.commandery_id) {
+            const { data: members } = await supabase
+              .from('members')
+              .select('id, first_name, surname, title, status')
+              .eq('commandery_id', meeting.commandery_id)
+              .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+              .order('surname', { ascending: true });
+
+            if (members) setCommanderyMembers(members);
+          }
         }
 
         // Get all members checked in for this meeting
@@ -411,12 +423,31 @@ export default function MeetingScanPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Members would be loaded here - simplified for initial version */}
-                  <tr>
-                    <td colSpan={2} style={{ padding: 16, textAlign: 'center', color: '#64748b' }}>
-                      Member list requires commandery assignment
-                    </td>
-                  </tr>
+                  {commanderyMembers.length === 0 ? (
+                    <tr>
+                      <td colSpan={2} style={{ padding: 16, textAlign: 'center', color: '#64748b' }}>
+                        Loading commandery member roster...
+                      </td>
+                    </tr>
+                  ) : (
+                    commanderyMembers.map((m) => {
+                      const isCheckedIn = membersWithStatus.has(m.id);
+                      return (
+                        <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '10px 0', fontWeight: 600, color: 'var(--navy)' }}>
+                            {m.first_name} {m.surname}
+                          </td>
+                          <td style={{ textAlign: 'center', padding: '10px 0' }}>
+                            {isCheckedIn ? (
+                              <span style={{ color: '#10b981', fontWeight: 800, fontSize: 13 }}>✓ Checked In</span>
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontSize: 12 }}>Absent</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
