@@ -307,7 +307,7 @@ export default function WelfareDisbursementsPage() {
                   return (
                     <tr key={d.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F172A' }}>
-                        {isExp || d.member_id === 'f0000000-0000-0000-0000-000000000000' || !d.members || d.members.id === 'f0000000-0000-0000-0000-000000000000'
+                        {isExp || d.member_id === 'f0000000-0000-0000-0000-000000000000' || !d.members
                           ? '— Commandery Welfare Operational Account —'
                           : `${d.members.first_name} ${d.members.surname}`
                         }
