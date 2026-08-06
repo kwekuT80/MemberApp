@@ -336,10 +336,16 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             <h2>${selectedMeeting.title}</h2>
             <p>📅 <strong>Date:</strong> ${formatDisplayDate(selectedMeeting.date)} | 🎯 <strong>Geofence:</strong> ${selectedMeeting.radius_meters}m radius</p>
             
-            <div class="stats-container">
-              <div class="stat-badge" style="border-left: 3px solid #16a34a; color: #16a34a;">Present: ${presentCount} (${presentPct}%)</div>
-              <div class="stat-badge" style="border-left: 3px solid #0284c7; color: #0284c7;">Excused: ${excusedCount} (${excusedPct}%)</div>
-              <div class="stat-badge" style="border-left: 3px solid #dc2626; color: #dc2626;">Absent: ${absentCount} (${absentPct}%)</div>
+            <div class="stats-container" style="display: flex; gap: 15px; margin-top: 15px;">
+              <div class="stat-badge" style="border-left: 3px solid #16a34a; color: #16a34a;">
+                <strong>Attendance Data:</strong> ${presentCount} of ${totalRoster} Attended
+              </div>
+              <div class="stat-badge" style="border-left: 3px solid #0284c7; color: #0284c7;">
+                <strong>Attendance Assessment:</strong> ${presentPct}% Compliance
+              </div>
+              <div class="stat-badge" style="border-left: 3px solid #64748b; color: #475569;">
+                Excused: ${excusedCount} | Absent: ${absentCount}
+              </div>
             </div>
           </div>
 
@@ -540,14 +546,40 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             {/* Visual Attendance Insights Graph */}
             <div className="card" style={{ background: '#fff', display: 'grid', gap: 16 }}>
               <div>
-                <h3 style={{ margin: '0 0 4px', fontSize: 15, color: 'var(--navy)', fontWeight: 800 }}>📊 Meeting Attendance Analysis</h3>
-                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Visual breakdown of presence, excuses, and absences.</p>
+                <h3 style={{ margin: '0 0 4px', fontSize: 15, color: 'var(--navy)', fontWeight: 800 }}>📊 Meeting Attendance Breakdown</h3>
+                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Objective facts and calculated compliance metrics.</p>
               </div>
 
               {loadingReport ? (
                 <div style={{ padding: 12, textAlign: 'center', color: '#64748b', fontSize: 13 }}>⌛ Loading statistics...</div>
               ) : (
                 <div style={{ display: 'grid', gap: 16 }}>
+                  {/* Attendance Data vs Attendance Assessment Summary */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, background: '#f8fafc', padding: 12, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', color: '#64748b', marginBottom: 2 }}>
+                        📊 Attendance Data (Objective Facts)
+                      </div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>
+                        {presentCount} of {totalRoster} Attended
+                      </div>
+                      <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>
+                        {excusedCount} Excused • {absentCount} Absent
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', color: '#64748b', marginBottom: 2 }}>
+                        ⚡ Attendance Assessment (Calculated Metrics)
+                      </div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: presentPct >= 60 ? '#16a34a' : '#dc2626' }}>
+                        {presentPct}% Attendance Rate
+                      </div>
+                      <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>
+                        {presentPct >= 60 ? '✓ Meeting Threshold Met' : '⚠️ Below 60% Threshold'}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Grid of stats */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                     <div style={{ padding: '12px 6px', borderRadius: 10, background: 'rgba(34, 197, 94, 0.04)', border: '1px solid rgba(34, 197, 94, 0.08)', textAlign: 'center' }}>

@@ -130,8 +130,53 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
     }
   }
 
+  // Personal Attendance Data (Objective Facts) & Assessment (Calculated Metrics)
+  const totalMeetingsCount = meetings.length;
+  const attendedCount = attendance.filter(a => a.status === 'present' || a.verified).length;
+  const excusedCount = excuses.filter(e => e.status === 'approved').length;
+  const unexcusedCount = Math.max(0, totalMeetingsCount - attendedCount - excusedCount);
+
+  const attendanceAssessmentPct = totalMeetingsCount > 0 ? Math.round((attendedCount / totalMeetingsCount) * 100) : 0;
+  const complianceStanding = attendanceAssessmentPct >= 60 ? 'Good Standing' : 'Below Threshold';
+
   return (
     <div style={{ display: 'grid', gap: 24 }}>
+      {/* Attendance Summary: Data vs Assessment */}
+      <div className="card" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 20, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 20 }}>
+        {/* Attendance Data (Objective Facts) */}
+        <div style={{ borderRight: '1px solid #f1f5f9', paddingRight: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: 8 }}>
+            📊 Attendance Data (Objective Facts)
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', marginBottom: 6 }}>
+            {attendedCount} <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>of {totalMeetingsCount} meetings attended</span>
+          </div>
+          <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#475569', flexWrap: 'wrap' }}>
+            <span>✅ Present: <strong>{attendedCount}</strong></span>
+            <span>✉️ Excused: <strong>{excusedCount}</strong></span>
+            <span>❌ Absent: <strong>{unexcusedCount}</strong></span>
+          </div>
+        </div>
+
+        {/* Attendance Assessment (Calculated Metrics) */}
+        <div style={{ paddingLeft: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: 8 }}>
+            ⚡ Attendance Assessment (Calculated Metrics)
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
+            <span style={{ fontSize: 26, fontWeight: 900, color: attendanceAssessmentPct >= 60 ? '#16a34a' : '#dc2626' }}>
+              {attendanceAssessmentPct}%
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 800, padding: '3px 8px', borderRadius: 6, background: attendanceAssessmentPct >= 60 ? '#e6f4ea' : '#fdeaea', color: attendanceAssessmentPct >= 60 ? '#15803d' : '#991b1b' }}>
+              {complianceStanding}
+            </span>
+          </div>
+          <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+            Calculated attendance ratio across all scheduled meetings.
+          </p>
+        </div>
+      </div>
+
       {/* GPS Status Card */}
       <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, borderLeft: '4px solid var(--gold)', background: 'linear-gradient(135deg, #ffffff 0%, #fffdf9 100%)' }}>
         <div>

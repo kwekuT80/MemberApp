@@ -94,8 +94,11 @@ For rapid check-ins at meeting entry doors:
 5. **Browser Camera Permission Troubleshooting**:
    * If the browser displays a camera error card, tap the **🔒 Lock icon** in your address bar (`app.ksji500.org`) → **Site Settings** → set **Camera** to **Allow** → then tap **`🔄 Request Camera Permissions Again`**.
 
-### 5. Reviewing Excuses, Roster Sorting & Manual Overrides
+### 5. Reviewing Excuses, Roster Sorting & Attendance Metrics
 Once a meeting is scheduled, click on it from your **Recent Meetings** list to open the live management dashboard:
+* **📊 Attendance Data vs Assessment**:
+  * **Attendance Data (Objective Facts)**: Raw verified counts of presence, excuses, and unexcused absences (e.g. *Meetings Attended: 11 of 18*).
+  * **Attendance Assessment (Calculated Metrics)**: Evaluated compliance metrics and ratios (e.g. *Attendance: 61%*).
 * **✉️ Pending Absence Requests**:
   * Shows reasons submitted by members who cannot make it.
   * Click **Approve** to accept the excuse. They will instantly appear as **"Excused"** on reports.
