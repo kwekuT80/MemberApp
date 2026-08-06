@@ -130,9 +130,18 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
     }
   }
 
+  // Helper to check if an attendance record represents a verified check-in
+  const isAttendedRecord = (a: any) => {
+    if (!a) return false;
+    if (a.status && (a.status.toLowerCase().includes('absent') || a.status.toLowerCase().includes('excused'))) {
+      return false;
+    }
+    return true; // A valid attendance record row indicates attendance
+  };
+
   // Personal Attendance Data (Objective Facts) & Assessment (Calculated Metrics)
   const totalMeetingsCount = meetings.length;
-  const attendedCount = attendance.filter(a => a.status === 'present' || a.verified).length;
+  const attendedCount = meetings.filter(m => attendance.some(a => a.meeting_id === m.id && isAttendedRecord(a))).length;
   const excusedCount = excuses.filter(e => e.status === 'approved').length;
   const unexcusedCount = Math.max(0, totalMeetingsCount - attendedCount - excusedCount);
 
@@ -145,7 +154,7 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
   const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
 
   const meetings6m = meetings.filter(m => new Date(m.date) >= sixMonthsAgo && new Date(m.date) <= now);
-  const attended6m = meetings6m.filter(m => attendance.some(a => a.meeting_id === m.id && (a.status === 'present' || a.verified))).length;
+  const attended6m = meetings6m.filter(m => attendance.some(a => a.meeting_id === m.id && isAttendedRecord(a))).length;
   const excused6m = meetings6m.filter(m => excuses.some(e => e.meeting_id === m.id && e.status === 'approved')).length;
   const absent6m = Math.max(0, meetings6m.length - attended6m - excused6m);
   const rate6m = meetings6m.length > 0 ? Math.round((attended6m / meetings6m.length) * 100) : 0;
@@ -164,7 +173,7 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
   let tempMissed = 0;
 
   pastYearMeetings.forEach(m => {
-    const isAttended = attendance.some(a => a.meeting_id === m.id && (a.status === 'present' || a.verified));
+    const isAttended = attendance.some(a => a.meeting_id === m.id && isAttendedRecord(a));
     const isExcused = excuses.some(e => e.meeting_id === m.id && e.status === 'approved');
 
     if (isAttended) {

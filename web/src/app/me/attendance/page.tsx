@@ -34,7 +34,7 @@ export default async function MemberAttendancePage() {
   const supabase = await createClient();
   const { data: attendance } = await supabase
     .from('attendance')
-    .select('meeting_id, check_in_time, method')
+    .select('id, meeting_id, check_in_time, method, status, verified')
     .eq('member_id', member.id);
 
   // Fetch active absence/excuse requests
