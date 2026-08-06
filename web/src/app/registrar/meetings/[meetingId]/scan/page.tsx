@@ -103,11 +103,31 @@ export default function MeetingScanPage() {
       }
     }
     loadData();
+
+    // Clean up camera on unmount
+    return () => {
+      if (scannerRef.current) {
+        try {
+          scannerRef.current.stop().catch(() => {});
+        } catch (e) {}
+        scannerRef.current = null;
+      }
+    };
   }, [meetingId, supabase]);
 
   const startScanner = async () => {
     try {
       setCameraPermissionDenied(false);
+
+      // Clean up previous scanner instance to prevent stale state errors
+      if (scannerRef.current) {
+        try {
+          if (scannerRef.current.isScanning) {
+            await scannerRef.current.stop();
+          }
+        } catch (e) {}
+        scannerRef.current = null;
+      }
 
       // Request camera stream with fallback
       let stream: MediaStream | null = null;
@@ -124,12 +144,9 @@ export default function MeetingScanPage() {
         stream.getTracks().forEach(track => track.stop());
       }
 
-      setScanning(true);
-
       // Get available cameras and prefer rear camera
       const devices = await Html5Qrcode.getCameras();
       if (devices && devices.length > 0) {
-        // Prefer rear-facing camera
         const rearCamera = devices.find(d =>
           d.label.toLowerCase().includes('back') ||
           d.label.toLowerCase().includes('rear') ||
@@ -137,20 +154,11 @@ export default function MeetingScanPage() {
         );
         cameraIdRef.current = rearCamera?.id || devices[0].id;
       } else {
-        return;
+        throw new Error('No camera devices found.');
       }
 
-      if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode('qr-reader');
-      } else {
-        try {
-          scannerRef.current.resume();
-          setScanning(true);
-          return;
-        } catch (e) {
-          try { await scannerRef.current.stop(); } catch (err) {}
-        }
-      }
+      scannerRef.current = new Html5Qrcode('qr-reader');
+      setScanning(true);
 
       await scannerRef.current.start(
         cameraIdRef.current,
@@ -165,7 +173,6 @@ export default function MeetingScanPage() {
         (decodedText: string) => {
           const text = (decodedText || '').trim();
 
-          // Require a valid KSJI member QR format so camera blur/reflections are ignored until focused
           const isValidMemberFormat =
             text.includes('/verify/') ||
             text.startsWith('KSJI-') ||
@@ -173,23 +180,21 @@ export default function MeetingScanPage() {
             (text.length >= 8 && /^[a-zA-Z0-9_-]+$/.test(text));
 
           if (!isValidMemberFormat) {
-            return; // Ignore un-focused camera blur or non-member barcodes
+            return;
           }
 
-          // Instantly pause scanning feed without waiting for hardware stop promise
           if (scannerRef.current) {
             try {
               scannerRef.current.pause(true);
             } catch (e) {
-              scannerRef.current.stop().catch(() => {});
+              try { scannerRef.current.stop(); } catch (err) {}
             }
             setScanning(false);
           }
 
-          // Fire API check-in immediately without hardware blocking delay
           handleQrCode(decodedText);
         },
-        () => {} // Ignore scan failures while camera focuses
+        () => {}
       );
     } catch (err: any) {
       console.error('Failed to start camera:', err);
