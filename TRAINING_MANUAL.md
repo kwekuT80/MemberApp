@@ -82,17 +82,39 @@ To schedule a meeting and manage geofencing:
    * **Radius**: Define how close members must be to check in (default is 100 meters).
 3. Click **Schedule Meeting**. The geofence is now active!
 
-### 4. Reviewing Excuses & Manual Overrides
+### 4. High-Speed QR Code Scanning Station
+For rapid check-ins at meeting entry doors:
+1. On the **Meetings** page (`/registrar/meetings`), select the meeting and tap **`📱 Start QR Check-In Session`** (or navigate to `/registrar/meetings/[meetingId]/scan`).
+2. Tap **`📷 START LIVE SCAN`** to launch the camera feed.
+3. **Framing**: Center the member's digital QR code inside the 250px reticle. The scanner will automatically ignore ambient blur and lock onto valid member credentials.
+4. **Continuous Check-In**:
+   * Upon scanning a member, a gold/green confirmation banner will display their name and check-in timestamp.
+   * The camera feed automatically pauses for 2 seconds and resumes automatically for the next member.
+   * You can also tap **`📷 Scan Next`** at any moment to launch the camera immediately.
+5. **Browser Camera Permission Troubleshooting**:
+   * If the browser displays a camera error card, tap the **🔒 Lock icon** in your address bar (`app.ksji500.org`) → **Site Settings** → set **Camera** to **Allow** → then tap **`🔄 Request Camera Permissions Again`**.
+
+### 5. Reviewing Excuses, Roster Sorting & Manual Overrides
 Once a meeting is scheduled, click on it from your **Recent Meetings** list to open the live management dashboard:
 * **✉️ Pending Absence Requests**:
   * Shows reasons submitted by members who cannot make it.
   * Click **Approve** to accept the excuse. They will instantly appear as **"Excused"** on reports.
   * Click **Decline** if the reason is insufficient. They will remain marked as "Absent."
 * **📊 Live Attendance Roster**:
-  * Displays a real-time list of all active members in your Commandery along with their check-in state: `PRESENT (GPS)`, `PRESENT (MANUAL)`, `EXCUSED`, or `ABSENT`.
-  * **🔗 Manual Check-In Override**: For brothers who do not have smart devices or experience coordinate drift, click the manual check-in button. This overrides the geofence and marks them as Present instantly.
+  * Displays a real-time list of all active members in your Commandery along with their check-in state: `PRESENT (GPS)`, `PRESENT (QR SCAN)`, `PRESENT (MANUAL)`, `EXCUSED`, or `ABSENT`.
+  * **Customizable Roster Sorting**:
+    Use the **Sort** dropdown to re-order the roster instantly:
+    * **`⚡ Attended → Excused → Absent`** *(Default)*: Surfaces members who attended first, followed by excused members, and unexcused absentees at the bottom.
+    * **`🔤 Member Name (A-Z)`**: Alphabetical ordering by surname and first name.
+    * **`🕒 Check-in Time (Recent First)`**: Chronological order of check-ins.
+  * **Export Alignment**: Clicking **`📥 Export CSV`** or **`🖨️ Print PDF`** exports the report in your exact selected sorting order.
 
-### 5. Reporting & Auditing
+### 6. Meeting Deletion & Audit Protection Policy
+To clean up test/fictitious meetings without corrupting official records:
+* **Test / Fictitious Meetings**: Include *"Test"*, *"Sample"*, *"Trial"*, *"Demo"*, or *"Fictitious"* in the meeting title (e.g. *Test GPS Meeting*). You can test GPS geofencing or QR scanning freely, and when finished, click **`🗑️ Delete Meeting`** and type `DELETE` to purge the test meeting and its test check-in data.
+* **Official Meetings Protection**: Any official meeting containing active check-in data or absence records is protected by the database. Attempting to delete an official record will display a security protection notice preserving audit integrity.
+
+### 7. Reporting & Auditing
 Use the **Reporting Hub** (`/registrar/reports`) to filter and audit records:
 * Generate official **Registry Roster Sheets** matching military standard formats.
 * Export print-ready PDFs for Commandery meetings.

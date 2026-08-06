@@ -77,6 +77,11 @@ The following features were implemented and verified in the latest sprint:
 | **D1a** — Financial Audit Trail UI | Visual interface for viewing audit logs of financial changes including who modified what and when. | `web/src/app/registrar/financials/audit/page.tsx`, `AuditLogClient.tsx`, migration in `audit_trail_schema.sql` |
 | **G2** — Attendance Reports | Post-meeting attendance summary generation with filtering by date, meeting, or member status. | `web/src/app/registrar/attendance/reports/page.tsx` |
 | **C5** — Communications Hub & History | Centralized interface for sending communications and tracking message history across all channels. | `web/src/app/registrar/communications/page.tsx`, `history/page.tsx` |
+| **G3** — High-Speed Mobile QR Code Scanner | Live mobile camera QR scanner with 250px reticle framing, non-blocking stream pause/resume, automatic 2s auto-resume timer, instant `📷 Scan Next` action button, and browser permission helper overlay. | `web/src/app/registrar/meetings/[meetingId]/scan/page.tsx`, `web/src/app/api/attendance/scan/route.ts` |
+| **G4** — Customizable Roster Priority Sorting | Live attendance roster ordering by status priority (`⚡ Attended → Excused → Absent`), name (A-Z), or recent check-in time, with automatic inheritance in CSV and PDF print exports. | `web/src/app/registrar/meetings/RegistrarMeetingsClient.tsx`, `web/src/services/attendanceService.ts` |
+| **G5** — Ghanaian Locale Date Standardization | Universal date display formatting (`DD-MM-YYYY` / `DD-MMM-YYYY`) preventing day shifts across all ledgers, audit logs, meeting schedules, and PDF exports. | `web/src/lib/utils/ksji-logic.ts`, financial & attendance views |
+| **G6** — Mobile Responsive AppShell & Navigation Drawer | Collapsible `☰ Menu` navigation drawer, full-width scanner viewport (`#qr-reader video`), and touch-scrolling data tables for mobile phone web browsers. | `web/src/components/layout/AppShell.tsx`, `web/src/app/globals.css` |
+| **G7** — Meeting Deletion & Audit Protection Policy | Database cleanup for test/fictitious meetings while enforcing strict audit protection rules preventing deletion of official meetings containing check-in records. | `web/src/services/attendanceService.ts`, `RegistrarMeetingsClient.tsx`, `scan/page.tsx` |
 
 ---
 
