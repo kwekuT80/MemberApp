@@ -25,9 +25,9 @@ Once logged in, use the navigation tabs at the top of the screen to complete you
 * **Overview**: View your digital membership status and a summary of your profile.
 * **Edit Main Record**: Update your core bio, marital status, and spouse's name.
 * **Family & Children**: Register children (names and birthdates) for family record-keeping.
-* **Degree**: Record your current degree status (1st, 2nd, 3rd, or 4th Degree) along with exemplification dates and certificate numbers.
-* **Positions**: Select positions held within the Commandery structure (e.g. *President*, *Commander*, *Sentinel*).
-* **Military & Uniforms**: Record your uniformed ranks, height, chest measurements, and uniform status.
+* **Degree**: Record your exemplification degree (1st, 2nd, 3rd, or 4th Degree) along with date of exemplification and exemplification location.
+* **Positions**: Select positions held within the Commandery structure (e.g. *President*, *Commander*, *Financial Secretary*).
+* **Military**: Record member military rank, commission details, uniform blessed date, and first uniform use date.
 * **Emergency**: Keep emergency contacts and contact numbers updated for safety.
 
 ### 3. Geofenced Meeting Check-In
