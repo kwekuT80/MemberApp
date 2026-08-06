@@ -29,6 +29,7 @@ export default function MeetingScanPage() {
   const [membersWithStatus, setMembersWithStatus] = useState<Map<string, boolean>>(new Map());
   const [deleting, setDeleting] = useState(false);
   const [commanderyMembers, setCommanderyMembers] = useState<any[]>([]);
+  const [cameraPermissionDenied, setCameraPermissionDenied] = useState(false);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const cameraIdRef = useRef<string>('');
@@ -106,12 +107,22 @@ export default function MeetingScanPage() {
 
   const startScanner = async () => {
     try {
-      // Request camera permissions first
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false,
-      });
-      stream.getTracks().forEach(track => track.stop());
+      setCameraPermissionDenied(false);
+
+      // Request camera stream with fallback
+      let stream: MediaStream | null = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      } catch (e1) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        } catch (e2) {
+          throw e2;
+        }
+      }
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
 
       setScanning(true);
 
@@ -180,9 +191,10 @@ export default function MeetingScanPage() {
         },
         () => {} // Ignore scan failures while camera focuses
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to start camera:', err);
-      alert('Unable to access camera. Please grant permissions or try photo upload fallback.');
+      setCameraPermissionDenied(true);
+      setScanning(false);
     }
   };
 
@@ -318,42 +330,87 @@ export default function MeetingScanPage() {
             />
 
             {!scanning ? (
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-                <button
-                  onClick={startScanner}
-                  disabled={checkingIn}
-                  style={{
-                    background: '#C9A84C',
-                    color: '#0A1628',
-                    border: 'none',
-                    padding: '16px 36px',
-                    borderRadius: 100,
-                    fontWeight: 800,
-                    fontSize: 16,
-                    cursor: checkingIn ? 'not-allowed' : 'pointer',
-                    opacity: checkingIn ? 0.5 : 1,
-                  }}
-                >
-                  📷 START LIVE SCAN
-                </button>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%' }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <button
+                    onClick={startScanner}
+                    disabled={checkingIn}
+                    style={{
+                      background: '#C9A84C',
+                      color: '#0A1628',
+                      border: 'none',
+                      padding: '16px 36px',
+                      borderRadius: 100,
+                      fontWeight: 800,
+                      fontSize: 16,
+                      cursor: checkingIn ? 'not-allowed' : 'pointer',
+                      opacity: checkingIn ? 0.5 : 1,
+                    }}
+                  >
+                    📷 START LIVE SCAN
+                  </button>
 
-                <button
-                  onClick={() => document.getElementById('qr-file-input')?.click()}
-                  disabled={checkingIn}
-                  style={{
-                    background: '#1E293B',
-                    color: '#F8FAFC',
-                    border: '1px solid #475569',
-                    padding: '16px 28px',
-                    borderRadius: 100,
-                    fontWeight: 700,
-                    fontSize: 16,
-                    cursor: checkingIn ? 'not-allowed' : 'pointer',
-                    opacity: checkingIn ? 0.5 : 1,
-                  }}
-                >
-                  🖼️ UPLOAD QR PHOTO
-                </button>
+                  <button
+                    onClick={() => document.getElementById('qr-file-input')?.click()}
+                    disabled={checkingIn}
+                    style={{
+                      background: '#1E293B',
+                      color: '#F8FAFC',
+                      border: '1px solid #475569',
+                      padding: '16px 28px',
+                      borderRadius: 100,
+                      fontWeight: 700,
+                      fontSize: 16,
+                      cursor: checkingIn ? 'not-allowed' : 'pointer',
+                      opacity: checkingIn ? 0.5 : 1,
+                    }}
+                  >
+                    🖼️ UPLOAD QR PHOTO
+                  </button>
+                </div>
+
+                {cameraPermissionDenied && (
+                  <div style={{
+                    background: '#fff1f2',
+                    border: '1.5px solid #fecdd3',
+                    borderRadius: 14,
+                    padding: 16,
+                    marginTop: 8,
+                    textAlign: 'left',
+                    maxWidth: 420,
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontSize: 18 }}>🔒</span>
+                      <strong style={{ color: '#9f1239', fontSize: 14 }}>Camera Access Blocked in Browser</strong>
+                    </div>
+                    <p style={{ margin: '0 0 12px 0', fontSize: 12, color: '#be123c', lineHeight: 1.5 }}>
+                      Your mobile browser requires explicit permission to use the camera:
+                    </p>
+                    <ol style={{ margin: '0 0 12px 0', paddingLeft: 20, fontSize: 12, color: '#be123c', lineHeight: 1.5 }}>
+                      <li>Tap the <strong>🔒 Lock icon</strong> (or site tune icon) in your browser&apos;s address bar (`app.ksji500.org`).</li>
+                      <li>Select <strong>Permissions / Site Settings</strong> → set <strong>Camera</strong> to <strong>Allow</strong>.</li>
+                      <li>Tap <strong>Retry Camera Access</strong> below.</li>
+                    </ol>
+                    <button
+                      onClick={startScanner}
+                      style={{
+                        width: '100%',
+                        background: '#be123c',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 16px',
+                        borderRadius: 8,
+                        fontSize: 13,
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🔄 Request Camera Permissions Again
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button
