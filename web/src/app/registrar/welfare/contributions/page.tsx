@@ -59,12 +59,15 @@ export default function WelfareContributionsPage() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, keepModalOpen = false) => {
     e.preventDefault();
     if (!memberId || !amount) {
       alert('Please select a member and enter an amount');
       return;
     }
+
+    const selectedMember = members.find(m => m.id === memberId);
+    const memberName = selectedMember ? `${selectedMember.title || 'Bro.'} ${selectedMember.first_name} ${selectedMember.surname}` : 'Member';
 
     setSubmitting(true);
     try {
@@ -79,12 +82,17 @@ export default function WelfareContributionsPage() {
         notes: notes || undefined,
       });
 
-      alert('Welfare contribution recorded successfully!');
-      setShowModal(false);
-      // Reset form
+      // Reset member specific fields
       setMemberId('');
       setReferenceNo('');
       setNotes('');
+
+      if (keepModalOpen) {
+        alert(`🎉 Contribution of GH₵ ${parseFloat(amount).toFixed(2)} recorded for ${memberName}! Select next member.`);
+      } else {
+        alert(`Welfare contribution recorded for ${memberName}!`);
+        setShowModal(false);
+      }
       loadData();
     } catch (err: any) {
       console.error('Record contribution error:', err);
@@ -307,12 +315,15 @@ export default function WelfareContributionsPage() {
                   />
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
-                  <button type="button" onClick={() => setShowModal(false)} style={{ background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '10px 20px', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
+                  <button type="button" onClick={() => setShowModal(false)} style={{ background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '10px 16px', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>
                     Cancel
                   </button>
-                  <button type="submit" disabled={submitting} style={{ background: '#10B981', color: 'white', border: 'none', padding: '10px 24px', borderRadius: 8, fontWeight: 800, cursor: 'pointer' }}>
-                    {submitting ? 'Saving...' : 'Save Contribution'}
+                  <button type="button" onClick={e => handleSubmit(e, false)} disabled={submitting} style={{ background: '#0F172A', color: 'white', border: 'none', padding: '10px 18px', borderRadius: 8, fontWeight: 800, cursor: 'pointer' }}>
+                    {submitting ? 'Saving...' : '💾 Save & Close'}
+                  </button>
+                  <button type="button" onClick={e => handleSubmit(e, true)} disabled={submitting} style={{ background: '#10B981', color: 'white', border: 'none', padding: '10px 18px', borderRadius: 8, fontWeight: 800, cursor: 'pointer' }}>
+                    {submitting ? 'Saving...' : '➕ Save & Add Another'}
                   </button>
                 </div>
               </form>

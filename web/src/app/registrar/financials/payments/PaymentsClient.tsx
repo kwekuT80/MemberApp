@@ -61,7 +61,7 @@ export default function PaymentsClient({
     return name.includes(paySearch.toLowerCase());
   });
 
-  async function handleRecord() {
+  async function handleRecord(keepOpen = false) {
     if (!selectedMemberId || !amount || parseFloat(amount) <= 0) {
       showToast('Please select a member and enter a valid amount.', 'err');
       return;
@@ -82,9 +82,20 @@ export default function PaymentsClient({
 
     setSubmitting(false);
     if (error) { showToast('Error: ' + error.message, 'err'); return; }
+
+    const savedName = data?.members ? `${data.members.title || 'Bro.'} ${data.members.first_name} ${data.members.surname}` : 'Member';
+    const savedAmt = Number(amount).toFixed(2);
+
     setPayments(prev => [data as Payment, ...prev]);
+    setSelectedMemberId('');
+    setSearch('');
     setAmount('');
-    showToast('Payment recorded successfully!', 'ok');
+
+    if (keepOpen) {
+      showToast(`🎉 Recorded GH₵ ${savedAmt} for ${savedName}! Search next member below.`, 'ok');
+    } else {
+      showToast(`🎉 Payment recorded for ${savedName}!`, 'ok');
+    }
   }
 
   async function handleDelete(id: string) {
@@ -335,10 +346,24 @@ export default function PaymentsClient({
               onChange={e => setPaymentDate(e.target.value)} />
           </div>
 
-          <button className="btn-primary" onClick={handleRecord} disabled={submitting}
-            style={{ width: '100%', fontSize: 15, marginTop: 4 }}>
-            {submitting ? 'Recording...' : '💾 Record Payment'}
-          </button>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
+            <button 
+              className="btn-primary" 
+              onClick={() => handleRecord(false)} 
+              disabled={submitting}
+              style={{ fontSize: 13, padding: '10px 14px', background: 'var(--navy)' }}
+            >
+              {submitting ? 'Saving...' : '💾 Save Payment'}
+            </button>
+            <button 
+              className="btn-primary" 
+              onClick={() => handleRecord(true)} 
+              disabled={submitting}
+              style={{ fontSize: 13, padding: '10px 14px', background: '#16a34a' }}
+            >
+              {submitting ? 'Saving...' : '➕ Save & Add Another'}
+            </button>
+          </div>
         </div>
 
         {/* Recent Payments */}
