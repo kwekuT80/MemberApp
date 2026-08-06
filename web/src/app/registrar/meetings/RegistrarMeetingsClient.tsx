@@ -19,6 +19,28 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const [attendanceReport, setAttendanceReport] = useState<any[]>([]);
   const [absenceRequests, setAbsenceRequests] = useState<any[]>([]);
   const [loadingReport, setLoadingReport] = useState(false);
+  const [rosterSortOrder, setRosterSortOrder] = useState<'status_priority' | 'name' | 'checkin_time'>('status_priority');
+
+  const getStatusPriority = (statusStr: string) => {
+    if (statusStr.startsWith('Present')) return 1; // 1. Attended (Present)
+    if (statusStr === 'Excused' || statusStr === 'Excuse Pending') return 2; // 2. Permission (Excused)
+    return 3; // 3. Absent without permission
+  };
+
+  const sortedAttendanceReport = [...attendanceReport].sort((a: any, b: any) => {
+    if (rosterSortOrder === 'status_priority') {
+      const pA = getStatusPriority(a.status || '');
+      const pB = getStatusPriority(b.status || '');
+      if (pA !== pB) return pA - pB;
+      return `${a.surname || ''} ${a.first_name || ''}`.localeCompare(`${b.surname || ''} ${b.first_name || ''}`);
+    }
+    if (rosterSortOrder === 'checkin_time') {
+      const tA = a.checkInTime ? new Date(a.checkInTime).getTime() : 0;
+      const tB = b.checkInTime ? new Date(b.checkInTime).getTime() : 0;
+      return tB - tA;
+    }
+    return `${a.surname || ''} ${a.first_name || ''}`.localeCompare(`${b.surname || ''} ${b.first_name || ''}`);
+  });
 
   // Stats for the selected meeting
   const totalRoster = attendanceReport.length;
@@ -201,7 +223,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
       'Check-in Time'
     ];
 
-    const rows = attendanceReport.map(m => [
+    const rows = sortedAttendanceReport.map(m => [
       selectedMeeting.title || '',
       new Date(selectedMeeting.date).toLocaleString(),
       `${m.first_name} ${m.surname}`,
@@ -236,7 +258,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
       return;
     }
 
-    const rowsHtml = attendanceReport.map(m => {
+    const rowsHtml = sortedAttendanceReport.map(m => {
       const checkInStr = m.checkInTime ? new Date(m.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
       const statusColor = m.status.startsWith('Present') ? '#16a34a' : m.status === 'Excused' ? '#0284c7' : '#dc2626';
 
@@ -565,7 +587,29 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                   <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Active members in St. Margaret-Mary registry check-in status.</p>
                 </div>
                 {attendanceReport.length > 0 && (
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--navy)' }}>Sort:</span>
+                      <select
+                        value={rosterSortOrder}
+                        onChange={(e) => setRosterSortOrder(e.target.value as any)}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: 6,
+                          border: '1px solid #cbd5e1',
+                          background: '#fff',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: 'var(--navy)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="status_priority">⚡ Attended → Excused → Absent</option>
+                        <option value="name">🔤 Member Name (A-Z)</option>
+                        <option value="checkin_time">🕒 Check-in Time (Recent First)</option>
+                      </select>
+                    </div>
+
                     <button 
                       onClick={downloadAttendanceCSV}
                       style={{ background: '#f8fafc', color: 'var(--navy)', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
@@ -596,7 +640,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                   </div>
 
                   {/* Table Body */}
-                  {attendanceReport.map((m) => {
+                  {sortedAttendanceReport.map((m) => {
                     const isPresent = m.status.startsWith('Present');
                     const isExcused = m.status === 'Excused';
                     const isPending = m.status === 'Excuse Pending';
