@@ -427,20 +427,48 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                     cursor: 'pointer',
                     border: selectedMeeting?.id === m.id ? '1.5px solid var(--gold)' : '1px solid #e2e8f0',
                     background: selectedMeeting?.id === m.id ? 'rgba(212, 175, 55, 0.04)' : '#fff',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: 8
                   }}
                 >
-                  <strong style={{ fontSize: 13, color: 'var(--navy)', display: 'block' }}>{m.title}</strong>
-                  <span style={{ fontSize: 11, color: '#64748b', display: 'block', marginTop: 4 }}>
-                    📅 {formatDisplayDate(m.date)}
-                  </span>
-                  <Link
-                    href={`/registrar/meetings/${m.id}/scan`}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ fontSize: 12, color: 'var(--gold)', fontWeight: 700, display: 'block', marginTop: 8 }}
+                  <div>
+                    <strong style={{ fontSize: 13, color: 'var(--navy)', display: 'block' }}>{m.title}</strong>
+                    <span style={{ fontSize: 11, color: '#64748b', display: 'block', marginTop: 4 }}>
+                      📅 {formatDisplayDate(m.date)}
+                    </span>
+                    <Link
+                      href={`/registrar/meetings/${m.id}/scan`}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ fontSize: 12, color: 'var(--gold)', fontWeight: 700, display: 'block', marginTop: 8 }}
+                    >
+                      📱 Scan QR Check-In →
+                    </Link>
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteMeeting(m.id, m.title);
+                    }}
+                    disabled={deletingId === m.id}
+                    title="Delete meeting"
+                    style={{
+                      background: '#fee2e2',
+                      color: '#991b1b',
+                      border: '1px solid #fca5a5',
+                      padding: '6px 10px',
+                      borderRadius: 6,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: deletingId === m.id ? 'not-allowed' : 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
                   >
-                    📱 Scan QR Check-In →
-                  </Link>
+                    {deletingId === m.id ? 'Deleting…' : '🗑️ Delete'}
+                  </button>
                 </div>
               ))}
             </div>

@@ -26,10 +26,28 @@ export default function MeetingScanPage() {
   const [checkingIn, setCheckingIn] = useState(false);
   const [meetingInfo, setMeetingInfo] = useState<{ title?: string; date?: string } | null>(null);
   const [membersWithStatus, setMembersWithStatus] = useState<Map<string, boolean>>(new Map());
+  const [deleting, setDeleting] = useState(false);
   const [commanderyMembers, setCommanderyMembers] = useState<any[]>([]);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const cameraIdRef = useRef<string>('');
+
+  const handleDeleteMeeting = async () => {
+    if (!confirm(`Are you sure you want to delete "${meetingInfo?.title || 'this meeting'}"?\n\nThis will permanently remove this meeting and all check-in data.`)) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      await supabase.from('attendance').delete().eq('meeting_id', meetingId);
+      await supabase.from('absence_requests').delete().eq('meeting_id', meetingId);
+      await supabase.from('meetings').delete().eq('id', meetingId);
+      alert('Meeting deleted successfully.');
+      router.push('/registrar/meetings');
+    } catch (err: any) {
+      alert(`Failed to delete meeting: ${err.message}`);
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     // Load meeting info, commandery members, and track check-ins
@@ -453,15 +471,27 @@ export default function MeetingScanPage() {
             </div>
           </details>
 
-          <button
-            onClick={() => router.push('/registrar/meetings')}
-            style={{
-              width: '100%', marginTop: 24, background: '#C9A84C', color: '#0A1628',
-              border: 'none', padding: '14px', borderRadius: 12, fontWeight: 700, cursor: 'pointer'
-            }}
-          >
-            Back to Meetings
-          </button>
+          <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+            <button
+              onClick={() => router.push('/registrar/meetings')}
+              style={{
+                flex: 1, background: '#C9A84C', color: '#0A1628',
+                border: 'none', padding: '14px', borderRadius: 12, fontWeight: 700, cursor: 'pointer'
+              }}
+            >
+              Back to Meetings
+            </button>
+            <button
+              onClick={handleDeleteMeeting}
+              disabled={deleting}
+              style={{
+                background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5',
+                padding: '14px 20px', borderRadius: 12, fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {deleting ? 'Deleting...' : '🗑️ Delete Meeting'}
+            </button>
+          </div>
         </div>
       </div>
 
