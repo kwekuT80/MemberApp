@@ -184,8 +184,16 @@ export default function MeetingScanPage() {
         if (!result.alreadyCheckedIn) {
           setMembersWithStatus(prev => new Map(prev).set(result.member.id, true));
         }
+
+        setCheckingIn(false);
+
+        // Automatically resume camera scanner after 2 seconds for continuous check-ins
+        setTimeout(() => {
+          startScanner();
+        }, 2000);
       } else {
         alert(result.error || 'Failed to check in member');
+        setCheckingIn(false);
         // Restart scanner after error
         setTimeout(startScanner, 2000);
       }
@@ -340,6 +348,25 @@ export default function MeetingScanPage() {
                     )}
                   </div>
                 </div>
+                {!scanning && (
+                  <button
+                    onClick={startScanner}
+                    style={{
+                      background: '#0F172A',
+                      color: 'white',
+                      border: 'none',
+                      padding: '10px 18px',
+                      borderRadius: 100,
+                      fontSize: 13,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                    }}
+                  >
+                    📷 Scan Next
+                  </button>
+                )}
               </div>
             </div>
           )}
