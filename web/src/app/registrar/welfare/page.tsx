@@ -14,9 +14,13 @@ export default async function WelfareDashboardPage() {
   let summary = {
     totalContributions: 0,
     totalDisbursements: 0,
+    totalWelfareBenefits: 0,
+    totalWelfareExpenses: 0,
     netFundBalance: 0,
     contributionsThisYear: 0,
     disbursementsThisYear: 0,
+    benefitsThisYear: 0,
+    expensesThisYear: 0,
     contributingMembersCount: 0,
     inactiveMembersCount: 0,
     totalMembersCount: 0,
