@@ -115,7 +115,7 @@ export async function POST(request: Request) {
       .insert({
         meeting_id: meetingId,
         member_id: memberId,
-        method: 'qr_scan',
+        method: 'qr',
         verified: true,
         verified_by: user?.id || null,
         commandery_id: commanderyId,
