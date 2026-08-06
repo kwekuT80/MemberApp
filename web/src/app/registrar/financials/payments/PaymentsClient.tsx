@@ -88,18 +88,34 @@ export default function PaymentsClient({
     return name.includes(paySearch.toLowerCase());
   });
 
+  const [paymentCategory, setPaymentCategory] = useState<'assessment' | 'voluntary_relief' | 'special_appeal'>('assessment');
+  const [activeTab, setActiveTab] = useState<'all' | 'assessment' | 'voluntary'>('all');
+
+  const isVoluntaryPayment = (p: Payment) => {
+    const m = (p.month || '').toLowerCase();
+    return m.includes('voluntary') || m.includes('appeal') || m.includes('relief') || m.includes('donation');
+  };
+
   async function handleRecord(keepOpen = false) {
     if (!selectedMemberId || !amount || parseFloat(amount) <= 0) {
       showToast('Please select a member and enter a valid amount.', 'err');
       return;
     }
     setSubmitting(true);
+
+    let recordedMonth = selectedMonth;
+    if (paymentCategory === 'voluntary_relief') {
+      recordedMonth = 'Voluntary Relief Donation';
+    } else if (paymentCategory === 'special_appeal') {
+      recordedMonth = 'Special Emergency Appeal';
+    }
+
     const { data, error } = await supabase
       .from('financial_payments')
       .insert({
         member_id: selectedMemberId,
         assessment_year: year,
-        month: selectedMonth,
+        month: recordedMonth,
         amount: parseFloat(amount),
         payment_date: new Date(paymentDate).toISOString(),
         recorded_by: currentUserId,
@@ -119,7 +135,7 @@ export default function PaymentsClient({
     setAmount('');
 
     if (keepOpen) {
-      showToast(`🎉 Recorded GH₵ ${savedAmt} for ${savedName}! Search next member below.`, 'ok');
+      showToast(`🎉 Recorded GH₵ ${savedAmt} (${paymentCategory === 'assessment' ? 'Dues' : 'Voluntary Relief'}) for ${savedName}!`, 'ok');
     } else {
       showToast(`🎉 Payment recorded for ${savedName}!`, 'ok');
     }
@@ -355,13 +371,30 @@ export default function PaymentsClient({
             </div>
           )}
 
-          {/* Month */}
+          {/* Payment Classification */}
           <div className="input-group">
-            <label className="label">Month</label>
-            <select className="input select" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}>
-              {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+            <label className="label">Payment Type</label>
+            <select 
+              className="input select" 
+              value={paymentCategory} 
+              onChange={e => setPaymentCategory(e.target.value as any)}
+              style={{ fontWeight: 700 }}
+            >
+              <option value="assessment">💳 Assessment Dues Payment</option>
+              <option value="voluntary_relief">❤️ Voluntary Member Relief Donation</option>
+              <option value="special_appeal">📢 Special Emergency Appeal</option>
             </select>
           </div>
+
+          {/* Month / Purpose */}
+          {paymentCategory === 'assessment' && (
+            <div className="input-group">
+              <label className="label">Assessment Month</label>
+              <select className="input select" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}>
+                {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+          )}
 
           {/* Amount */}
           <div className="input-group">
