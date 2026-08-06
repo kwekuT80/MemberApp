@@ -101,9 +101,9 @@ export default function IDCardPage() {
             <div style={{ width: 100, textAlign: 'center' }}>
               <div style={{ background: 'white', padding: 8, borderRadius: 8, width: 85, height: 85, margin: '0 auto' }}>
                 <img 
-                  src={`https://quickchart.io/qr?text=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/verify/' + member.id : 'https://ksji-members.vercel.app/verify/' + member.id)}&size=150&margin=1`} 
+                  src={`https://quickchart.io/qr?text=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/verify/' + member.id : 'https://ksji-members.vercel.app/verify/' + member.id)}&size=300&margin=1&ecLevel=Q`} 
                   alt="QR Code" 
-                  style={{ width: '100%', height: '100%' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 />
               </div>
               <div style={{ color: '#8892B0', fontSize: 8, fontWeight: 800, marginTop: 8 }}>SCAN TO VERIFY</div>

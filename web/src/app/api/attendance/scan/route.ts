@@ -8,13 +8,25 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { qrText, meetingId } = body;
 
-    // Parse QR code format: supports URLs (/verify/[id]), raw UUIDs, and KSJI short IDs
+    // Parse QR code format: supports URLs (/verify/[id]), JSON payloads, raw UUIDs, and KSJI short IDs
     let extractedId: string | null = null;
-    const str = (qrText || '').trim();
+    let str = (qrText || '').trim();
 
-    const verifyMatch = str.match(/\/verify\/([0-9a-fA-F-]{8,36})/i);
+    // Check if payload is serialized JSON (e.g. {"id": "..."})
+    if (str.startsWith('{') && str.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(str);
+        if (parsed && parsed.id) {
+          str = String(parsed.id).trim();
+        }
+      } catch (e) {
+        // Fall back to regex parsing if JSON parse fails
+      }
+    }
+
+    const verifyMatch = str.match(/\/verify\/([a-zA-Z0-9_-]{8,64})/i);
     const uuidMatch = str.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
-    const ksjiMatch = str.match(/KSJI-([0-9a-fA-F]{8})/i);
+    const ksjiMatch = str.match(/KSJI-([a-zA-Z0-9_-]{8,64})/i);
 
     if (verifyMatch) {
       extractedId = verifyMatch[1];
@@ -22,7 +34,7 @@ export async function POST(request: Request) {
       extractedId = uuidMatch[0];
     } else if (ksjiMatch) {
       extractedId = ksjiMatch[1];
-    } else if (/^[0-9a-fA-F-]{8,36}$/.test(str)) {
+    } else if (/^[a-zA-Z0-9_-]{8,64}$/.test(str)) {
       extractedId = str;
     }
 

@@ -54,9 +54,8 @@ export default function MyIDCardPage() {
     );
   }
 
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-    JSON.stringify({ id: member.id, name: `${member.first_name} ${member.surname}`, number: member.member_number || 'N/A' })
-  )}`;
+  const verifyTarget = typeof window !== 'undefined' ? `${window.location.origin}/verify/${member.id}` : `https://ksji-members.vercel.app/verify/${member.id}`;
+  const qrCodeUrl = `https://quickchart.io/qr?text=${encodeURIComponent(verifyTarget)}&size=300&margin=1&ecLevel=Q`;
 
   return (
     <MemberShell title="Digital ID Card" subtitle="Your official digital membership card and QR credential.">

@@ -86,15 +86,31 @@ export default function MeetingScanPage() {
         return;
       }
 
-      scannerRef.current = new Html5Qrcode('qr-reader');
+      if (!scannerRef.current) {
+        scannerRef.current = new Html5Qrcode('qr-reader');
+      }
 
       await scannerRef.current.start(
         cameraIdRef.current,
-        { fps: 10, qrbox: { width: 250, height: 250 } },
+        { 
+          fps: 15, 
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            return {
+              width: Math.max(200, Math.floor(minEdge * 0.75)),
+              height: Math.max(200, Math.floor(minEdge * 0.75)),
+            };
+          },
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true,
+          }
+        },
         async (decodedText) => {
           // Stop scanning once we detect a QR code to avoid double reads
           if (scannerRef.current && scanning) {
-            await scannerRef.current.stop();
+            try {
+              await scannerRef.current.stop();
+            } catch (e) {}
             setScanning(false);
           }
 
@@ -105,14 +121,31 @@ export default function MeetingScanPage() {
       );
     } catch (err) {
       console.error('Failed to start camera:', err);
-      alert('Unable to access camera. Please grant permissions.');
+      alert('Unable to access camera. Please grant permissions or try photo upload fallback.');
     }
   };
 
   const stopScanner = async () => {
     if (scannerRef.current && scanning) {
-      await scannerRef.current.stop();
+      try {
+        await scannerRef.current.stop();
+      } catch (e) {}
       setScanning(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setCheckingIn(true);
+      const html5QrCode = new Html5Qrcode('qr-reader');
+      const decodedText = await html5QrCode.scanFile(file, true);
+      await handleQrCode(decodedText);
+    } catch (err) {
+      console.error('File scan error:', err);
+      alert('Could not decode QR code from the selected photo. Please ensure the QR image is crisp and well-lit.');
+      setCheckingIn(false);
     }
   };
 
@@ -199,26 +232,54 @@ export default function MeetingScanPage() {
             )}
           </div>
 
-          {/* Scan Button */}
-          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          {/* Scan Buttons */}
+          <div style={{ textAlign: 'center', marginBottom: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <input
+              type="file"
+              accept="image/*"
+              id="qr-file-input"
+              style={{ display: 'none' }}
+              onChange={handleFileUpload}
+            />
+
             {!scanning ? (
-              <button
-                onClick={startScanner}
-                disabled={checkingIn}
-                style={{
-                  background: '#C9A84C',
-                  color: '#0A1628',
-                  border: 'none',
-                  padding: '16px 48px',
-                  borderRadius: 100,
-                  fontWeight: 800,
-                  fontSize: 18,
-                  cursor: checkingIn ? 'not-allowed' : 'pointer',
-                  opacity: checkingIn ? 0.5 : 1,
-                }}
-              >
-                START SCANNING
-              </button>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button
+                  onClick={startScanner}
+                  disabled={checkingIn}
+                  style={{
+                    background: '#C9A84C',
+                    color: '#0A1628',
+                    border: 'none',
+                    padding: '16px 36px',
+                    borderRadius: 100,
+                    fontWeight: 800,
+                    fontSize: 16,
+                    cursor: checkingIn ? 'not-allowed' : 'pointer',
+                    opacity: checkingIn ? 0.5 : 1,
+                  }}
+                >
+                  📷 START LIVE SCAN
+                </button>
+
+                <button
+                  onClick={() => document.getElementById('qr-file-input')?.click()}
+                  disabled={checkingIn}
+                  style={{
+                    background: '#1E293B',
+                    color: '#F8FAFC',
+                    border: '1px solid #475569',
+                    padding: '16px 28px',
+                    borderRadius: 100,
+                    fontWeight: 700,
+                    fontSize: 16,
+                    cursor: checkingIn ? 'not-allowed' : 'pointer',
+                    opacity: checkingIn ? 0.5 : 1,
+                  }}
+                >
+                  🖼️ UPLOAD QR PHOTO
+                </button>
+              </div>
             ) : (
               <button
                 onClick={stopScanner}
