@@ -139,6 +139,49 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
   const attendanceAssessmentPct = totalMeetingsCount > 0 ? Math.round((attendedCount / totalMeetingsCount) * 100) : 0;
   const complianceStanding = attendanceAssessmentPct >= 60 ? 'Good Standing' : 'Below Threshold';
 
+  // 6-Month Rolling Window (Past 180 Days)
+  const now = new Date();
+  const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+  const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+
+  const meetings6m = meetings.filter(m => new Date(m.date) >= sixMonthsAgo && new Date(m.date) <= now);
+  const attended6m = meetings6m.filter(m => attendance.some(a => a.meeting_id === m.id && (a.status === 'present' || a.verified))).length;
+  const excused6m = meetings6m.filter(m => excuses.some(e => e.meeting_id === m.id && e.status === 'approved')).length;
+  const absent6m = Math.max(0, meetings6m.length - attended6m - excused6m);
+  const rate6m = meetings6m.length > 0 ? Math.round((attended6m / meetings6m.length) * 100) : 0;
+
+  // Past 12-Month Consecutive Streaks (Attended vs Unexcused Missed)
+  const pastYearMeetings = meetings
+    .filter(m => new Date(m.date) >= oneYearAgo && new Date(m.date) <= now)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  let currentAttendedStreak = 0;
+  let currentMissedStreak = 0;
+  let maxAttendedStreakInYear = 0;
+  let maxMissedStreakInYear = 0;
+
+  let tempAttended = 0;
+  let tempMissed = 0;
+
+  pastYearMeetings.forEach(m => {
+    const isAttended = attendance.some(a => a.meeting_id === m.id && (a.status === 'present' || a.verified));
+    const isExcused = excuses.some(e => e.meeting_id === m.id && e.status === 'approved');
+
+    if (isAttended) {
+      tempAttended++;
+      tempMissed = 0;
+    } else if (!isExcused) {
+      tempMissed++;
+      tempAttended = 0;
+    }
+
+    maxAttendedStreakInYear = Math.max(maxAttendedStreakInYear, tempAttended);
+    maxMissedStreakInYear = Math.max(maxMissedStreakInYear, tempMissed);
+  });
+
+  currentAttendedStreak = tempAttended;
+  currentMissedStreak = tempMissed;
+
   return (
     <div style={{ display: 'grid', gap: 24 }}>
       {/* Attendance Summary: Data vs Assessment */}
@@ -176,6 +219,71 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
           </p>
         </div>
       </div>
+
+      {/* 6-Month Rolling Record & Consecutive Streak Analysis */}
+      <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 20 }}>
+        {/* 6-Month Rolling Summary */}
+        <div style={{ borderRight: '1px solid #f1f5f9', paddingRight: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--navy)', marginBottom: 8 }}>
+            🗓️ 6-Month Rolling Record (Past 180 Days)
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
+            <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)' }}>
+              {attended6m} of {meetings6m.length}
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: rate6m >= 60 ? '#16a34a' : '#dc2626' }}>
+              ({rate6m}% 6m Rate)
+            </span>
+          </div>
+          <div style={{ fontSize: 12, color: '#475569', display: 'flex', gap: 12 }}>
+            <span>✅ Present: <strong>{attended6m}</strong></span>
+            <span>✉️ Excused: <strong>{excused6m}</strong></span>
+            <span>❌ Absent: <strong>{absent6m}</strong></span>
+          </div>
+        </div>
+
+        {/* 12-Month Consecutive Streak Analysis */}
+        <div style={{ paddingLeft: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--navy)', marginBottom: 8 }}>
+            🔥 Consecutive Streak Performance (Past 12m)
+          </div>
+          {currentMissedStreak > 0 ? (
+            <div style={{ color: '#991b1b', background: '#fef2f2', border: '1px solid #fecdd3', padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
+              ⚠️ {currentMissedStreak} Consecutive Meeting(s) Missed Without Excuse
+            </div>
+          ) : currentAttendedStreak > 0 ? (
+            <div style={{ color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
+              🔥 {currentAttendedStreak} Consecutive Meeting(s) Attended!
+            </div>
+          ) : (
+            <div style={{ color: '#475569', fontSize: 12, marginBottom: 6 }}>
+              No active attendance streak recorded yet.
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: '#64748b' }}>
+            Best Streak in 12m: <strong>{maxAttendedStreakInYear} attended</strong> • Most Missed in 12m: <strong>{maxMissedStreakInYear} missed</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* Motivational Standing & Action Guidance ("Buck Up" Alert) */}
+      {(currentMissedStreak >= 2 || attendanceAssessmentPct < 60) && (
+        <div style={{ background: '#fff1f2', border: '1.5px solid #fecdd3', borderRadius: 14, padding: 18, display: 'flex', gap: 14, alignItems: 'center' }}>
+          <div style={{ fontSize: 28 }}>📢</div>
+          <div>
+            <strong style={{ color: '#9f1239', fontSize: 14, display: 'block', marginBottom: 2 }}>
+              Attention Needed: Restore Your Attendance Standing
+            </strong>
+            <p style={{ margin: 0, fontSize: 12, color: '#be123c', lineHeight: 1.5 }}>
+              {currentMissedStreak >= 2 ? (
+                <>You have missed <strong>{currentMissedStreak} consecutive meetings</strong> without an approved excuse. Missing 3 consecutive meetings puts your active standing at risk. Please submit an excuse if you have a valid reason or contact your Commandery Secretary.</>
+              ) : (
+                <>Your calculated attendance rate is currently <strong>{attendanceAssessmentPct}%</strong> (below the 60% standing requirement). Attending upcoming meetings will help restore your active service standing.</>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* GPS Status Card */}
       <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, borderLeft: '4px solid var(--gold)', background: 'linear-gradient(135deg, #ffffff 0%, #fffdf9 100%)' }}>

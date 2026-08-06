@@ -39,7 +39,14 @@ When attending a scheduled meeting:
    * If you are within the specified radius (e.g., 100 meters) of the meeting coordinates, the system will show: `✅ Within Range!`. The **"Check In"** button will unlock. Click it to verify your presence.
    * If you are outside the boundary, the check-in button remains locked, and it displays: `⚠️ Too Far: Move closer to check in`.
 
-### 4. Submitting Excuse Requests (Absences)
+### 4. Personal Attendance Report & Standing Metrics
+In **Attendance** (`/me/attendance`), your personal report displays:
+* **📊 Attendance Data vs Assessment**: View total meetings attended vs total scheduled, along with your calculated annual attendance compliance percentage.
+* **🗓️ 6-Month Rolling Record**: Evaluates your performance over the past 180 days (meetings held, attended, excused, and 6-month attendance rate).
+* **🔥 Consecutive Streak Performance**: Tracks consecutive meetings attended (e.g. *🔥 4 Consecutive Attended*) or unexcused meetings missed in the past 12 months (e.g. *⚠️ 2 Consecutive Missed*), along with your best 12-month streak.
+* **📢 Motivational Standing Alerts**: If your attendance falls below 60% or if you miss 2+ consecutive meetings without an excuse, the system alerts you with motivational guidance advising how to restore your active standing before administrative review.
+
+### 5. Submitting Excuse Requests (Absences)
 If you cannot attend an upcoming meeting:
 1. In the **Attendance** tab, locate the upcoming meeting.
 2. Click **Submit Excuse**.
