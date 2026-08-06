@@ -62,7 +62,7 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
   const disbursements = await fetchAllPaginated((from, to) =>
     supabase
       .from('welfare_disbursements')
-      .select('amount, disbursement_date')
+      .select('amount, disbursement_date, category_name')
       .range(from, to)
   );
 
