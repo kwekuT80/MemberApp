@@ -43,20 +43,36 @@ export async function createMeeting(payload: {
   return data;
 }
 
-export async function deleteMeeting(meetingId: string) {
+export async function deleteMeeting(meetingId: string, isTestMeeting: boolean = false) {
   const supabase = await createClient();
 
-  // Protect official meetings: check if meeting has any recorded attendance or absence requests
-  const [{ count: attendanceCount }, { count: absenceCount }] = await Promise.all([
-    supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('meeting_id', meetingId),
-    supabase.from('absence_requests').select('*', { count: 'exact', head: true }).eq('meeting_id', meetingId)
-  ]);
+  // Fetch meeting details to verify if it is a test meeting or official record
+  const { data: meeting } = await supabase
+    .from('meetings')
+    .select('title')
+    .eq('id', meetingId)
+    .single();
 
-  if ((attendanceCount || 0) > 0 || (absenceCount || 0) > 0) {
-    throw new Error(`Protected Official Record: This meeting contains ${attendanceCount || 0} recorded check-ins and ${absenceCount || 0} absence records. Official meetings with active data cannot be deleted.`);
+  const title = (meeting?.title || '').toLowerCase();
+  const isRecognizedTest = isTestMeeting || title.includes('test') || title.includes('sample') || title.includes('trial') || title.includes('demo') || title.includes('fictitious') || title.includes('practice');
+
+  if (!isRecognizedTest) {
+    // Protect official meetings with active data
+    const [{ count: attendanceCount }, { count: absenceCount }] = await Promise.all([
+      supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('meeting_id', meetingId),
+      supabase.from('absence_requests').select('*', { count: 'exact', head: true }).eq('meeting_id', meetingId)
+    ]);
+
+    if ((attendanceCount || 0) > 0 || (absenceCount || 0) > 0) {
+      throw new Error(`Protected Official Record: "${meeting?.title}" is an official record containing ${attendanceCount || 0} check-ins. If this was a test, include "Test" or "Sample" in the meeting title to delete it.`);
+    }
   }
 
-  // Delete empty/draft test meeting
+  // Purge associated test check-ins and absence requests
+  await supabase.from('attendance').delete().eq('meeting_id', meetingId);
+  await supabase.from('absence_requests').delete().eq('meeting_id', meetingId);
+
+  // Delete meeting
   const { error } = await supabase
     .from('meetings')
     .delete()

@@ -151,11 +151,13 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   }
 
   async function handleDeleteMeeting(meetingId: string, meetingTitle: string) {
+    const isTestTitle = /test|sample|trial|demo|fictitious|practice/i.test(meetingTitle);
+
     const confirmation = prompt(
-      `⚠️ DELETION PROTECTION POLICY:\n\n` +
-      `• Official meetings with recorded check-ins or absence records are protected and CANNOT be deleted.\n` +
-      `• Only empty test/draft meetings can be removed.\n\n` +
-      `To confirm deletion of empty test meeting "${meetingTitle}", type DELETE below:`
+      `⚠️ MEETING DELETION:\n\n` +
+      `• Official meetings with active check-ins are protected to preserve audit logs.\n` +
+      `• Test/fictitious meetings (e.g. testing GPS, geofencing, QR code) can be cleaned up anytime.\n\n` +
+      `To delete meeting "${meetingTitle}", type DELETE below:`
     );
 
     if (!confirmation || confirmation.trim().toUpperCase() !== 'DELETE') {
@@ -164,13 +166,13 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
 
     setDeletingId(meetingId);
     try {
-      await deleteMeeting(meetingId);
+      await deleteMeeting(meetingId, isTestTitle);
       const remaining = meetings.filter(m => m.id !== meetingId);
       setMeetings(remaining);
       if (selectedMeeting?.id === meetingId) {
         setSelectedMeeting(remaining[0] || null);
       }
-      alert(`Test meeting "${meetingTitle}" deleted successfully.`);
+      alert(`Meeting "${meetingTitle}" deleted successfully.`);
     } catch (err: any) {
       alert(`🛡️ ${err.message}`);
     } finally {
