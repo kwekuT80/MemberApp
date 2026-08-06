@@ -49,6 +49,33 @@ export default function PaymentsClient({
     setTimeout(() => setToast(null), 3500);
   }
 
+  // Pre-fill amount based on configured annual assessment rates for that year & member type
+  async function updateDefaultAmountForMember(mId: string, targetYear: number) {
+    if (!mId) return;
+    const targetMember = members.find(m => m.id === mId);
+    if (!targetMember) return;
+
+    try {
+      const { data: rateObj } = await supabase
+        .from('annual_assessment_rates')
+        .select('*')
+        .eq('year', targetYear)
+        .maybeSingle();
+
+      const mType = (targetMember.membership_type || '').toLowerCase();
+      let annualRate = 1050; // Fallback
+      if (rateObj) {
+        if (mType.includes('social')) annualRate = Number(rateObj.social_rate) || 750;
+        else if (mType.includes('student')) annualRate = Number(rateObj.student_rate) || 500;
+        else annualRate = Number(rateObj.regular_rate) || 1050;
+      }
+      const monthlyVal = (annualRate / 12).toFixed(2);
+      setAmount(monthlyVal);
+    } catch (e) {
+      console.error('Failed to pre-fill member monthly assessment rate:', e);
+    }
+  }
+
   // Member dropdown filtered by search
   const filteredMembers = members.filter(m => {
     const name = `${m.first_name} ${m.surname}`.toLowerCase();
@@ -292,7 +319,11 @@ export default function PaymentsClient({
                 <div style={{ padding: 16, color: 'var(--grey)', fontSize: 13 }}>No members found</div>
               ) : filteredMembers.slice(0, 20).map(m => (
                 <div key={m.id}
-                  onClick={() => { setSelectedMemberId(m.id); setSearch(`${m.title || 'Bro.'} ${m.first_name} ${m.surname}`); }}
+                  onClick={() => { 
+                    setSelectedMemberId(m.id); 
+                    setSearch(`${m.title || 'Bro.'} ${m.first_name} ${m.surname}`); 
+                    updateDefaultAmountForMember(m.id, year);
+                  }}
                   style={{
                     padding: '10px 14px', cursor: 'pointer', fontSize: 14,
                     borderBottom: '1px solid var(--bg)', display: 'flex',

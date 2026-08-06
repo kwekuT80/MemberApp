@@ -5,14 +5,16 @@ import RegistrarShell from '@/components/layout/RegistrarShell';
 import { 
   getWelfareContributions, 
   recordWelfareContribution, 
-  deleteWelfareContribution 
+  deleteWelfareContribution,
+  getAllWelfareContributionRates
 } from '@/services/welfareService';
 import { createClient } from '@/lib/supabase/client';
 import { formatDisplayDate } from '@/lib/utils/ksji-logic';
-import { WelfareContribution } from '@/types/welfare';
+import { WelfareContribution, WelfareContributionRate } from '@/types/welfare';
 
 export default function WelfareContributionsPage() {
   const [contributions, setContributions] = useState<WelfareContribution[]>([]);
+  const [rates, setRates] = useState<WelfareContributionRate[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,17 +37,30 @@ export default function WelfareContributionsPage() {
     loadData();
   }, []);
 
+  // Update default amount whenever periodYear or rates change
+  useEffect(() => {
+    const yr = parseInt(periodYear, 10);
+    const configuredRate = rates.find(r => r.year === yr);
+    if (configuredRate && configuredRate.monthly_rate) {
+      setAmount(configuredRate.monthly_rate.toString());
+    } else {
+      setAmount('25');
+    }
+  }, [periodYear, rates]);
+
   async function loadData() {
     setLoading(true);
     try {
-      const [list, { data: memberList }] = await Promise.all([
+      const [list, ratesList, { data: memberList }] = await Promise.all([
         getWelfareContributions(),
+        getAllWelfareContributionRates(),
         supabase
           .from('members')
           .select('id, first_name, surname, title, status, is_deceased')
           .order('surname'),
       ]);
       setContributions(list);
+      setRates(ratesList || []);
       const filtered = (memberList || []).filter(m => {
         if (m.is_deceased) return false;
         const s = String(m.status || '').trim().toLowerCase();
