@@ -119,6 +119,7 @@ export async function POST(request: Request) {
         verified: true,
         verified_by: user?.id || null,
         commandery_id: commanderyId,
+        override_note: 'QR Scan',
         check_in_time: new Date().toISOString(),
       })
       .select()
@@ -136,6 +137,7 @@ export async function POST(request: Request) {
           verified: true,
           verified_by: user?.id || null,
           commandery_id: commanderyId,
+          override_note: 'QR Scan',
           check_in_time: new Date().toISOString(),
         })
         .select()

@@ -213,7 +213,8 @@ export async function getAttendanceReport(meetingId: string, commanderyId: strin
 
     let status = 'Absent';
     if (checkIn) {
-      status = checkIn.method === 'gps' ? 'Present (GPS)' : checkIn.method === 'qr' || checkIn.method === 'qr_scan' ? 'Present (QR Scan)' : 'Present (Manual)';
+      const isQr = checkIn.method === 'qr' || checkIn.method === 'qr_scan' || (checkIn.override_note && String(checkIn.override_note).includes('QR'));
+      status = checkIn.method === 'gps' ? 'Present (GPS)' : isQr ? 'Present (QR Scan)' : 'Present (Manual)';
     } else if (absence && absence.status === 'approved') {
       status = 'Excused';
     } else if (absence && absence.status === 'pending') {
