@@ -90,7 +90,10 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
         meeting_id: meeting.id,
         member_id: member.id,
         method: 'gps',
-        commandery_id: member.commandery_id
+        commandery_id: member.commandery_id,
+        gps_latitude: coords.latitude,
+        gps_longitude: coords.longitude,
+        verified: true,
       });
 
       setAttendance(prev => [...prev, result]);
