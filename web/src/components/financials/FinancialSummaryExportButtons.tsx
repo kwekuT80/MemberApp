@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 interface SummaryMember {
   id: string;
@@ -121,7 +122,7 @@ export default function FinancialSummaryExportButtons({
         <body onload="window.print(); window.onafterprint = function() { window.close(); }">
           <div class="report-header">
             <h1>Knight St. John International</h1>
-            <p>Member Financial Summaries — Generated ${new Date().toLocaleDateString()}</p>
+            <p>Member Financial Summaries — Generated ${formatDisplayDate(new Date().toISOString())}</p>
           </div>
           
           <div class="summary-cards">

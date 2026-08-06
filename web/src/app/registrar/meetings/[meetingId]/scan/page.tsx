@@ -94,7 +94,7 @@ export default function MeetingScanPage() {
         cameraIdRef.current,
         { 
           fps: 15, 
-          qrbox: (viewfinderWidth, viewfinderHeight) => {
+          qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
             return {
               width: Math.max(200, Math.floor(minEdge * 0.75)),

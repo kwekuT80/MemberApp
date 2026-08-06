@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createMeeting, checkInMember, getAbsenceRequests, reviewAbsenceRequest, getAttendanceReport, registrarGrantExcuse } from '@/services/attendanceService';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 interface Props {
   profile: any;
@@ -21,9 +22,9 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
 
   // Stats for the selected meeting
   const totalRoster = attendanceReport.length;
-  const presentCount = attendanceReport.filter(m => m.status.startsWith('Present')).length;
-  const excusedCount = attendanceReport.filter(m => m.status === 'Excused').length;
-  const absentCount = attendanceReport.filter(m => m.status === 'Absent').length;
+  const presentCount = attendanceReport.filter((m: any) => m.status.startsWith('Present')).length;
+  const excusedCount = attendanceReport.filter((m: any) => m.status === 'Excused').length;
+  const absentCount = attendanceReport.filter((m: any) => m.status === 'Absent').length;
   
   const presentPct = totalRoster > 0 ? Math.round((presentCount / totalRoster) * 100) : 0;
   const excusedPct = totalRoster > 0 ? Math.round((excusedCount / totalRoster) * 100) : 0;
@@ -280,7 +281,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
           
           <div class="meeting-info">
             <h2>${selectedMeeting.title}</h2>
-            <p>📅 <strong>Date:</strong> ${new Date(selectedMeeting.date).toLocaleString()} | 🎯 <strong>Geofence:</strong> ${selectedMeeting.radius_meters}m radius</p>
+            <p>📅 <strong>Date:</strong> ${formatDisplayDate(selectedMeeting.date)} | 🎯 <strong>Geofence:</strong> ${selectedMeeting.radius_meters}m radius</p>
             
             <div class="stats-container">
               <div class="stat-badge" style="border-left: 3px solid #16a34a; color: #16a34a;">Present: ${presentCount} (${presentPct}%)</div>
@@ -387,7 +388,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                 >
                   <strong style={{ fontSize: 13, color: 'var(--navy)', display: 'block' }}>{m.title}</strong>
                   <span style={{ fontSize: 11, color: '#64748b', display: 'block', marginTop: 4 }}>
-                    📅 {new Date(m.date).toLocaleDateString()}
+                    📅 {formatDisplayDate(m.date)}
                   </span>
                   <Link
                     href={`/registrar/meetings/${m.id}/scan`}
@@ -411,7 +412,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             <div className="card" style={{ borderLeft: '4px solid var(--gold)', background: 'linear-gradient(135deg, #ffffff 0%, #fffdf9 100%)' }}>
               <h2 style={{ margin: '0 0 4px', color: 'var(--navy)', fontWeight: 800 }}>{selectedMeeting.title}</h2>
               <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
-                📆 <strong>Date:</strong> {new Date(selectedMeeting.date).toLocaleString()} | 🎯 <strong>Geofence:</strong> {selectedMeeting.radius_meters}m radius
+                📆 <strong>Date:</strong> {formatDisplayDate(selectedMeeting.date)} | 🎯 <strong>Geofence:</strong> {selectedMeeting.radius_meters}m radius
               </p>
               {/* QR Scan Quick Action */}
               <div style={{ marginTop: 16 }}>

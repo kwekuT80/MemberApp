@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -150,7 +151,7 @@ export default function PaymentsClient({
     }
 
     const rowsHtml = filteredPayments.map(p => {
-      const dateStr = new Date(p.payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      const dateStr = formatDisplayDate(p.payment_date);
       return `
         <tr>
           <td><strong>${p.members?.title || 'Bro.'} ${p.members?.first_name} ${p.members?.surname}</strong></td>
@@ -221,9 +222,9 @@ export default function PaymentsClient({
   const fmt = (n: number) =>
     `GH¢ ${parseFloat(n as any).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
-  const totalCollected = payments.reduce((s, p) => s + parseFloat(p.amount as any), 0);
+  const totalCollected = payments.reduce((s: number, p: Payment) => s + parseFloat(p.amount as any), 0);
 
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+  const years = Array.from({ length: 5 }, (_, i: number) => new Date().getFullYear() - 2 + i);
 
   const selectedMember = members.find(m => m.id === selectedMemberId);
 
@@ -387,7 +388,7 @@ export default function PaymentsClient({
                       {p.members?.title || 'Bro.'} {p.members?.first_name} {p.members?.surname}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--grey)', marginTop: 2 }}>
-                      {p.month} — {new Date(p.payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {p.month} — {formatDisplayDate(p.payment_date)}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

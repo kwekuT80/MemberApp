@@ -59,26 +59,39 @@ function pad(n: number): string {
  * Parses ISO dates manually to avoid UTC timezone shifts that would shift the displayed day.
  * Accepts YYYY-MM-DD (ISO) or DD/MM/YYYY; always outputs DD-MM-YYYY.
  */
-export function formatDisplayDate(dateStr: string | null | undefined): string {
+export function formatDisplayDate(
+  dateStr: string | null | undefined,
+  options?: { useMonthName?: boolean }
+): string {
   if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') return '—';
 
+  // Extract date part if ISO timestamp (e.g., 2024-05-15T14:30:00Z)
+  const cleanStr = dateStr.split('T')[0].trim();
+
   // Parse ISO YYYY-MM-DD manually to avoid UTC timezone shifts
-  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const isoMatch = cleanStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch;
     const m = Number(month);
-    return `${pad(Number(day))}-${getMonth(m - 1)}-${year}`;
+    const formattedMonth = options?.useMonthName ? getMonth(m - 1) : pad(m);
+    return `${pad(Number(day))}-${formattedMonth}-${year}`;
   }
 
-  const parts = dateStr.split('/');
-  if (parts.length === 3 && /^\d{2}$/.test(parts[0]) && /\d{2}/.test(parts[1])) {
-    return `${pad(Number(parts[0]))}-${getMonth(Number(parts[1]) - 1)}-${parts[2]}`;
+  const parts = cleanStr.split('/');
+  if (parts.length === 3 && /^\d{1,2}$/.test(parts[0]) && /^\d{1,2}$/.test(parts[1])) {
+    const day = pad(Number(parts[0]));
+    const m = Number(parts[1]);
+    const formattedMonth = options?.useMonthName ? getMonth(m - 1) : pad(m);
+    return `${day}-${formattedMonth}-${parts[2]}`;
   }
 
-  // Fallback: DD/MM/YYYY
+  // Fallback: DD-MM-YYYY
   const d = new Date(dateStr);
   if (!isNaN(d.getTime())) {
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+    const day = pad(d.getDate());
+    const month = pad(d.getMonth() + 1);
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
   }
 
   return '—';

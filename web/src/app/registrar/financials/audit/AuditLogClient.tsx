@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getAuditLog, type AuditAction } from '@/services/auditService';
 import { createClient } from '@/lib/supabase/client';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 const ACTION_LABELS: Record<AuditAction, string> = {
   payment_amount_change: 'Payment Amount Changed',
@@ -262,7 +263,7 @@ export default function AuditLogClient() {
               {entries.map((entry: any) => (
                 <tr key={entry.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                    {new Date(entry.changed_at).toLocaleString()}
+                    {formatDisplayDate(entry.changed_at)} {new Date(entry.changed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${ACTION_COLORS[entry.action as AuditAction] || 'bg-gray-100 text-gray-800'}`}>

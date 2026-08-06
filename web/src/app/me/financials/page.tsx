@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import MemberShell from '@/components/layout/MemberShell';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 export default function FinancialsPage() {
   const supabase = createClient();
@@ -135,7 +136,7 @@ export default function FinancialsPage() {
                 <tr key={pay.id}>
                   <td style={{ fontWeight: 700 }}>{pay.month}</td>
                   <td style={{ color: '#166534', fontWeight: 800 }}>{currencyFormat(parseFloat(pay.amount))}</td>
-                  <td style={{ textAlign: 'right', color: 'var(--grey)' }}>{new Date(pay.payment_date).toLocaleDateString()}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--grey)' }}>{formatDisplayDate(pay.payment_date)}</td>
                 </tr>
               ))}
             </tbody>

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { checkInMember, submitAbsenceRequest } from '@/services/attendanceService';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 interface Props {
   member: any;
@@ -193,14 +194,7 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
                 isWithinRadius = distanceMeters <= meeting.radius_meters;
               }
 
-              const formattedDate = new Date(meeting.date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              });
+              const formattedDate = `${formatDisplayDate(meeting.date)} at ${new Date(meeting.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
               return (
                 <div key={meeting.id} className="card" style={{ display: 'grid', gap: 16, border: '1px solid #f1f5f9' }}>

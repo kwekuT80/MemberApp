@@ -2,6 +2,7 @@ import React from 'react';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { requireRegistrar } from '@/lib/auth/requireRegistrar';
 import { getAllCommunications } from '@/services/communicationService';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 // Helper to get status badge color class
 function getStatusBadge(status: string): string {
@@ -173,9 +174,7 @@ export default async function CommunicationHistoryPage({
               {communications.map((comm: any) => (
                 <tr key={comm.id}>
                   <td>
-                    {new Date(
-                      comm.created_at
-                    ).toLocaleDateString()}
+                    {formatDisplayDate(comm.created_at)}
                   </td>
 
                   <td>

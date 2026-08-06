@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 interface PrintViewProps {
   buckets: Array<{ key: string; label: string; members: any[]; totalOutstanding: number }>;
@@ -161,7 +162,7 @@ export default function DelinquencyPrintView({ buckets, totalOutstanding, curren
     <div class="header">
       <h1>KSJI Delinquency Aging Report</h1>
       <p>${currentYear} Assessment Year</p>
-      <p>Generated on ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      <p>Generated on ${formatDisplayDate(new Date().toISOString())}</p>
     </div>
 
     <div class="summary-cards">
