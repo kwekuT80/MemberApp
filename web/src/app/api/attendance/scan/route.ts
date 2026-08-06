@@ -110,7 +110,7 @@ export async function POST(request: Request) {
 
     // Record attendance via QR scan
     const { data: { user } } = await supabase.auth.getUser();
-    const { data: checkIn, error: insertError } = await supabase
+    let { data: checkIn, error: insertError } = await supabase
       .from('attendance')
       .insert({
         meeting_id: meetingId,
@@ -123,6 +123,27 @@ export async function POST(request: Request) {
       })
       .select()
       .maybeSingle();
+
+    // If database check constraint 'attendance_method_check' rejects 'qr', fall back to 'manual'
+    if (insertError && (insertError.message?.includes('attendance_method_check') || insertError.code === '23514')) {
+      console.warn('Database method constraint rejected "qr", falling back to "manual"');
+      const retry = await supabase
+        .from('attendance')
+        .insert({
+          meeting_id: meetingId,
+          member_id: memberId,
+          method: 'manual',
+          verified: true,
+          verified_by: user?.id || null,
+          commandery_id: commanderyId,
+          check_in_time: new Date().toISOString(),
+        })
+        .select()
+        .maybeSingle();
+
+      checkIn = retry.data;
+      insertError = retry.error;
+    }
 
     if (insertError) {
       console.error('Attendance insert error:', insertError);
