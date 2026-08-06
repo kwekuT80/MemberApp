@@ -151,7 +151,14 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   }
 
   async function handleDeleteMeeting(meetingId: string, meetingTitle: string) {
-    if (!confirm(`Are you sure you want to delete "${meetingTitle}"?\n\nThis will permanently remove this meeting and all associated check-ins from the database.`)) {
+    const confirmation = prompt(
+      `⚠️ DELETION PROTECTION POLICY:\n\n` +
+      `• Official meetings with recorded check-ins or absence records are protected and CANNOT be deleted.\n` +
+      `• Only empty test/draft meetings can be removed.\n\n` +
+      `To confirm deletion of empty test meeting "${meetingTitle}", type DELETE below:`
+    );
+
+    if (!confirmation || confirmation.trim().toUpperCase() !== 'DELETE') {
       return;
     }
 
@@ -163,9 +170,9 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
       if (selectedMeeting?.id === meetingId) {
         setSelectedMeeting(remaining[0] || null);
       }
-      alert(`Meeting "${meetingTitle}" deleted successfully.`);
+      alert(`Test meeting "${meetingTitle}" deleted successfully.`);
     } catch (err: any) {
-      alert(`Failed to delete meeting: ${err.message}`);
+      alert(`🛡️ ${err.message}`);
     } finally {
       setDeletingId(null);
     }

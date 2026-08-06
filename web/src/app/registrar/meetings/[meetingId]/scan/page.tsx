@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { Html5Qrcode } from 'html5-qrcode';
 import { formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { deleteMeeting } from '@/services/attendanceService';
 
 interface ScannedMember {
   id: string;
@@ -33,18 +34,29 @@ export default function MeetingScanPage() {
   const cameraIdRef = useRef<string>('');
 
   const handleDeleteMeeting = async () => {
-    if (!confirm(`Are you sure you want to delete "${meetingInfo?.title || 'this meeting'}"?\n\nThis will permanently remove this meeting and all check-in data.`)) {
+    if (membersWithStatus.size > 0) {
+      alert(`🛡️ Protected Official Record: This meeting contains ${membersWithStatus.size} recorded check-in(s). Official meetings with active data CANNOT be deleted.`);
       return;
     }
+
+    const confirmation = prompt(
+      `⚠️ DELETION PROTECTION POLICY:\n\n` +
+      `• Official meetings with recorded check-ins are protected and CANNOT be deleted.\n` +
+      `• Only empty test/draft meetings can be removed.\n\n` +
+      `To confirm deletion of empty test meeting "${meetingInfo?.title || 'this meeting'}", type DELETE below:`
+    );
+
+    if (!confirmation || confirmation.trim().toUpperCase() !== 'DELETE') {
+      return;
+    }
+
     setDeleting(true);
     try {
-      await supabase.from('attendance').delete().eq('meeting_id', meetingId);
-      await supabase.from('absence_requests').delete().eq('meeting_id', meetingId);
-      await supabase.from('meetings').delete().eq('id', meetingId);
-      alert('Meeting deleted successfully.');
+      await deleteMeeting(meetingId);
+      alert('Test meeting deleted successfully.');
       router.push('/registrar/meetings');
     } catch (err: any) {
-      alert(`Failed to delete meeting: ${err.message}`);
+      alert(`🛡️ ${err.message}`);
       setDeleting(false);
     }
   };

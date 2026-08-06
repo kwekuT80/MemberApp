@@ -46,11 +46,17 @@ export async function createMeeting(payload: {
 export async function deleteMeeting(meetingId: string) {
   const supabase = await createClient();
 
-  // Clean up associated check-ins and absence requests
-  await supabase.from('attendance').delete().eq('meeting_id', meetingId);
-  await supabase.from('absence_requests').delete().eq('meeting_id', meetingId);
+  // Protect official meetings: check if meeting has any recorded attendance or absence requests
+  const [{ count: attendanceCount }, { count: absenceCount }] = await Promise.all([
+    supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('meeting_id', meetingId),
+    supabase.from('absence_requests').select('*', { count: 'exact', head: true }).eq('meeting_id', meetingId)
+  ]);
 
-  // Delete meeting
+  if ((attendanceCount || 0) > 0 || (absenceCount || 0) > 0) {
+    throw new Error(`Protected Official Record: This meeting contains ${attendanceCount || 0} recorded check-ins and ${absenceCount || 0} absence records. Official meetings with active data cannot be deleted.`);
+  }
+
+  // Delete empty/draft test meeting
   const { error } = await supabase
     .from('meetings')
     .delete()
