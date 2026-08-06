@@ -20,7 +20,7 @@ export default function WelfareContributionsPage() {
 
   // Form State
   const [memberId, setMemberId] = useState('');
-  const [amount, setAmount] = useState('20');
+  const [amount, setAmount] = useState('25');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [periodYear, setPeriodYear] = useState(new Date().getFullYear().toString());
   const [periodMonth, setPeriodMonth] = useState((new Date().getMonth() + 1).toString());
