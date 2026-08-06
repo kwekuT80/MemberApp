@@ -18,6 +18,7 @@ export default function WelfareDisbursementsPage() {
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'all' | 'benefits' | 'expenses'>('all');
   const [showModal, setShowModal] = useState(false);
 
   // Form State
@@ -111,13 +112,6 @@ export default function WelfareDisbursementsPage() {
     }
   };
 
-  const filtered = disbursements.filter(d => {
-    const name = d.members ? `${d.members.first_name} ${d.members.surname}`.toLowerCase() : '';
-    const cat = (d.category_name || '').toLowerCase();
-    const query = searchQuery.toLowerCase();
-    return name.includes(query) || cat.includes(query);
-  });
-
   const exportCSV = () => {
     const headers = ['Recipient Member', 'Category', 'Disbursement Date', 'Method', 'Reference', 'Notes', 'Amount (GHc)'];
     const rows = filtered.map(d => [
@@ -138,8 +132,6 @@ export default function WelfareDisbursementsPage() {
     link.click();
     document.body.removeChild(link);
   };
-
-  const [activeTab, setActiveTab] = useState<'all' | 'benefits' | 'expenses'>('all');
 
   const isExpenseCategory = (catName: string) => {
     const cat = (catName || '').toLowerCase();
