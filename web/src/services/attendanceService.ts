@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaginated } from '@/lib/supabase/pagination';
 
 export async function getCommanderies() {
@@ -273,4 +273,26 @@ export async function getAttendanceReport(meetingId: string, commanderyId: strin
       excuseReason: absence?.reason || null
     };
   });
+}
+
+export async function getMemberAttendance(memberId: string) {
+  const supabase = await createAdminClient();
+  return fetchAllPaginated((from, to) =>
+    supabase
+      .from('attendance')
+      .select('*')
+      .eq('member_id', memberId)
+      .range(from, to)
+  );
+}
+
+export async function getMemberAbsences(memberId: string) {
+  const supabase = await createAdminClient();
+  return fetchAllPaginated((from, to) =>
+    supabase
+      .from('absence_requests')
+      .select('*')
+      .eq('member_id', memberId)
+      .range(from, to)
+  );
 }

@@ -5,9 +5,8 @@ import React from 'react';
 import MemberShell from '@/components/layout/MemberShell';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getMyMember } from '@/services/memberService';
-import { getMeetings } from '@/services/attendanceService';
+import { getMeetings, getMemberAttendance, getMemberAbsences } from '@/services/attendanceService';
 import MemberAttendanceClient from './MemberAttendanceClient';
-import { createClient } from '@/lib/supabase/server';
 
 export default async function MemberAttendancePage() {
   await requireUser();
@@ -27,21 +26,12 @@ export default async function MemberAttendancePage() {
     );
   }
 
-  // Fetch all meetings for the member's Commandery
-  const meetings = await getMeetings(member.commandery_id);
-  
-  // Fetch active check-ins for the member
-  const supabase = await createClient();
-  const { data: attendance } = await supabase
-    .from('attendance')
-    .select('id, meeting_id, check_in_time, method, status, verified')
-    .eq('member_id', member.id);
-
-  // Fetch active absence/excuse requests
-  const { data: excuses } = await supabase
-    .from('absence_requests')
-    .select('meeting_id, reason, status')
-    .eq('member_id', member.id);
+  // Fetch meetings, member attendance check-ins, and absence requests reliably
+  const [meetings, attendance, excuses] = await Promise.all([
+    getMeetings(member.commandery_id),
+    getMemberAttendance(member.id),
+    getMemberAbsences(member.id)
+  ]);
 
   return (
     <MemberShell title="Meeting Attendance" subtitle="Live geofenced check-in and excuse management.">
