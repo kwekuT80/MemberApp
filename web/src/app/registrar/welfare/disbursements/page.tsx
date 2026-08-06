@@ -352,9 +352,6 @@ export default function WelfareDisbursementsPage() {
                     </tr>
                   );
                 })}
-                    </td>
-                  </tr>
-                ))}
               </tbody>
             </table>
           )}
