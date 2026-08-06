@@ -307,7 +307,10 @@ export default function WelfareDisbursementsPage() {
                   return (
                     <tr key={d.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F172A' }}>
-                        {d.members ? `${d.members.first_name} ${d.members.surname}` : 'Commandery Operational Account'}
+                        {isExp || d.member_id === 'f0000000-0000-0000-0000-000000000000' || !d.members || d.members.id === 'f0000000-0000-0000-0000-000000000000'
+                          ? '— Commandery Welfare Operational Account —'
+                          : `${d.members.first_name} ${d.members.surname}`
+                        }
                       </td>
                       <td style={{ padding: '14px 16px', fontWeight: 600, color: '#334155' }}>
                         <span style={{ 
@@ -354,21 +357,22 @@ export default function WelfareDisbursementsPage() {
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
             <div style={{ background: 'white', borderRadius: 16, padding: 32, maxWidth: 520, width: '90%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Log Offline-Approved Benefit Payout</h3>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Log Welfare Outflow / Payout</h3>
                 <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}>✕</button>
               </div>
 
               <form onSubmit={handleSubmit}>
                 <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#475569', marginBottom: 6 }}>RECIPIENT MEMBER</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#475569', marginBottom: 6 }}>BENEFICIARY / ENTITY</label>
                   <select 
                     value={memberId} 
                     onChange={e => setMemberId(e.target.value)}
                     required
                     style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #CBD5E1' }}
                   >
-                    <option value="">-- Choose Member --</option>
-                    {members.map(m => (
+                    <option value="">-- Select Member or Account --</option>
+                    <option value="f0000000-0000-0000-0000-000000000000">🏦 — Commandery Welfare Operational Account —</option>
+                    {members.filter(m => m.id !== 'f0000000-0000-0000-0000-000000000000').map(m => (
                       <option key={m.id} value={m.id}>
                         {m.surname.toUpperCase()}, {m.first_name} ({m.title || 'Bro.'})
                       </option>
