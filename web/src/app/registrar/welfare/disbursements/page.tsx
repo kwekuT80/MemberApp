@@ -112,27 +112,6 @@ export default function WelfareDisbursementsPage() {
     }
   };
 
-  const exportCSV = () => {
-    const headers = ['Recipient Member', 'Category', 'Disbursement Date', 'Method', 'Reference', 'Notes', 'Amount (GHc)'];
-    const rows = filtered.map(d => [
-      d.members ? `${d.members.first_name} ${d.members.surname}` : 'Unknown',
-      d.category_name,
-      d.disbursement_date,
-      d.payment_method,
-      d.reference_no || '',
-      `"${(d.notes || '').replace(/"/g, '""')}"`,
-      d.amount
-    ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `welfare_disbursements_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const isExpenseCategory = (catName: string) => {
     const cat = (catName || '').toLowerCase();
     return (
@@ -163,6 +142,27 @@ export default function WelfareDisbursementsPage() {
     const query = searchQuery.toLowerCase();
     return name.includes(query) || cat.includes(query) || notes.includes(query);
   });
+
+  const exportCSV = () => {
+    const headers = ['Recipient Member', 'Category', 'Disbursement Date', 'Method', 'Reference', 'Notes', 'Amount (GHc)'];
+    const rows = filtered.map(d => [
+      d.members ? `${d.members.first_name} ${d.members.surname}` : 'Unknown',
+      d.category_name,
+      d.disbursement_date,
+      d.payment_method,
+      d.reference_no || '',
+      `"${(d.notes || '').replace(/"/g, '""')}"`,
+      d.amount
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `welfare_disbursements_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <RegistrarShell title="Welfare Outflows Ledger" subtitle="Separate ledger for Constitutional Welfare Benefits and Operational Welfare Expenses">
