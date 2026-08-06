@@ -124,7 +124,13 @@ To clean up test/fictitious meetings without corrupting official records:
 * **Test / Fictitious Meetings**: Include *"Test"*, *"Sample"*, *"Trial"*, *"Demo"*, or *"Fictitious"* in the meeting title (e.g. *Test GPS Meeting*). You can test GPS geofencing or QR scanning freely, and when finished, click **`🗑️ Delete Meeting`** and type `DELETE` to purge the test meeting and its test check-in data.
 * **Official Meetings Protection**: Any official meeting containing active check-in data or absence records is protected by the database. Attempting to delete an official record will display a security protection notice preserving audit integrity.
 
-### 7. Reporting & Auditing
+### 7. Welfare Fund Management & Expenditure Classification
+In **Welfare Scheme** (`/registrar/welfare` and `/registrar/welfare/disbursements`), all fund outflows are strictly classified into two separate accounting categories:
+* **🎁 Constitutional Welfare Benefits**: Direct welfare payouts made to/for eligible members in accordance with constitutional rules (e.g. *Member Bereavement*, *Spouse Bereavement*, *Parent Bereavement*, *Sick & Aged Medical Aid*, *Childbirth Aid*, *Wedding Support*).
+* **🧾 Operational & Administrative Expenses**: Fund expenditures incurred for logistics, event organization, stationery, or bank charges (e.g. *Funeral Transport Logistics*, *Printing of Receipt Books*, *Bank Administrative Fees*).
+* **Ledger Filter & Audit**: Registrars can toggle between **All Outflows**, **🎁 Constitutional Benefits**, and **🧾 Operational Expenses** on the disbursements ledger and export itemized CSV reports.
+
+### 8. Reporting & Auditing
 Use the **Reporting Hub** (`/registrar/reports`) to filter and audit records:
 * Generate official **Registry Roster Sheets** matching military standard formats.
 * Export print-ready PDFs for Commandery meetings.

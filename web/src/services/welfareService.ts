@@ -106,6 +106,10 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
 
   let totalDisbursements = 0;
   let disbursementsThisYear = 0;
+  let totalWelfareBenefits = 0;
+  let totalWelfareExpenses = 0;
+  let benefitsThisYear = 0;
+  let expensesThisYear = 0;
 
   (disbursements || []).forEach(d => {
     const amt = Number(d.amount) || 0;
@@ -113,6 +117,23 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
     const year = new Date(d.disbursement_date).getFullYear();
     if (year === currentYear) {
       disbursementsThisYear += amt;
+    }
+
+    const catName = (d.category_name || '').toLowerCase();
+    const isExpense = catName.includes('operational') ||
+      catName.includes('logistics') ||
+      catName.includes('printing') ||
+      catName.includes('stationery') ||
+      catName.includes('bank') ||
+      catName.includes('fee') ||
+      catName.includes('charge');
+
+    if (isExpense) {
+      totalWelfareExpenses += amt;
+      if (year === currentYear) expensesThisYear += amt;
+    } else {
+      totalWelfareBenefits += amt;
+      if (year === currentYear) benefitsThisYear += amt;
     }
   });
 
@@ -136,9 +157,13 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
   return {
     totalContributions,
     totalDisbursements,
+    totalWelfareBenefits,
+    totalWelfareExpenses,
     netFundBalance: totalContributions - totalDisbursements,
     contributionsThisYear,
     disbursementsThisYear,
+    benefitsThisYear,
+    expensesThisYear,
     contributingMembersCount: activeSubscribers,
     inactiveMembersCount: inactiveSubscribers,
     totalMembersCount: totalMembers,

@@ -118,7 +118,7 @@ export default async function WelfareDashboardPage() {
             </div>
           </Link>
 
-          {/* Card 4: Benefit Payouts (This Year) */}
+          {/* Card 4: Constitutional Benefits (All-Time) */}
           <Link href="/registrar/welfare/disbursements" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ 
               background: 'white', 
@@ -130,18 +130,18 @@ export default async function WelfareDashboardPage() {
               height: '100%'
             }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>
-                Benefit Payouts (This Year)
+                🎁 Member Benefits (All-Time)
               </div>
-              <div style={{ fontSize: 26, fontWeight: 900, color: '#EF4444', marginTop: 8, fontFamily: 'monospace' }}>
-                GH₵ {summary.disbursementsThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              <div style={{ fontSize: 26, fontWeight: 900, color: '#DC2626', marginTop: 8, fontFamily: 'monospace' }}>
+                GH₵ {(summary.totalWelfareBenefits || summary.totalDisbursements).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
               <div style={{ fontSize: 12, color: '#2563EB', marginTop: 8, fontWeight: 700 }}>
-                View 2026 Benefit Disbursements →
+                View Constitutional Benefits →
               </div>
             </div>
           </Link>
 
-          {/* Card 5: Benefits To Date (All-Time) */}
+          {/* Card 5: Operational Expenses (All-Time) */}
           <Link href="/registrar/welfare/disbursements" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ 
               background: 'white', 
@@ -153,13 +153,13 @@ export default async function WelfareDashboardPage() {
               height: '100%'
             }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>
-                Benefits To Date
+                🧾 Operational Expenses (All-Time)
               </div>
-              <div style={{ fontSize: 26, fontWeight: 900, color: '#DC2626', marginTop: 8, fontFamily: 'monospace' }}>
-                GH₵ {summary.totalDisbursements.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              <div style={{ fontSize: 26, fontWeight: 900, color: '#0369A1', marginTop: 8, fontFamily: 'monospace' }}>
+                GH₵ {(summary.totalWelfareExpenses || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
               <div style={{ fontSize: 12, color: '#2563EB', marginTop: 8, fontWeight: 700 }}>
-                All-Time Benefit History →
+                View Operational Expenses →
               </div>
             </div>
           </Link>

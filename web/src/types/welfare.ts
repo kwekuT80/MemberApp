@@ -78,9 +78,13 @@ export interface WelfareAuditEntry {
 export interface WelfareSummary {
   totalContributions: number;
   totalDisbursements: number;
+  totalWelfareBenefits: number;
+  totalWelfareExpenses: number;
   netFundBalance: number;
   contributionsThisYear: number;
   disbursementsThisYear: number;
+  benefitsThisYear: number;
+  expensesThisYear: number;
   contributingMembersCount: number;
   inactiveMembersCount: number;
   totalMembersCount: number;
