@@ -276,7 +276,24 @@ export default function PaymentsClient({
   const fmt = (n: number) =>
     `GH¢ ${parseFloat(n as any).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
-  const totalCollected = payments.reduce((s: number, p: Payment) => s + parseFloat(p.amount as any), 0);
+  const duesPaymentsList = payments.filter(p => !isVoluntaryPayment(p));
+  const voluntaryPaymentsList = payments.filter(p => isVoluntaryPayment(p));
+
+  const duesTotal = duesPaymentsList.reduce((s: number, p: Payment) => s + parseFloat(p.amount as any), 0);
+  const voluntaryTotal = voluntaryPaymentsList.reduce((s: number, p: Payment) => s + parseFloat(p.amount as any), 0);
+  const totalCollected = duesTotal + voluntaryTotal;
+
+  // Payments filtered by search & activeTab
+  const filteredPayments = payments.filter(p => {
+    const isVol = isVoluntaryPayment(p);
+    if (activeTab === 'assessment' && isVol) return false;
+    if (activeTab === 'voluntary' && !isVol) return false;
+
+    const name = `${p.members?.first_name} ${p.members?.surname}`.toLowerCase();
+    const month = (p.month || '').toLowerCase();
+    const query = paySearch.toLowerCase();
+    return name.includes(query) || month.includes(query);
+  });
 
   const years = Array.from({ length: 5 }, (_, i: number) => new Date().getFullYear() - 2 + i);
 
@@ -435,7 +452,7 @@ export default function PaymentsClient({
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--bg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <h3 style={{ margin: 0, color: 'var(--navy)', fontWeight: 800, fontSize: 16 }}>
-                Payment Log ({year})
+                Payment Journal ({year})
               </h3>
               {filteredPayments.length > 0 && (
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -454,49 +471,93 @@ export default function PaymentsClient({
                 </div>
               )}
             </div>
-            <input className="input" placeholder="Filter payments..."
+            <input className="input" placeholder="Filter receipts..."
               value={paySearch} onChange={e => setPaySearch(e.target.value)}
               style={{ width: 170, padding: '8px 12px', fontSize: 12 }} />
+          </div>
+
+          {/* Filter Tabs */}
+          <div style={{ display: 'flex', gap: 6, padding: '10px 20px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+            <button
+              onClick={() => setActiveTab('all')}
+              style={{
+                padding: '6px 14px', borderRadius: 6, border: 'none', fontWeight: 800, fontSize: 12, cursor: 'pointer',
+                background: activeTab === 'all' ? '#0F172A' : '#E2E8F0',
+                color: activeTab === 'all' ? '#FFF' : '#475569'
+              }}
+            >
+              All Receipts ({payments.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('assessment')}
+              style={{
+                padding: '6px 14px', borderRadius: 6, border: 'none', fontWeight: 800, fontSize: 12, cursor: 'pointer',
+                background: activeTab === 'assessment' ? '#166534' : '#E2E8F0',
+                color: activeTab === 'assessment' ? '#FFF' : '#475569'
+              }}
+            >
+              💳 Assessment Dues ({duesPaymentsList.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('voluntary')}
+              style={{
+                padding: '6px 14px', borderRadius: 6, border: 'none', fontWeight: 800, fontSize: 12, cursor: 'pointer',
+                background: activeTab === 'voluntary' ? '#6D28D9' : '#E2E8F0',
+                color: activeTab === 'voluntary' ? '#FFF' : '#475569'
+              }}
+            >
+              ❤️ Voluntary Relief ({voluntaryPaymentsList.length})
+            </button>
           </div>
 
           {filteredPayments.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--grey)' }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>💳</div>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>No payments recorded yet</div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>No payments recorded yet for this view</div>
             </div>
           ) : (
             <div style={{ maxHeight: 520, overflowY: 'auto' }}>
-              {filteredPayments.map(p => (
-                <div key={p.id} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '12px 20px', borderBottom: '1px solid var(--bg)',
-                  gap: 8, flexWrap: 'wrap',
-                }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>
-                      {p.members?.title || 'Bro.'} {p.members?.first_name} {p.members?.surname}
+              {filteredPayments.map(p => {
+                const isVol = isVoluntaryPayment(p);
+                return (
+                  <div key={p.id} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '12px 20px', borderBottom: '1px solid var(--bg)',
+                    gap: 8, flexWrap: 'wrap',
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span>{p.members?.title || 'Bro.'} {p.members?.first_name} {p.members?.surname}</span>
+                        <span style={{
+                          background: isVol ? '#F3E8FF' : '#DCFCE7',
+                          color: isVol ? '#6D28D9' : '#166534',
+                          padding: '2px 8px', borderRadius: 100, fontSize: 11, fontWeight: 700
+                        }}>
+                          {isVol ? '❤️ Voluntary Relief' : '💳 Assessment Dues'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--grey)', marginTop: 2 }}>
+                        {p.month} — {formatDisplayDate(p.payment_date)}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--grey)', marginTop: 2 }}>
-                      {p.month} — {formatDisplayDate(p.payment_date)}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontWeight: 800, color: isVol ? '#6D28D9' : '#166534', fontSize: 15, fontFamily: 'monospace' }}>
+                        {fmt(parseFloat(p.amount as any))}
+                      </span>
+                      <button
+                        onClick={() => handleDelete(p.id)}
+                        disabled={deleting === p.id}
+                        style={{
+                          background: '#FEF2F2', color: '#991B1B', border: '1px solid #FECACA',
+                          borderRadius: 6, padding: '4px 10px', fontSize: 12,
+                          fontWeight: 700, cursor: 'pointer',
+                        }}>
+                        {deleting === p.id ? '...' : 'Delete'}
+                      </button>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontWeight: 800, color: '#166534', fontSize: 15 }}>
-                      {fmt(parseFloat(p.amount as any))}
-                    </span>
-                    <button
-                      onClick={() => handleDelete(p.id)}
-                      disabled={deleting === p.id}
-                      style={{
-                        background: '#FEF2F2', color: '#991B1B', border: '1px solid #FECACA',
-                        borderRadius: 6, padding: '4px 10px', fontSize: 12,
-                        fontWeight: 700, cursor: 'pointer',
-                      }}>
-                      {deleting === p.id ? '...' : 'Delete'}
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

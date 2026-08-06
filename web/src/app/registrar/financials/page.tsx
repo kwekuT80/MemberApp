@@ -24,11 +24,22 @@ export default async function FinancialsHubPage() {
     setupRequired = true;
   }
 
+  const isVoluntaryPayment = (p: any) => {
+    const m = (p.month || '').toLowerCase();
+    return m.includes('voluntary') || m.includes('appeal') || m.includes('relief') || m.includes('donation');
+  };
+
+  const assessmentPayments = payments.filter((p: any) => !isVoluntaryPayment(p));
+  const voluntaryPayments = payments.filter((p: any) => isVoluntaryPayment(p));
+
   const totalAssessed = assessments.reduce(
     (sum: number, a: any) => sum + parseFloat(a.arrears_brought_forward || 0) + parseFloat(a.annual_assessment || 0), 0
   );
-  const totalCollected = payments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
-  const totalOutstanding = totalAssessed - totalCollected;
+
+  // Pure budget tracking: Only Assessment Dues count toward Assessment Dues Collected & Arrears
+  const duesCollected = assessmentPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+  const voluntaryCollected = voluntaryPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+  const totalOutstanding = totalAssessed - duesCollected;
 
   const fmt = (n: number) =>
     `GH¢ ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -62,12 +73,13 @@ export default async function FinancialsHubPage() {
 
       {/* Stats Summary + Action Cards (only when setup is complete) */}
       {!setupRequired && <>
-      <div className="grid-cols-4" style={{ marginBottom: 32 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 16, marginBottom: 32 }}>
         <StatCard label="Members Billed" value={String(assessments.length)} icon="📋" color="var(--navy)" href="/registrar/financials/members" hint="View Summaries →" />
-        <StatCard label="Total Assessed" value={fmt(totalAssessed)} icon="📊" color="var(--navy)" href="/registrar/financials/rates" hint="Rates & Billing →" />
-        <StatCard label="Total Collected" value={fmt(totalCollected)} icon="✅" color="#166534" href="/registrar/financials/payments" hint="Log Payments →" />
+        <StatCard label="Total Assessed Dues" value={fmt(totalAssessed)} icon="📊" color="var(--navy)" href="/registrar/financials/rates" hint="Rates & Billing →" />
+        <StatCard label="Assessment Dues Collected" value={fmt(duesCollected)} icon="✅" color="#166534" href="/registrar/financials/payments" hint="Dues Receipts →" />
+        <StatCard label="Voluntary Relief & Appeals" value={fmt(voluntaryCollected)} icon="❤️" color="#7c3aed" href="/registrar/financials/payments" hint="Relief Log →" />
         <StatCard
-          label="Outstanding Balance"
+          label="Outstanding Dues Balance"
           value={fmt(totalOutstanding)}
           icon={totalOutstanding > 0 ? '⚠️' : '🎉'}
           color={totalOutstanding > 0 ? '#991B1B' : '#166534'}
