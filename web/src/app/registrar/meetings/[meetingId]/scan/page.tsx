@@ -113,6 +113,10 @@ export default function MeetingScanPage() {
           d.label.toLowerCase().includes('wide')
         );
         cameraIdRef.current = rearCamera?.id || devices[0].id;
+      } else {
+        return;
+      }
+
       if (!scannerRef.current) {
         scannerRef.current = new Html5Qrcode('qr-reader');
       } else {
