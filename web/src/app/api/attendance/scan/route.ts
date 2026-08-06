@@ -99,6 +99,15 @@ export async function POST(request: Request) {
       });
     }
 
+    // Verify meeting exists and get commandery_id
+    const { data: meeting } = await supabase
+      .from('meetings')
+      .select('id, commandery_id, date')
+      .eq('id', meetingId)
+      .maybeSingle();
+
+    const commanderyId = member.commandery_id || meeting?.commandery_id || null;
+
     // Record attendance via QR scan
     const { data: { user } } = await supabase.auth.getUser();
     const { data: checkIn, error: insertError } = await supabase
@@ -109,33 +118,27 @@ export async function POST(request: Request) {
         method: 'qr_scan',
         verified: true,
         verified_by: user?.id || null,
-        commandery_id: member.commandery_id || null,
+        commandery_id: commanderyId,
         check_in_time: new Date().toISOString(),
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (insertError) {
+      console.error('Attendance insert error:', insertError);
       return NextResponse.json(
-        { error: 'Failed to record attendance' },
+        { error: insertError.message || 'Failed to record attendance' },
         { status: 500 }
       );
     }
 
-    // Verify meeting exists and belongs to registrars commandery
-    const { data: meeting } = await supabase
-      .from('meetings')
-      .select('id, commandery_id, date')
-      .eq('id', meetingId)
-      .single();
-
     return NextResponse.json({
       success: true,
       alreadyCheckedIn: false,
-      checkInTime: checkIn.check_in_time,
+      checkInTime: checkIn?.check_in_time || new Date().toISOString(),
       member: {
         id: member.id,
-        name: `${member.first_name} ${member.surname}`,
+        name: `${member.first_name || ''} ${member.surname || ''}`.trim() || 'Brother',
         status: member.status,
       },
     });

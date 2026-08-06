@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { Html5Qrcode } from 'html5-qrcode';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 interface ScannedMember {
   id: string;
@@ -93,31 +94,39 @@ export default function MeetingScanPage() {
       await scannerRef.current.start(
         cameraIdRef.current,
         { 
-          fps: 15, 
-          qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            return {
-              width: Math.max(200, Math.floor(minEdge * 0.75)),
-              height: Math.max(200, Math.floor(minEdge * 0.75)),
-            };
-          },
+          fps: 10,
+          aspectRatio: 1.0,
+          qrbox: { width: 250, height: 250 },
           experimentalFeatures: {
             useBarCodeDetectorIfSupported: true,
           }
         } as any,
-        async (decodedText) => {
-          // Stop scanning once we detect a QR code to avoid double reads
-          if (scannerRef.current && scanning) {
+        async (decodedText: string) => {
+          const text = (decodedText || '').trim();
+
+          // Require a valid KSJI member QR format (UUID, verify URL, or KSJI ID) so camera blur/reflections are ignored until focused
+          const isValidMemberFormat =
+            text.includes('/verify/') ||
+            text.startsWith('KSJI-') ||
+            /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(text) ||
+            (text.length >= 8 && /^[a-zA-Z0-9_-]+$/.test(text));
+
+          if (!isValidMemberFormat) {
+            return; // Ignore un-focused camera blur or non-member barcodes
+          }
+
+          // Stop scanning once a definitive valid member QR code is focused
+          if (scannerRef.current) {
             try {
               await scannerRef.current.stop();
             } catch (e) {}
             setScanning(false);
           }
 
-          // Parse and check in the member
+          // Parse and check in the member with database
           handleQrCode(decodedText);
         },
-        () => {} // Ignore scan failures (no QR detected)
+        () => {} // Ignore scan failures while camera focuses
       );
     } catch (err) {
       console.error('Failed to start camera:', err);
@@ -195,7 +204,7 @@ export default function MeetingScanPage() {
   };
 
   return (
-    <RegistrarShell title="QR Scan Check-In" subtitle={`Meeting: ${meetingInfo?.title || ''} • ${meetingInfo?.date || ''}`}>
+    <RegistrarShell title="QR Scan Check-In" subtitle={`Meeting: ${meetingInfo?.title || ''} • ${formatDisplayDate(meetingInfo?.date)}`}>
       <div className="space-y-6">
         {/* Scanner Section */}
         <div style={{ maxWidth: 500, margin: '0 auto' }}>
@@ -218,6 +227,12 @@ export default function MeetingScanPage() {
             justifyContent: 'center'
           }}>
             <div id="qr-reader" style={{ width: '100%', maxWidth: 400 }} />
+
+            {scanning && (
+              <div style={{ color: '#C9A84C', fontSize: 13, fontWeight: 700, marginTop: 12, textAlign: 'center', background: 'rgba(201, 168, 76, 0.1)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(201, 168, 76, 0.3)' }}>
+                🎯 Center & focus member QR code inside reticle
+              </div>
+            )}
 
             {!scanning && !checkingIn && (
               <div style={{ color: '#8892B0', fontSize: 16, textAlign: 'center' }}>

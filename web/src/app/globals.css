@@ -682,4 +682,128 @@ body {
   text-overflow: clip;
 }
 
+/* ─── MOBILE RESPONSIVE STYLES ─── */
+.mobile-menu-btn {
+  display: none;
+  background: var(--gold);
+  color: var(--navy);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.mobile-close-inner {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--grey);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.app-shell-grid {
+  max-width: 1200px;
+  width: 100%;
+  margin: -12px auto 0 auto;
+  padding: 0 24px 60px 24px;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 32px;
+  box-sizing: border-box;
+}
+
+.app-shell-main {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Mobile Viewport Fixes (< 900px) */
+@media (max-width: 900px) {
+  .mobile-menu-btn {
+    display: block;
+  }
+
+  .mobile-close-inner {
+    display: block;
+  }
+
+  .premium-header {
+    padding: 24px 16px;
+    margin-bottom: 16px;
+  }
+
+  .main-title {
+    font-size: 22px;
+  }
+
+  .app-shell-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 16px 40px 16px;
+    margin-top: 0;
+  }
+
+  .app-shell-sidebar {
+    display: none;
+  }
+
+  .app-shell-sidebar.mobile-open {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    background: rgba(10, 22, 40, 0.85);
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  .card {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Table Horizontal Scrolling on Mobile */
+  .member-table, table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Mobile Camera Scanner Viewport Styling */
+#qr-reader {
+  border: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+#qr-reader video {
+  width: 100% !important;
+  height: auto !important;
+  border-radius: 12px !important;
+  object-fit: cover !important;
+}
+
+#qr-reader__scan_region {
+  background: transparent !important;
+}
+
+#qr-reader__dashboard {
+  padding: 8px 0 !important;
+}
+
+
 
