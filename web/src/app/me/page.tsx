@@ -26,6 +26,7 @@ export default async function MePage() {
         <BirthdaysWidget isRegistrar={false} />
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', paddingTop: 12, alignItems: 'center' }}>
           <Link href='/me/id-card' style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 900, background: '#D4AF37', padding: '6px 16px', borderRadius: 8, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>🪪 Digital ID Card</Link>
+          <Link href='/me/payments/upload' style={{ textDecoration: 'none', color: '#FFFFFF', fontWeight: 900, background: '#10233F', padding: '6px 16px', borderRadius: 8, boxShadow: '0 2px 6px rgba(0,0,0,0.12)' }}>📱 Submit MoMo Receipt</Link>
           <Link href='/me/report' style={{ textDecoration: 'none', color: '#2563EB', fontWeight: 900, background: '#EFF6FF', padding: '6px 16px', borderRadius: 8 }}>📊 Personal Report</Link>
           <Link href='/me/edit' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Edit Main Record</Link>
           <Link href='/me/attendance' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Attendance</Link>

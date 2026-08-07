@@ -5,6 +5,7 @@ import EmptyState from '@/components/shared/EmptyState';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getMyMember, getMemberPersonalReport } from '@/services/memberService';
 import PrintReportButton from '@/components/reports/PrintReportButton';
+import DuesBenchmarkTracker from '@/components/financials/DuesBenchmarkTracker';
 
 export default async function PersonalReportPage() {
   await requireUser();
@@ -134,6 +135,18 @@ export default async function PersonalReportPage() {
             {standingReason}
           </div>
         </div>
+
+        {/* Visual Benchmark Standing Tracker */}
+        <DuesBenchmarkTracker
+          currentYear={financial.currentYear}
+          currentMonth={financial.currentMonth}
+          lastYearArrears={financial.lastYearArrears}
+          currentAssessment={financial.currentAssessment}
+          totalAssessed={financial.totalAssessed}
+          paymentsThisYear={financial.paymentsThisYear}
+          requiredDuesThreshold={financial.requiredDuesThreshold}
+          standing={standing}
+        />
 
         {/* Section 1: Financial Dues Breakdown */}
         <div style={{ marginBottom: 36 }}>
