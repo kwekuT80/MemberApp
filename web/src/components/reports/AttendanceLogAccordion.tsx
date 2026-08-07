@@ -39,7 +39,7 @@ export default function AttendanceLogAccordion({ records }: AttendanceLogAccordi
           border: 0,
           borderBottom: expanded ? '1px solid #E2E8F0' : 'none',
           display: 'flex',
-          justify: 'space-between',
+          justifyContent: 'space-between',
           alignItems: 'center',
           cursor: 'pointer',
           fontFamily: 'inherit',
