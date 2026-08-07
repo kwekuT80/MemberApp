@@ -207,6 +207,20 @@ export interface PersonalReportData {
     welfareCredit: number;
     disbursements: any[];
   };
+  attendance: {
+    totalMeetings: number;
+    attendedCount: number;
+    excusedCount: number;
+    absentCount: number;
+    complianceRate: number;
+    records: Array<{
+      id: string;
+      meetingTitle: string;
+      meetingDate: string;
+      status: string;
+      checkInTime?: string;
+    }>;
+  };
 }
 
 export async function getMemberPersonalReport(memberId: string): Promise<PersonalReportData | null> {
@@ -373,6 +387,58 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
     standingReason = welfareReasonText;
   }
 
+  // 4. Meeting Attendance & Compliance Statistics
+  let totalMeetings = 0;
+  let attendedCount = 0;
+  let excusedCount = 0;
+  let absentCount = 0;
+  let complianceRate = 100;
+  let attendanceRecords: any[] = [];
+
+  if (member.commandery_id) {
+    const [meetingsRes, checkInsRes, excusesRes] = await Promise.all([
+      supabase.from('meetings').select('*').eq('commandery_id', member.commandery_id).order('date', { ascending: false }),
+      supabase.from('attendance').select('*').eq('member_id', memberId),
+      supabase.from('absence_requests').select('*').eq('member_id', memberId)
+    ]);
+
+    const meetingsList = meetingsRes.data || [];
+    const checkInsList = checkInsRes.data || [];
+    const excusesList = excusesRes.data || [];
+
+    totalMeetings = meetingsList.length;
+
+    attendanceRecords = meetingsList.map(m => {
+      const checkIn = checkInsList.find(c => c.meeting_id === m.id);
+      const excuse = excusesList.find(e => e.meeting_id === m.id);
+
+      let status = 'Absent';
+      if (checkIn) {
+        const isQr = checkIn.method === 'qr' || checkIn.method === 'qr_scan' || (checkIn.override_note && String(checkIn.override_note).includes('QR'));
+        status = checkIn.method === 'gps' ? 'Present (GPS)' : isQr ? 'Present (QR Scan)' : 'Present (Manual)';
+        attendedCount++;
+      } else if (excuse && excuse.status === 'approved') {
+        status = 'Excused';
+        excusedCount++;
+      } else if (excuse && excuse.status === 'pending') {
+        status = 'Excuse Pending';
+        absentCount++;
+      } else {
+        absentCount++;
+      }
+
+      return {
+        id: m.id,
+        meetingTitle: m.title,
+        meetingDate: m.date,
+        status,
+        checkInTime: checkIn?.check_in_time || null
+      };
+    });
+
+    complianceRate = totalMeetings > 0 ? Math.min(100, Math.round(((attendedCount + excusedCount) / totalMeetings) * 100)) : 100;
+  }
+
   return {
     member,
     standing,
@@ -406,6 +472,14 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
       welfareOutstanding,
       welfareCredit,
       disbursements: formattedDisbursements
+    },
+    attendance: {
+      totalMeetings,
+      attendedCount,
+      excusedCount,
+      absentCount,
+      complianceRate,
+      records: attendanceRecords
     }
   };
 }

@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth/requireUser';
 import { getMyMember, getMemberPersonalReport } from '@/services/memberService';
 import PrintReportButton from '@/components/reports/PrintReportButton';
 import DuesBenchmarkTracker from '@/components/financials/DuesBenchmarkTracker';
+import AttendanceLogAccordion from '@/components/reports/AttendanceLogAccordion';
 
 export default async function PersonalReportPage() {
   await requireUser();
@@ -29,7 +30,7 @@ export default async function PersonalReportPage() {
     );
   }
 
-  const { member, standing, standingReason, financialStanding, welfareStanding, financial, welfare } = report;
+  const { member, standing, standingReason, financialStanding, welfareStanding, financial, welfare, attendance } = report;
   const isGoodStanding = standing === 'In Good Standing';
   const isFinancialGood = financialStanding === 'In Good Standing';
   const isWelfareGood = welfareStanding === 'In Good Standing';
@@ -446,6 +447,72 @@ export default async function PersonalReportPage() {
               </table>
             )}
           </div>
+        </div>
+
+        {/* Section 4: Meeting Attendance Record & Compliance */}
+        <div style={{ marginBottom: 36 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 900, color: '#0F172A', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            📊 Meeting Attendance Record & Compliance
+          </h2>
+
+          {/* 4 Metric Cards Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
+            <div style={metricCardStyle}>
+              <div style={metricLabelStyle}>TOTAL MEETINGS SCHEDULED</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#0F172A', fontFamily: 'monospace' }}>
+                {attendance?.totalMeetings || 0}
+              </div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>Commandery Roll</div>
+            </div>
+
+            <div style={metricCardStyle}>
+              <div style={metricLabelStyle}>MEETINGS ATTENDED</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#10B981', fontFamily: 'monospace' }}>
+                {attendance?.attendedCount || 0}
+              </div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>Verified Check-Ins</div>
+            </div>
+
+            <div style={metricCardStyle}>
+              <div style={metricLabelStyle}>EXCUSED ABSENCES</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#2563EB', fontFamily: 'monospace' }}>
+                {attendance?.excusedCount || 0}
+              </div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>Approved Excuses</div>
+            </div>
+
+            <div style={{
+              ...metricCardStyle,
+              background: (attendance?.complianceRate || 100) >= 70 ? '#F0FDF4' : '#FEF2F2',
+              borderColor: (attendance?.complianceRate || 100) >= 70 ? '#BBF7D0' : '#FECACA'
+            }}>
+              <div style={{
+                ...metricLabelStyle,
+                color: (attendance?.complianceRate || 100) >= 70 ? '#166534' : '#991B1B'
+              }}>
+                ATTENDANCE COMPLIANCE
+              </div>
+              <div style={{
+                fontSize: 22,
+                fontWeight: 900,
+                color: (attendance?.complianceRate || 100) >= 70 ? '#166534' : '#DC2626',
+                fontFamily: 'monospace'
+              }}>
+                {attendance?.complianceRate || 100}%
+              </div>
+              <div style={{
+                fontSize: 11,
+                fontWeight: 800,
+                color: (attendance?.complianceRate || 100) >= 70 ? '#166534' : '#991B1B',
+                marginTop: 4
+              }}>
+                {(attendance?.complianceRate || 100) >= 70 ? '✓ Satisfactory Roll' : '⚠️ Below 70% Benchmark'}
+              </div>
+            </div>
+          </div>
+
+          {/* Collapsible Attendance History Table */}
+          <AttendanceLogAccordion records={attendance?.records || []} />
         </div>
 
       </div>
