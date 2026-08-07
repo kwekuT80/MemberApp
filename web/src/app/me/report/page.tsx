@@ -379,6 +379,62 @@ export default async function PersonalReportPage() {
           </div>
         </div>
 
+        {/* Section 3: Voluntary Relief & Special Appeals Log */}
+        <div style={{ marginBottom: 36 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 900, color: '#0F172A', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            ❤️ Voluntary Member Relief & Special Appeals Log
+          </h2>
+
+          <div style={{ background: 'white', borderRadius: 16, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: '#0F172A' }}>
+                  Voluntary Contributions Logged
+                </h3>
+                <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                  Special donations & emergency relief appeals (separate from mandatory annual dues)
+                </div>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 900, color: '#7C3AED', background: '#F3E8FF', padding: '6px 16px', borderRadius: 20 }}>
+                Total Contributed: {formatCurrency(financial.totalVoluntaryContributed || 0)}
+              </div>
+            </div>
+
+            {(!financial.voluntaryPayments || financial.voluntaryPayments.length === 0) ? (
+              <div style={{ padding: 32, textAlign: 'center', color: '#94A3B8', fontSize: 14 }}>
+                No voluntary relief or special appeal contributions recorded for your profile.
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                <thead>
+                  <tr style={{ background: '#F1F5F9', color: '#475569', textAlign: 'left' }}>
+                    <th style={{ padding: '12px 16px' }}>Date</th>
+                    <th style={{ padding: '12px 16px' }}>Contribution Purpose / Category</th>
+                    <th style={{ padding: '12px 16px' }}>Year Reference</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>Amount Paid</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {financial.voluntaryPayments.map((p: any) => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                      <td style={{ padding: '14px 16px', color: '#64748B' }}>
+                        {new Date(p.payment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 800, color: '#6D28D9' }}>
+                        ❤️ {p.month || 'Voluntary Relief Donation'}
+                      </td>
+                      <td style={{ padding: '14px 16px', color: '#64748B' }}>{p.assessment_year}</td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 900, color: '#6D28D9', fontFamily: 'monospace' }}>
+                        {formatCurrency(Number(p.amount))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
       </div>
     </MemberShell>
   );

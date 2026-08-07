@@ -189,6 +189,8 @@ export interface PersonalReportData {
     creditBalance: number;
     netBalance: number;
     yearStatus: string;
+    voluntaryPayments: any[];
+    totalVoluntaryContributed: number;
   };
   welfare: {
     lastYearBalance: number;
@@ -219,16 +221,25 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   const currentMonth = new Date().getMonth() + 1; // 1-12
   const lastYear = currentYear - 1;
 
-  // 1. Dues & Assessments
-  const [lastYearAssRes, currYearAssRes, currPaymentsRes] = await Promise.all([
+  // 1. Dues & Assessments & Voluntary Relief Payments
+  const [lastYearAssRes, currYearAssRes, allPaymentsRes] = await Promise.all([
     supabase.from('financial_assessments').select('*').eq('member_id', memberId).eq('year', lastYear).maybeSingle(),
     supabase.from('financial_assessments').select('*').eq('member_id', memberId).eq('year', currentYear).maybeSingle(),
-    supabase.from('financial_payments').select('*').eq('member_id', memberId).eq('assessment_year', currentYear).order('payment_date', { ascending: true })
+    supabase.from('financial_payments').select('*').eq('member_id', memberId).order('payment_date', { ascending: false })
   ]);
 
   const lastYearAss = lastYearAssRes.data;
   const currAss = currYearAssRes.data;
-  const currPayments = currPaymentsRes.data || [];
+  const allPayments = allPaymentsRes.data || [];
+
+  const isVoluntaryPayment = (p: any) => {
+    const m = String(p.month || '').toLowerCase();
+    return m.includes('voluntary') || m.includes('appeal') || m.includes('relief') || m.includes('donation');
+  };
+
+  const currDuesPayments = allPayments.filter(p => Number(p.assessment_year) === currentYear && !isVoluntaryPayment(p));
+  const voluntaryPayments = allPayments.filter(p => isVoluntaryPayment(p));
+  const totalVoluntaryContributed = voluntaryPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
   const lastYearArrears = currAss
     ? Number(currAss.arrears_brought_forward || 0)
@@ -236,7 +247,7 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
 
   const currentAssessment = currAss ? Number(currAss.annual_assessment || 0) : 0;
   const totalAssessed = lastYearArrears + currentAssessment;
-  const paymentsThisYear = currPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+  const paymentsThisYear = currDuesPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
   const netBalance = totalAssessed - paymentsThisYear; // positive = amount owed, negative = credit balance
   const outstandingThisYear = Math.max(0, netBalance);
   const creditBalance = netBalance < 0 ? Math.abs(netBalance) : 0;
@@ -377,7 +388,9 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
       outstandingThisYear,
       creditBalance,
       netBalance,
-      yearStatus
+      yearStatus,
+      voluntaryPayments,
+      totalVoluntaryContributed
     },
     welfare: {
       lastYearBalance: lastYearWelfareBalance,
