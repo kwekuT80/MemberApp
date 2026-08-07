@@ -22,8 +22,7 @@ export function isSystemMember(member: any): boolean {
     member.first_name,
     member.other_names,
     member.surname,
-    member.email,
-    member.notes
+    member.email
   ].filter(Boolean).join(' ').toLowerCase();
 
   return (

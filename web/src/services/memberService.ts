@@ -69,7 +69,7 @@ export async function searchMembers(query = ''): Promise<Member[]> {
 
 export async function getMemberCount(): Promise<number> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('members').select('id, first_name, surname, title, notes');
+  const { data, error } = await supabase.from('members').select('id, first_name, surname, title, is_system, is_fictitious, member_type');
   if (error) throw error;
   const actualMembers = (data || []).filter(m => !isSystemMember(m));
   return actualMembers.length;
