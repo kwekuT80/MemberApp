@@ -21,7 +21,7 @@ export default function FinancialsPage() {
         .from('profiles')
         .select('member_id')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
         
       if (!profile || !profile.member_id) {
         setLoading(false);
@@ -37,7 +37,7 @@ export default function FinancialsPage() {
         .select('*')
         .eq('member_id', memberId)
         .eq('year', currentYear)
-        .single();
+        .maybeSingle();
 
       if (assData) setAssessment(assData);
 

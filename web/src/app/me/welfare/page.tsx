@@ -28,7 +28,7 @@ export default function MemberWelfarePage() {
           .from('profiles')
           .select('member_id')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
         const memberId = profile?.member_id;
 
@@ -37,7 +37,7 @@ export default function MemberWelfarePage() {
             .from('members')
             .select('*')
             .eq('id', memberId)
-            .single();
+            .maybeSingle();
           setMember(memberData);
 
           const [myContribs, myDisb, cats] = await Promise.all([
