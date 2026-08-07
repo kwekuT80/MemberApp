@@ -123,7 +123,7 @@ export default function WelfareCategoriesPage() {
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#475569', marginBottom: 6 }}>BENEFIT CATEGORY NAME</label>
                   <input 
                     type="text"
-                    placeholder="e.g. Childbirth Gift / Education Support"
+                    placeholder="e.g. Child Birth Gift / Education Support"
                     value={name}
                     onChange={e => setName(e.target.value)}
                     required

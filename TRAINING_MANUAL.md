@@ -126,7 +126,7 @@ To clean up test/fictitious meetings without corrupting official records:
 
 ### 7. Welfare Fund Management & Expenditure Classification
 In **Welfare Scheme** (`/registrar/welfare` and `/registrar/welfare/disbursements`), all fund outflows are strictly classified into two separate accounting categories:
-* **🎁 Constitutional Welfare Benefits**: Direct welfare payouts made to/for eligible members in accordance with constitutional rules (e.g. *Member Bereavement*, *Spouse Bereavement*, *Parent Bereavement*, *Sick & Aged Medical Aid*, *Childbirth Aid*, *Wedding Support*).
+* **🎁 Constitutional Welfare Benefits**: Direct welfare payouts made to/for eligible members in accordance with constitutional rules (e.g. *Member Bereavement*, *Spouse Bereavement*, *Parent Bereavement*, *Sick & Aged Medical Aid*, *Child Birth*, *Wedding Support*).
 * **🧾 Operational & Administrative Expenses**: Fund expenditures incurred for logistics, event organization, stationery, or bank charges (e.g. *Funeral Transport Logistics*, *Printing of Receipt Books*, *Bank Administrative Fees*). All operational expenditures and bank charges are assigned to `Commandery Welfare Account (Operational Outflows)` and excluded from individual members' personal ledgers.
 * **Ledger Filter & Audit**: Registrars can toggle between **All Outflows**, **🎁 Constitutional Benefits**, and **🧾 Operational Expenses** on the disbursements ledger and export itemized CSV reports.
 
