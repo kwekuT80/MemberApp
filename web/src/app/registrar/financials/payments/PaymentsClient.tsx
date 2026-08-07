@@ -82,12 +82,6 @@ export default function PaymentsClient({
     return name.includes(search.toLowerCase());
   });
 
-  // Payments filtered by search
-  const filteredPayments = payments.filter(p => {
-    const name = `${p.members?.first_name} ${p.members?.surname}`.toLowerCase();
-    return name.includes(paySearch.toLowerCase());
-  });
-
   const [paymentCategory, setPaymentCategory] = useState<'assessment' | 'voluntary_relief' | 'special_appeal'>('assessment');
   const [activeTab, setActiveTab] = useState<'all' | 'assessment' | 'voluntary'>('all');
 
