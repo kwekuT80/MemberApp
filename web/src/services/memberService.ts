@@ -1,6 +1,7 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
 import { Member } from '@/types/member';
+import { isSystemMember } from '@/lib/utils/ksji-logic';
 
 const FULL_SELECT = `
   *,
@@ -62,14 +63,16 @@ export async function searchMembers(query = ''): Promise<Member[]> {
   }
   const { data, error } = await builder;
   if (error) throw error;
-  return (data || []) as Member[];
+  const list = (data || []) as Member[];
+  return list.filter(m => !isSystemMember(m));
 }
 
 export async function getMemberCount(): Promise<number> {
   const supabase = await createClient();
-  const { count, error } = await supabase.from('members').select('*', { count: 'exact', head: true });
+  const { data, error } = await supabase.from('members').select('id, first_name, surname, title, notes');
   if (error) throw error;
-  return count || 0;
+  const actualMembers = (data || []).filter(m => !isSystemMember(m));
+  return actualMembers.length;
 }
 
 /**
@@ -92,7 +95,7 @@ export async function getUpcomingBirthdayMembers(): Promise<Member[]> {
 
   if (error) throw error;
 
-  const members = data || [];
+  const members = (data || []).filter(m => !isSystemMember(m));
   const today = new Date();
   today.setHours(0, 0, 0, 0); // Crucial: remove time component so 'today' comparisons work correctly
 

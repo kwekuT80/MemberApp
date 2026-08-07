@@ -298,7 +298,7 @@ export async function deletePayment(id: string) {
 
 export async function getActiveMembers() {
   const supabase = await createClient();
-  return fetchAllPaginated((from, to) =>
+  const list = await fetchAllPaginated((from, to) =>
     supabase
       .from('members')
       .select('id, first_name, surname, title, membership_type')
@@ -307,6 +307,11 @@ export async function getActiveMembers() {
       .order('first_name')
       .range(from, to)
   );
+
+  return (list || []).filter((m: any) => {
+    const full = `${m.title || ''} ${m.first_name || ''} ${m.surname || ''}`.toLowerCase();
+    return !full.includes('system account') && !full.includes('operational outflows') && !full.includes('welfare account') && !full.includes('fictitious');
+  });
 }
 
 // ─── Member Financial Summaries ─────────────────────────────────────────────
@@ -329,6 +334,12 @@ export async function getAllMemberSummaries(filters?: {
     return query.order('outstanding_balance', { ascending: false }).range(from, to);
   });
 
+  // Filter out fictitious operational system accounts from member financial summary views
+  const actualSummaryRows = (summaryRows || []).filter((row: any) => {
+    const name = (row.full_name || '').toLowerCase();
+    return !name.includes('system account') && !name.includes('operational outflows') && !name.includes('welfare account (operational') && !name.includes('commandery welfare account') && !name.includes('fictitious');
+  });
+
   // Paginated query for financial_assessments
   const assessmentRows = await fetchAllPaginated((from, to) =>
     supabase
@@ -345,7 +356,7 @@ export async function getAllMemberSummaries(filters?: {
   }
 
   // Attach annual_assessment_sum to each summary row
-  return summaryRows.map((row: any) => ({
+  return actualSummaryRows.map((row: any) => ({
     ...row,
     annual_assessment_sum: annualSumByMember[row.member_id ?? row.id] ?? 0,
   }));

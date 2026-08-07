@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireRegistrar } from '@/lib/auth/requireRegistrar';
+import { isSystemMember } from '@/lib/utils/ksji-logic';
 
 // CSV-safe value - escape quotes and wrap in quotes if contains commas
 function csvEscape(
@@ -51,9 +52,11 @@ export async function GET(
       throw membersError;
     }
 
+    const actualMembers = (members || []).filter((m: any) => !isSystemMember(m));
+
     if (
-      !members ||
-      members.length === 0
+      !actualMembers ||
+      actualMembers.length === 0
     ) {
       return NextResponse.json(
         {
@@ -122,7 +125,7 @@ export async function GET(
       headers.join(','),
     ];
 
-    for (const m of members) {
+    for (const m of actualMembers) {
       const row = headers.map(
         (header) => {
           switch (header) {

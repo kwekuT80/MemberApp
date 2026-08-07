@@ -3,25 +3,28 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Member } from '@/types/member';
-import { formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { formatDisplayDate, isSystemMember } from '@/lib/utils/ksji-logic';
 
 export default function MemberSearchTable({ members, basePath='/registrar/members', emptyMessage='No member records found.' }: { members: any[]; basePath?: string; emptyMessage?: string }) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'deceased' | 'inactive'>('all');
 
-  const filteredMembers = members.filter(m => {
+  // Filter out system/fictitious operational accounts from all member table views
+  const actualMembers = (members || []).filter(m => !isSystemMember(m));
+
+  const filteredMembers = actualMembers.filter(m => {
     if (statusFilter === 'active') return !['Deceased', 'Dismissed', 'Transfer-Out', 'Suspended'].includes(m.status || '') && !m.is_deceased;
     if (statusFilter === 'deceased') return m.status === 'Deceased' || m.is_deceased;
     if (statusFilter === 'inactive') return ['Dismissed', 'Suspended', 'Transfer-Out'].includes(m.status || '');
     return true;
   });
 
-  if (!members.length) {
+  if (!actualMembers.length) {
     return <div className="card" style={{ textAlign: 'center', color: 'var(--grey)' }}>{emptyMessage}</div>;
   }
 
-  const activeCount = members.filter(m => !['Deceased', 'Dismissed', 'Transfer-Out', 'Suspended'].includes(m.status || '') && !m.is_deceased).length;
-  const deceasedCount = members.filter(m => m.status === 'Deceased' || m.is_deceased).length;
-  const inactiveCount = members.filter(m => ['Dismissed', 'Suspended', 'Transfer-Out'].includes(m.status || '')).length;
+  const activeCount = actualMembers.filter(m => !['Deceased', 'Dismissed', 'Transfer-Out', 'Suspended'].includes(m.status || '') && !m.is_deceased).length;
+  const deceasedCount = actualMembers.filter(m => m.status === 'Deceased' || m.is_deceased).length;
+  const inactiveCount = actualMembers.filter(m => ['Dismissed', 'Suspended', 'Transfer-Out'].includes(m.status || '')).length;
 
   return (
     <div>
@@ -33,7 +36,7 @@ export default function MemberSearchTable({ members, basePath='/registrar/member
           onClick={() => setStatusFilter('all')}
           style={chipStyle(statusFilter === 'all', '#10233f')}
         >
-          All ({members.length})
+          All ({actualMembers.length})
         </button>
         <button
           type="button"

@@ -49,8 +49,12 @@ export default async function DelinquencyAgingPage({
     </RegistrarShell>
   );
 
-  // Filter for active delinquent members only
-  const filtered = (summaries as any[]).filter((m: any) => m.payment_status === 'delinquent');
+  // Filter for active delinquent members only (excluding fictitious operational system accounts)
+  const filtered = (summaries as any[]).filter((m: any) => {
+    if (m.payment_status !== 'delinquent') return false;
+    const name = (m.full_name || '').toLowerCase();
+    return !name.includes('system account') && !name.includes('operational outflows') && !name.includes('welfare account') && !name.includes('fictitious');
+  });
 
   // Categorize into buckets based on outstanding balance ratio
   const bucketMap = new Map<string, DelinquencyMember[]>();

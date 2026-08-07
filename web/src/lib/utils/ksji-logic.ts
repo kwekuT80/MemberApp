@@ -9,6 +9,34 @@ export const KSJI_TERMINOLOGY = {
 };
 
 /**
+ * Identifies fictitious/system accounts (such as Operational Outflows accounts)
+ * that should be excluded from member rosters, member lists, search tables, and executive dashboards.
+ */
+export function isSystemMember(member: any): boolean {
+  if (!member) return false;
+  if (member.is_system === true || member.is_fictitious === true) return true;
+  if (member.member_type === 'system' || member.member_type === 'fictitious' || member.member_type === 'operational') return true;
+
+  const fullText = [
+    member.title,
+    member.first_name,
+    member.other_names,
+    member.surname,
+    member.email,
+    member.notes
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  return (
+    fullText.includes('system account') ||
+    fullText.includes('operational outflows') ||
+    fullText.includes('operational outflow') ||
+    fullText.includes('commandery welfare account') ||
+    fullText.includes('welfare account (operational') ||
+    fullText.includes('fictitious')
+  );
+}
+
+/**
  * Expands titles like 'N/B' to 'Noble Brother' and handles other honorifics
  */
 export function formatMemberTitle(title: string | null) {
