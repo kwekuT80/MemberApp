@@ -7,6 +7,7 @@ import { getMyMember, getMemberPersonalReport } from '@/services/memberService';
 import PrintReportButton from '@/components/reports/PrintReportButton';
 import DuesBenchmarkTracker from '@/components/financials/DuesBenchmarkTracker';
 import AttendanceLogAccordion from '@/components/reports/AttendanceLogAccordion';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 export default async function PersonalReportPage() {
   await requireUser();
@@ -379,7 +380,7 @@ export default async function PersonalReportPage() {
                     <tr key={d.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0F172A' }}>{d.category_name}</td>
                       <td style={{ padding: '14px 16px', color: '#64748B' }}>
-                        {new Date(d.disbursement_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {formatDisplayDate(d.disbursement_date)}
                       </td>
                       <td style={{ padding: '14px 16px', color: '#64748B' }}>{d.notes || 'Standard Payout'}</td>
                       <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 900, color: '#D97706', fontFamily: 'monospace' }}>
@@ -432,7 +433,7 @@ export default async function PersonalReportPage() {
                   {financial.voluntaryPayments.map((p: any) => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '14px 16px', color: '#64748B' }}>
-                        {new Date(p.payment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {formatDisplayDate(p.payment_date)}
                       </td>
                       <td style={{ padding: '14px 16px', fontWeight: 800, color: '#6D28D9' }}>
                         ❤️ {p.month || 'Voluntary Relief Donation'}

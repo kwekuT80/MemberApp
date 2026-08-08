@@ -5,6 +5,7 @@ import Link from 'next/link';
 import MemberShell from '@/components/layout/MemberShell';
 import { createClient } from '@/lib/supabase/client';
 import { submitMoMoPayment, getMemberMoMoSubmissions, MoMoSubmission } from '@/services/momoSubmissionService';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 export default function MoMoUploadPage() {
   const [member, setMember] = useState<any>(null);
@@ -307,7 +308,7 @@ export default function MoMoUploadPage() {
                   return (
                     <tr key={s.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '14px 16px', color: '#64748B' }}>
-                        {s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                        {formatDisplayDate(s.created_at)}
                       </td>
                       <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0F172A' }}>
                         {s.payment_category === 'assessment' ? '💳 Assessment Dues' : (s.payment_category === 'welfare' ? '🤝 Welfare Fund' : '❤️ Voluntary Relief')}

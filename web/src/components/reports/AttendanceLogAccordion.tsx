@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 interface AttendanceRecord {
   id: string;
@@ -81,7 +82,7 @@ export default function AttendanceLogAccordion({ records }: AttendanceLogAccordi
                       {r.meetingTitle}
                     </td>
                     <td style={{ padding: '14px 16px', color: '#64748B' }}>
-                      {new Date(r.meetingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {formatDisplayDate(r.meetingDate)}
                     </td>
                     <td style={{ padding: '14px 16px', color: '#64748B', fontFamily: 'monospace' }}>
                       {r.checkInTime ? new Date(r.checkInTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—'}

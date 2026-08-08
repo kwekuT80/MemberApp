@@ -170,7 +170,7 @@ export default function PaymentsClient({
       p.assessment_year,
       p.month,
       p.amount.toFixed(2),
-      new Date(p.payment_date).toLocaleDateString()
+      formatDisplayDate(p.payment_date)
     ]);
 
     const csvContent = [
