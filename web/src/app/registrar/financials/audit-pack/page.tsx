@@ -79,14 +79,34 @@ export default function AuditPackPage() {
         setWelfareCollected(wTotal);
       }
 
-      // Fetch Welfare Disbursements
+      // Fetch Welfare Disbursements for current audit year
       const { data: wDisbs } = await supabase
         .from('welfare_disbursements')
-        .select('amount');
+        .select('amount, disbursement_date, category_name');
 
       if (wDisbs) {
-        const pTotal = wDisbs.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+        const yearDisbursements = wDisbs.filter((d: any) => {
+          if (!d.disbursement_date) return false;
+          const dYear = new Date(d.disbursement_date).getFullYear();
+          if (dYear !== year) return false;
+
+          // Exclude operational / administrative expenses
+          const catName = (d.category_name || '').toLowerCase();
+          const isExpense = catName.includes('operational') ||
+            catName.includes('logistics') ||
+            catName.includes('printing') ||
+            catName.includes('stationery') ||
+            catName.includes('bank') ||
+            catName.includes('fee') ||
+            catName.includes('charge');
+
+          return !isExpense;
+        });
+
+        const pTotal = yearDisbursements.reduce((sum: number, d: any) => sum + Number(d.amount || 0), 0);
         setWelfarePayouts(pTotal);
+      } else {
+        setWelfarePayouts(0);
       }
 
       setLoading(false);
