@@ -97,6 +97,20 @@ body {
   box-shadow: 0 12px 30px rgba(10, 22, 40, 0.06);
 }
 
+.summary-card {
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(10, 22, 40, 0.04);
+  padding: 20px 24px;
+  border: 1px solid rgba(10, 22, 40, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(10, 22, 40, 0.09);
+}
+
 /* Metric / Stat Blocks */
 .stats-grid {
   display: grid;
