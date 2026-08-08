@@ -10,6 +10,7 @@ import {
   rejectMoMoSubmission,
   MoMoSubmission
 } from '@/services/momoSubmissionService';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 export default function VerificationQueuePage() {
   const [role, setRole] = useState<string | null>(null);
@@ -261,7 +262,7 @@ export default function VerificationQueuePage() {
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ fontWeight: 800, color: '#0F172A' }}>{memberName}</div>
                         <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                          Submitted: {s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                          Submitted: {formatDisplayDate(s.created_at)}
                         </div>
                       </td>
 

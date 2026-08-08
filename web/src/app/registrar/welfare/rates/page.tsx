@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { getAllWelfareContributionRates, upsertWelfareContributionRate } from '@/services/welfareService';
 import { WelfareContributionRate } from '@/types/welfare';
+import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR + 1 - i); // e.g. 2026 down to 2022
@@ -277,7 +278,7 @@ export default function WelfareContributionRatesPage() {
 
                   {r.created_at && (
                     <div style={{ marginTop: 12, fontSize: 11, color: isCurrent ? 'rgba(255,255,255,0.4)' : '#CBD5E1' }}>
-                      Last set: {new Date(r.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      Last set: {formatDisplayDate(r.created_at)}
                     </div>
                   )}
                 </div>

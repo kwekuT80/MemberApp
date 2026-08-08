@@ -81,18 +81,32 @@ function pad(n: number): string {
 }
 
 /**
- * Formats a date string to DD-MM-YYYY or DD-MMM-YYYY.
+ * Helper to get day ordinal suffix (1st, 2nd, 3rd, 4th, 11th, 21st, 22nd, 23rd, 31st)
+ */
+export function getOrdinalSuffix(day: number): string {
+  const d = Number(day);
+  if (isNaN(d) || d < 1) return String(day);
+  const j = d % 10;
+  const k = d % 100;
+  if (j === 1 && k !== 11) return `${d}st`;
+  if (j === 2 && k !== 12) return `${d}nd`;
+  if (j === 3 && k !== 13) return `${d}rd`;
+  return `${d}th`;
+}
+
+/**
+ * Formats a date string to ordinal format e.g. "1st Aug 2026" or "8th Jan 2026".
  *
  * Parses ISO dates manually to avoid UTC timezone shifts that would shift the displayed day.
- * Accepts YYYY-MM-DD (ISO) or DD/MM/YYYY; always outputs DD-MM-YYYY.
+ * Accepts YYYY-MM-DD (ISO), ISO timestamps (2026-08-01T14:30:00Z), or DD/MM/YYYY.
  */
 export function formatDisplayDate(
   dateStr: string | null | undefined,
-  options?: { useMonthName?: boolean }
+  options?: { numeric?: boolean }
 ): string {
   if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') return '—';
 
-  // Extract date part if ISO timestamp (e.g., 2024-05-15T14:30:00Z)
+  // Extract date part if ISO timestamp (e.g., 2026-08-01T14:30:00Z)
   const cleanStr = dateStr.split('T')[0].trim();
 
   // Parse ISO YYYY-MM-DD manually to avoid UTC timezone shifts
@@ -100,25 +114,49 @@ export function formatDisplayDate(
   if (isoMatch) {
     const [, year, month, day] = isoMatch;
     const m = Number(month);
-    const formattedMonth = options?.useMonthName ? getMonth(m - 1) : pad(m);
-    return `${pad(Number(day))}-${formattedMonth}-${year}`;
+    const d = Number(day);
+
+    if (options?.numeric) {
+      return `${pad(d)}-${pad(m)}-${year}`;
+    }
+
+    const monthName = getMonth(m - 1);
+    const ordinalDay = getOrdinalSuffix(d);
+    return `${ordinalDay} ${monthName} ${year}`;
   }
 
+  // Parse slash formats (e.g. DD/MM/YYYY or YYYY/MM/DD)
   const parts = cleanStr.split('/');
-  if (parts.length === 3 && /^\d{1,2}$/.test(parts[0]) && /^\d{1,2}$/.test(parts[1])) {
-    const day = pad(Number(parts[0]));
-    const m = Number(parts[1]);
-    const formattedMonth = options?.useMonthName ? getMonth(m - 1) : pad(m);
-    return `${day}-${formattedMonth}-${parts[2]}`;
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      // YYYY/MM/DD
+      const year = parts[0];
+      const m = Number(parts[1]);
+      const d = Number(parts[2]);
+      if (options?.numeric) return `${pad(d)}-${pad(m)}-${year}`;
+      return `${getOrdinalSuffix(d)} ${getMonth(m - 1)} ${year}`;
+    } else if (/^\d{1,2}$/.test(parts[0]) && /^\d{1,2}$/.test(parts[1])) {
+      // DD/MM/YYYY
+      const d = Number(parts[0]);
+      const m = Number(parts[1]);
+      const year = parts[2];
+      if (options?.numeric) return `${pad(d)}-${pad(m)}-${year}`;
+      return `${getOrdinalSuffix(d)} ${getMonth(m - 1)} ${year}`;
+    }
   }
 
-  // Fallback: DD-MM-YYYY
+  // Fallback: Date object parsing
   const d = new Date(dateStr);
   if (!isNaN(d.getTime())) {
-    const day = pad(d.getDate());
-    const month = pad(d.getMonth() + 1);
+    const day = d.getDate();
+    const month = d.getMonth();
     const year = d.getFullYear();
-    return `${day}-${month}-${year}`;
+
+    if (options?.numeric) {
+      return `${pad(day)}-${pad(month + 1)}-${year}`;
+    }
+
+    return `${getOrdinalSuffix(day)} ${getMonth(month)} ${year}`;
   }
 
   return '—';
