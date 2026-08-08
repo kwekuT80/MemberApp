@@ -394,6 +394,9 @@ export default function WelfareHubScreen({ navigation }) {
             </View>
           )}
 
+          {/* Tab 4: Rules & Categories */}
+          {activeTab === 'categories' && (
+            <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>2020 Welfare Constitution Rules</Text>
               
               <View style={{ backgroundColor: '#1E293B', padding: 12, borderRadius: 8, marginBottom: 14, borderWidth: 1, borderColor: '#334155' }}>
