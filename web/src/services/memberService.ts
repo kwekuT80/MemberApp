@@ -396,8 +396,11 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   let attendanceRecords: any[] = [];
 
   if (member.commandery_id) {
+    const startOfYear = `${currentYear}-01-01`;
+    const endOfYear = `${currentYear}-12-31`;
+
     const [meetingsRes, checkInsRes, excusesRes] = await Promise.all([
-      supabase.from('meetings').select('*').eq('commandery_id', member.commandery_id).order('date', { ascending: false }),
+      supabase.from('meetings').select('*').eq('commandery_id', member.commandery_id).gte('date', startOfYear).lte('date', endOfYear).order('date', { ascending: false }),
       supabase.from('attendance').select('*').eq('member_id', memberId),
       supabase.from('absence_requests').select('*').eq('member_id', memberId)
     ]);
