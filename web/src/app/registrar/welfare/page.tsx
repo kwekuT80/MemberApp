@@ -122,7 +122,7 @@ export default async function WelfareDashboardPage() {
             </div>
           </Link>
 
-          {/* Card 4: Constitutional Benefits (All-Time) */}
+          {/* Card 4: Member Benefits Disbursed (This Year) */}
           <Link href="/registrar/welfare/disbursements" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ 
               background: 'white', 
@@ -134,13 +134,36 @@ export default async function WelfareDashboardPage() {
               height: '100%'
             }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>
-                🎁 Member Benefits (All-Time)
+                🎁 Member Benefits (This Year)
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: '#D97706', marginTop: 8, fontFamily: 'monospace' }}>
+                GH₵ {(summary.benefitsThisYear || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+              <div style={{ fontSize: 12, color: '#2563EB', marginTop: 8, fontWeight: 700 }}>
+                View 2026 Payouts →
+              </div>
+            </div>
+          </Link>
+
+          {/* Card 5: Constitutional Benefits (All-Time) */}
+          <Link href="/registrar/welfare/disbursements" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div style={{ 
+              background: 'white', 
+              borderRadius: 16, 
+              padding: 24, 
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+              cursor: 'pointer',
+              height: '100%'
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>
+                🏛️ Member Benefits (All-Time)
               </div>
               <div style={{ fontSize: 26, fontWeight: 900, color: '#DC2626', marginTop: 8, fontFamily: 'monospace' }}>
                 GH₵ {(summary.totalWelfareBenefits || summary.totalDisbursements).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
               <div style={{ fontSize: 12, color: '#2563EB', marginTop: 8, fontWeight: 700 }}>
-                View Constitutional Benefits →
+                View All-Time Benefits →
               </div>
             </div>
           </Link>

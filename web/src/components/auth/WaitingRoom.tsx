@@ -3,6 +3,17 @@
 import React, { useState } from 'react';
 import { approveProfileLink, rejectProfile, approveAsNewMember } from '@/services/profileService';
 
+interface CandidateMatch {
+  id: string;
+  first_name: string;
+  surname: string;
+  email: string | null;
+  phone: string | null;
+  mobile?: string | null;
+  title?: string | null;
+  status?: string | null;
+}
+
 interface PendingRegistration {
   id: string;
   email: string | null;
@@ -14,13 +25,8 @@ interface PendingRegistration {
     name: string;
     number: number;
   } | null;
-  match?: {
-    id: string;
-    first_name: string;
-    surname: string;
-    email: string;
-    phone: string;
-  } | null;
+  match?: CandidateMatch | null;
+  matches?: CandidateMatch[] | null;
 }
 
 interface WaitingRoomProps {
@@ -66,12 +72,25 @@ export default function WaitingRoom({ initialPending, unlinkedMembers = [] }: Wa
     }
   }
 
-  async function handleApproveAsNew(profileId: string) {
-    setProcessingId(profileId);
+  async function handleApproveAsNew(item: PendingRegistration) {
+    const candidateList = item.matches && item.matches.length > 0 ? item.matches : (item.match ? [item.match] : []);
+    const hasMatches = candidateList.length > 0;
+
+    if (hasMatches) {
+      const firstMatch = candidateList[0];
+      const matchedName = `${firstMatch.title || 'Bro.'} ${firstMatch.first_name} ${firstMatch.surname}`;
+      const confirmMsg = `⚠️ SAFETY CONFIRMATION REQUIRED:\n\nA matching master member record for "${matchedName}" already exists in the database.\n\nAre you sure "${item.first_name} ${item.surname}" (${item.email || 'No email'}) is a DIFFERENT person from the existing Brother in the registry?\n\n• Click OK ONLY if this is a separate new member who happens to have the same name.\n• Click CANCEL to return and link to the existing record instead.`;
+
+      if (!window.confirm(confirmMsg)) {
+        return;
+      }
+    }
+
+    setProcessingId(item.id);
     setMessage(null);
     try {
-      await approveAsNewMember(profileId);
-      setPending(prev => prev.filter(p => p.id !== profileId));
+      await approveAsNewMember(item.id);
+      setPending(prev => prev.filter(p => p.id !== item.id));
       setMessage('New member record created and account approved successfully!');
     } catch (e: any) {
       setMessage(`Error: ${e.message || 'Failed to approve as new'}`);
@@ -116,7 +135,8 @@ export default function WaitingRoom({ initialPending, unlinkedMembers = [] }: Wa
 
       <div style={{ display: 'grid', gap: 16 }}>
         {pending.map((item) => {
-          const hasMatch = !!item.match;
+          const candidateList = item.matches && item.matches.length > 0 ? item.matches : (item.match ? [item.match] : []);
+          const hasMatches = candidateList.length > 0;
           const query = searchQueries[item.id] || '';
           
           // Filter unlinked members for manual search
@@ -155,38 +175,48 @@ export default function WaitingRoom({ initialPending, unlinkedMembers = [] }: Wa
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  {hasMatch && item.match ? (
+                  {hasMatches ? (
                     <button
                       disabled={processingId === item.id}
-                      onClick={() => handleApprove(item.id, item.match!.id)}
+                      onClick={() => handleApprove(item.id, candidateList[0].id)}
                       className="tab tab-active"
-                      style={{ background: 'var(--gold)', color: 'var(--navy)', border: 0, padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
+                      style={{ background: 'var(--gold)', color: 'var(--navy)', border: 0, padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 800, fontSize: 13 }}
                     >
-                      {processingId === item.id ? 'Processing…' : 'Approve & Link'}
+                      {processingId === item.id ? 'Processing…' : `🔗 Approve & Link to ${candidateList[0].first_name} ${candidateList[0].surname}`}
                     </button>
                   ) : (
                     <button
                       disabled={processingId === item.id}
-                      onClick={() => handleApproveAsNew(item.id)}
+                      onClick={() => handleApproveAsNew(item)}
                       className="tab tab-active"
                       style={{ background: 'var(--gold)', color: 'var(--navy)', border: 0, padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
                     >
-                      {processingId === item.id ? 'Processing…' : 'Approve as New'}
+                      {processingId === item.id ? 'Processing…' : '➕ Approve as New Member'}
+                    </button>
+                  )}
+
+                  {hasMatches && (
+                    <button
+                      disabled={processingId === item.id}
+                      onClick={() => handleApproveAsNew(item)}
+                      style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #cbd5e1', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 12 }}
+                    >
+                      ➕ Create Separate New
                     </button>
                   )}
 
                   <button
                     disabled={processingId === item.id}
                     onClick={() => toggleManualLink(item.id)}
-                    style={{ background: '#f0f4f8', color: '#10233f', border: '1px solid #cfd8e3', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
+                    style={{ background: '#f0f4f8', color: '#10233f', border: '1px solid #cfd8e3', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 12 }}
                   >
-                    {manualLinkIds[item.id] ? 'Cancel Manual Link' : '🔗 Link Manually'}
+                    {manualLinkIds[item.id] ? 'Cancel Search' : '🔍 Search & Link Manually'}
                   </button>
 
                   <button
                     disabled={processingId === item.id}
                     onClick={() => handleReject(item.id)}
-                    style={{ background: '#fdeaea', color: 'crimson', border: '1px solid #fdeaea', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
+                    style={{ background: '#fdeaea', color: 'crimson', border: '1px solid #fdeaea', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 12 }}
                   >
                     Reject
                   </button>
@@ -194,23 +224,41 @@ export default function WaitingRoom({ initialPending, unlinkedMembers = [] }: Wa
               </div>
 
               {/* Automated Match Panel */}
-              {hasMatch && item.match && !manualLinkIds[item.id] && (
-                <div style={{ background: '#fdf8e2', borderLeft: '3px solid var(--gold)', padding: '12px 16px', borderRadius: 8, fontSize: 13 }}>
-                  <p style={{ margin: 0, fontWeight: 700, color: '#856404' }}>
-                    🔍 Automated Search found a potential matching record:
+              {hasMatches && !manualLinkIds[item.id] && (
+                <div style={{ background: '#FFFBEB', border: '1px solid #FCD34D', borderLeft: '4px solid #D97706', padding: '14px 18px', borderRadius: 8, fontSize: 13 }}>
+                  <p style={{ margin: 0, fontWeight: 800, color: '#92400E', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>🔍 Potential Master Record Found in Database:</span>
                   </p>
-                  <p style={{ margin: '4px 0 0', color: '#856404' }}>
-                    <strong>Name:</strong> {item.match.first_name} {item.match.surname} | <strong>Email:</strong> {item.match.email} | <strong>Phone:</strong> {item.match.phone || 'N/A'}
-                  </p>
-                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#856404', fontStyle: 'italic' }}>
-                    Clicking "Approve & Link" will link this profile and sync their records automatically.
+                  <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+                    {candidateList.map(m => (
+                      <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFFFF', padding: '10px 14px', borderRadius: 8, border: '1px solid #FDE68A', flexWrap: 'wrap', gap: 8 }}>
+                        <div>
+                          <div style={{ fontWeight: 800, color: '#0F172A' }}>
+                            {m.title || 'Bro.'} {m.first_name} {m.surname}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                            📧 {m.email || 'No email recorded'} | 📞 {m.phone || m.mobile || 'No phone'} | Status: <strong>{m.status || 'Active'}</strong>
+                          </div>
+                        </div>
+                        <button
+                          disabled={processingId === item.id}
+                          onClick={() => handleApprove(item.id, m.id)}
+                          style={{ background: '#2563EB', color: '#FFFFFF', border: 0, padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 800, fontSize: 12 }}
+                        >
+                          {processingId === item.id ? 'Processing…' : `🔗 Link to ${m.first_name} ${m.surname}`}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{ margin: '10px 0 0', fontSize: 12, color: '#B45309', fontStyle: 'italic' }}>
+                    💡 Linking connects this login account directly to the member's master history (dues ledgers, welfare benefits & attendance).
                   </p>
                 </div>
               )}
 
-              {!hasMatch && !manualLinkIds[item.id] && (
+              {!hasMatches && !manualLinkIds[item.id] && (
                 <div style={{ background: '#f5f5f5', borderLeft: '3px solid #ccc', padding: '12px 16px', borderRadius: 8, fontSize: 13, color: '#666' }}>
-                  ⚠️ No potential matching record found in the pre-populated database by email or phone.
+                  ℹ️ No automatic match found by name, email, or phone. Use "Search & Link Manually" if this is an existing Brother, or "Approve as New Member".
                 </div>
               )}
 

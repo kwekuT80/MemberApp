@@ -21,56 +21,42 @@ export async function getPendingProfilesWithMatches(): Promise<any[]> {
   if (error) throw error;
   if (!profiles || profiles.length === 0) return [];
 
-  const profilesWithMatches = await Promise.all(
-    profiles.map(async (profile) => {
-      // If a member_id is already linked to the profile, fetch it directly
-      if (profile.member_id) {
-        const { data: directMember } = await supabase
-          .from('members')
-          .select('*')
-          .eq('id', profile.member_id)
-          .maybeSingle();
-        if (directMember) {
-          return {
-            ...profile,
-            match: directMember
-          };
-        }
+  // Fetch all unlinked members for robust multi-criteria matching (contact & name)
+  const { data: unlinkedMembers } = await supabase
+    .from('members')
+    .select('id, first_name, surname, email, phone, mobile, commandery_id, status')
+    .is('user_id', null);
+
+  const unlinked = unlinkedMembers || [];
+
+  const profilesWithMatches = profiles.map((profile) => {
+    const email = (profile.email || '').trim().toLowerCase();
+    const phone = (profile.phone || '').trim();
+    const firstName = (profile.first_name || '').trim().toLowerCase();
+    const surname = (profile.surname || '').trim().toLowerCase();
+
+    const candidateMatches = unlinked.filter((m: any) => {
+      // 1. Direct Email Match
+      if (email && m.email && m.email.trim().toLowerCase() === email) return true;
+      // 2. Direct Phone Match
+      if (phone && (m.phone === phone || m.mobile === phone)) return true;
+      // 3. Name Match (First Name AND Surname match)
+      if (firstName && surname && m.first_name && m.surname) {
+        const mFirst = m.first_name.trim().toLowerCase();
+        const mSurname = m.surname.trim().toLowerCase();
+        const fnMatch = mFirst.includes(firstName) || firstName.includes(mFirst);
+        const snMatch = mSurname.includes(surname) || surname.includes(mSurname);
+        if (fnMatch && snMatch) return true;
       }
+      return false;
+    });
 
-      const email = profile.email || '';
-      const phone = profile.phone || '';
-      const commanderyId = profile.commandery_id;
-
-      if (!commanderyId) return { ...profile, match: null };
-
-      // Search for members belonging to selected commandery OR whose commandery is null/unassigned
-      let memberQuery = supabase
-        .from('members')
-        .select('*')
-        .or(`commandery_id.eq.${commanderyId},commandery_id.is.null`);
-
-      if (email && phone) {
-        memberQuery = memberQuery.or(`email.eq.${email},phone.eq.${phone},mobile.eq.${phone}`);
-      } else if (email) {
-        memberQuery = memberQuery.eq('email', email);
-      } else if (phone) {
-        memberQuery = memberQuery.or(`phone.eq.${phone},mobile.eq.${phone}`);
-      } else {
-        return { ...profile, match: null };
-      }
-
-      const { data: matches, error: matchError } = await memberQuery;
-      if (matchError) {
-        console.error('Error fetching matches for profile:', profile.id, matchError);
-      }
-
-      return {
-        ...profile,
-        match: matches && matches.length > 0 ? matches[0] : null
-      };
-    })
-  );
+    return {
+      ...profile,
+      match: candidateMatches.length > 0 ? candidateMatches[0] : null,
+      matches: candidateMatches
+    };
+  });
 
   return profilesWithMatches;
 }
