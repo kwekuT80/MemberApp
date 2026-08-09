@@ -12,9 +12,9 @@ export default function MemberSearchTable({ members, basePath='/registrar/member
   const actualMembers = (members || []).filter(m => !isSystemMember(m));
 
   const filteredMembers = actualMembers.filter(m => {
-    if (statusFilter === 'active') return !['Deceased', 'Dismissed', 'Transfer-Out', 'Suspended'].includes(m.status || '') && !m.is_deceased;
+    if (statusFilter === 'active') return !['Deceased', 'Dismissed', 'Transfer-Out'].includes(m.status || '') && !m.is_deceased;
     if (statusFilter === 'deceased') return m.status === 'Deceased' || m.is_deceased;
-    if (statusFilter === 'inactive') return ['Dismissed', 'Suspended', 'Transfer-Out'].includes(m.status || '');
+    if (statusFilter === 'inactive') return ['Dismissed', 'Transfer-Out'].includes(m.status || '');
     return true;
   });
 
@@ -22,9 +22,9 @@ export default function MemberSearchTable({ members, basePath='/registrar/member
     return <div className="card" style={{ textAlign: 'center', color: 'var(--grey)' }}>{emptyMessage}</div>;
   }
 
-  const activeCount = actualMembers.filter(m => !['Deceased', 'Dismissed', 'Transfer-Out', 'Suspended'].includes(m.status || '') && !m.is_deceased).length;
+  const activeCount = actualMembers.filter(m => !['Deceased', 'Dismissed', 'Transfer-Out'].includes(m.status || '') && !m.is_deceased).length;
   const deceasedCount = actualMembers.filter(m => m.status === 'Deceased' || m.is_deceased).length;
-  const inactiveCount = actualMembers.filter(m => ['Dismissed', 'Suspended', 'Transfer-Out'].includes(m.status || '')).length;
+  const inactiveCount = actualMembers.filter(m => ['Dismissed', 'Transfer-Out'].includes(m.status || '')).length;
 
   return (
     <div>
@@ -58,7 +58,7 @@ export default function MemberSearchTable({ members, basePath='/registrar/member
             onClick={() => setStatusFilter('inactive')}
             style={chipStyle(statusFilter === 'inactive', '#991b1b')}
           >
-            Dismissed / Suspended ({inactiveCount})
+            Dismissed / Transfer-Out ({inactiveCount})
           </button>
         )}
       </div>
