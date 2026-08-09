@@ -119,6 +119,24 @@ export async function checkInMember(payload: {
 }
 
 /**
+ * Registrar rejects / revokes an existing check-in sign-in for a member.
+ * Deletes the sign-in record from the attendance table, reverting their status to Absent.
+ */
+export async function rejectCheckIn(payload: {
+  meeting_id: string;
+  member_id: string;
+}) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('attendance')
+    .delete()
+    .eq('meeting_id', payload.meeting_id)
+    .eq('member_id', payload.member_id);
+
+  if (error) throw error;
+}
+
+/**
  * Registrar directly grants an excused absence on behalf of a member
  * who submitted an official letter to the secretary (bypassing the member portal).
  * Upserts so that existing pending requests are promoted to 'approved'.
@@ -217,13 +235,15 @@ export async function reviewAbsenceRequest(payload: {
 export async function getAttendanceReport(meetingId: string, commanderyId: string) {
   const supabase = await createClient();
 
-  // 1. Fetch all members in this commandery who are on the active roll (paginated)
+  // 1. Fetch all members in this commandery who are on the active roll (paginated, excluding system accounts)
   const members = await fetchAllPaginated((from, to) =>
     supabase
       .from('members')
       .select('*')
       .eq('commandery_id', commanderyId)
       .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+      .neq('id', 'f0000000-0000-0000-0000-000000000000')
+      .not('surname', 'ilike', '%Operational Outflows%')
       .range(from, to)
   );
 
@@ -245,8 +265,15 @@ export async function getAttendanceReport(meetingId: string, commanderyId: strin
       .range(from, to)
   );
 
-  // 4. Map everything together
-  return (members || []).map(m => {
+  // 4. Filter out any remaining phantom system accounts and map everything together
+  const realMembers = (members || []).filter(m => {
+    if (m.id === 'f0000000-0000-0000-0000-000000000000') return false;
+    const name = `${m.first_name || ''} ${m.surname || ''}`.toLowerCase();
+    if (name.includes('welfare account') || name.includes('operational outflow')) return false;
+    return true;
+  });
+
+  return realMembers.map(m => {
     const checkIn = (attendance || []).find(a => a.member_id === m.id);
     const absence = (absences || []).find(a => a.member_id === m.id);
 

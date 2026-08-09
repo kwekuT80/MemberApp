@@ -51,11 +51,14 @@ export default function WelfareSubscribersPage() {
         const members = membersData || [];
         const contribs = allContribs || [];
 
-        // Exclude deceased/dismissed members per archival business rule
+        // Exclude deceased/dismissed members & system accounts per archival business rule
         const eligible = members.filter(m => {
+          if (m.id === 'f0000000-0000-0000-0000-000000000000') return false;
           if (m.is_deceased) return false;
+          const name = `${m.first_name || ''} ${m.surname || ''}`.toLowerCase();
+          if (name.includes('welfare account') || name.includes('operational outflow')) return false;
           const s = String(m.status || '').trim().toLowerCase();
-          return !['deceased', 'dismissed', 'transfer-out'].includes(s);
+          return !['deceased', 'dismissed', 'transfer-out', 'system'].includes(s);
         });
 
         const list: SubscriberItem[] = eligible.map(m => {

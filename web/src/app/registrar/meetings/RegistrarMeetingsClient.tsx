@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { createMeeting, checkInMember, getAbsenceRequests, reviewAbsenceRequest, getAttendanceReport, registrarGrantExcuse, deleteMeeting } from '@/services/attendanceService';
+import { createMeeting, checkInMember, getAbsenceRequests, reviewAbsenceRequest, getAttendanceReport, registrarGrantExcuse, deleteMeeting, rejectCheckIn } from '@/services/attendanceService';
 import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 interface Props {
@@ -21,6 +21,10 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const [loadingReport, setLoadingReport] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [rosterSortOrder, setRosterSortOrder] = useState<'status_priority' | 'name' | 'checkin_time'>('status_priority');
+
+  // Search Query & Status Filter for sign-in auditing
+  const [attendanceQuery, setAttendanceQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'present' | 'excused' | 'absent'>('all');
 
   const getStatusPriority = (statusStr: string) => {
     if (statusStr.startsWith('Present')) return 1; // 1. Attended (Present)
@@ -41,6 +45,23 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
       return tB - tA;
     }
     return `${a.surname || ''} ${a.first_name || ''}`.localeCompare(`${b.surname || ''} ${b.first_name || ''}`);
+  });
+
+  const filteredAttendanceReport = sortedAttendanceReport.filter((m: any) => {
+    // 1. Filter by Status Tab
+    if (statusFilter === 'present' && !m.status.startsWith('Present')) return false;
+    if (statusFilter === 'excused' && m.status !== 'Excused' && m.status !== 'Excuse Pending') return false;
+    if (statusFilter === 'absent' && m.status !== 'Absent' && !m.status.includes('Absent')) return false;
+
+    // 2. Filter by Search Query (Name, Phone, Email, Method)
+    if (!attendanceQuery.trim()) return true;
+    const term = attendanceQuery.toLowerCase().trim();
+    const name = `${m.first_name || ''} ${m.surname || ''}`.toLowerCase();
+    const email = (m.email || '').toLowerCase();
+    const phone = (m.phone || '').toLowerCase();
+    const status = (m.status || '').toLowerCase();
+
+    return name.includes(term) || email.includes(term) || phone.includes(term) || status.includes(term);
   });
 
   // Stats for the selected meeting
@@ -64,9 +85,9 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // ── Manual Permission Modal state ──────────────────────────────────────────
+  // ── Manual Permission & Rejection Modal state ──────────────────────────────
   const [activeModal, setActiveModal] = useState<null | {
-    type: 'checkin' | 'excuse';
+    type: 'checkin' | 'excuse' | 'reject';
     memberId: string;
     memberName: string;
   }>(null);
@@ -180,8 +201,8 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
     }
   }
 
-  // Open the modal for either a manual check-in or a grant-excuse action
-  function openModal(type: 'checkin' | 'excuse', memberId: string, memberName: string) {
+  // Open the modal for a manual check-in, grant excuse, or reject sign-in action
+  function openModal(type: 'checkin' | 'excuse' | 'reject', memberId: string, memberName: string) {
     setModalNote('');
     setActiveModal({ type, memberId, memberName });
   }
@@ -205,6 +226,11 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
           verified_by: profile.id,
           commandery_id: profile.commandery_id,
           override_note: modalNote.trim() || undefined,
+        });
+      } else if (activeModal.type === 'reject') {
+        await rejectCheckIn({
+          meeting_id: selectedMeeting.id,
+          member_id: activeModal.memberId,
         });
       } else {
         if (!modalNote.trim()) {
@@ -737,21 +763,118 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                 )}
               </div>
 
+              {/* Search & Filter Sign-ins Bar */}
+              {attendanceReport.length > 0 && (
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', background: '#f8fafc', padding: 12, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                  <div style={{ flex: 1, minWidth: 220, position: 'relative' }}>
+                    <input
+                      type="text"
+                      value={attendanceQuery}
+                      onChange={(e) => setAttendanceQuery(e.target.value)}
+                      placeholder="🔍 Query sign-ins by member name, phone, email, or method..."
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: 8,
+                        border: '1px solid #cbd5e1',
+                        fontSize: 13,
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    {attendanceQuery && (
+                      <button
+                        onClick={() => setAttendanceQuery('')}
+                        style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 14 }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filter Pills */}
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => setStatusFilter('all')}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 20,
+                        border: 'none',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: statusFilter === 'all' ? 'var(--navy)' : '#e2e8f0',
+                        color: statusFilter === 'all' ? '#fff' : '#475569'
+                      }}
+                    >
+                      All ({totalRoster})
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('present')}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 20,
+                        border: 'none',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: statusFilter === 'present' ? '#166534' : '#dcfce7',
+                        color: statusFilter === 'present' ? '#fff' : '#15803d'
+                      }}
+                    >
+                      Present Sign-ins ({presentCount})
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('excused')}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 20,
+                        border: 'none',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: statusFilter === 'excused' ? '#0369a1' : '#e0f2fe',
+                        color: statusFilter === 'excused' ? '#fff' : '#0369a1'
+                      }}
+                    >
+                      Excused ({excusedCount})
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('absent')}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 20,
+                        border: 'none',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: statusFilter === 'absent' ? '#b91c1c' : '#fee2e2',
+                        color: statusFilter === 'absent' ? '#fff' : '#b91c1c'
+                      }}
+                    >
+                      Absent ({absentCount})
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {loadingReport ? (
                 <div style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>⌛ Loading attendance status...</div>
               ) : attendanceReport.length === 0 ? (
                 <div style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>⚠️ No active members found.</div>
+              ) : filteredAttendanceReport.length === 0 ? (
+                <div style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>🔍 No sign-in records match query filters.</div>
               ) : (
                 <div style={{ display: 'grid', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
                   {/* Table Header */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.4fr', background: '#f8fafc', padding: '12px 16px', fontWeight: 800, fontSize: 12, color: 'var(--navy)', borderBottom: '1px solid #e2e8f0' }}>
                     <span>MEMBER</span>
                     <span>STATUS</span>
-                    <span style={{ textAlign: 'right' }}>OVERRIDE ACTIONS</span>
+                    <span style={{ textAlign: 'right' }}>OVERRIDE & REJECTION ACTIONS</span>
                   </div>
 
                   {/* Table Body */}
-                  {sortedAttendanceReport.map((m) => {
+                  {filteredAttendanceReport.map((m) => {
                     const isPresent = m.status.startsWith('Present');
                     const isExcused = m.status === 'Excused';
                     const isPending = m.status === 'Excuse Pending';
@@ -797,9 +920,18 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                         </div>
 
                         {/* Col 3: Override action buttons */}
-                        <div style={{ textAlign: 'right', display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                        <div style={{ textAlign: 'right', display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
                           {isPresent && (
-                            <span style={{ color: '#22c55e', fontWeight: 800, fontSize: 13 }}>✓ PRESENT</span>
+                            <>
+                              <span style={{ color: '#22c55e', fontWeight: 800, fontSize: 12 }}>✓ PRESENT</span>
+                              <button
+                                onClick={() => openModal('reject', m.id, memberName)}
+                                style={{ padding: '4px 10px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', borderRadius: 6, fontSize: 11, fontWeight: 800, cursor: 'pointer' }}
+                                title="Reject / revoke this meeting sign-in"
+                              >
+                                ❌ Reject Sign-In
+                              </button>
+                            </>
                           )}
                           {isExcused && (
                             <span style={{ color: '#0369a1', fontWeight: 700, fontSize: 12 }}>✉️ EXCUSED</span>
@@ -864,11 +996,13 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: 18, color: 'var(--navy)', fontWeight: 800 }}>
-                  {activeModal.type === 'checkin' ? '🔗 Manual Check-In' : '✉️ Grant Official Excuse'}
+                  {activeModal.type === 'checkin' ? '🔗 Manual Check-In' : activeModal.type === 'reject' ? '❌ Revoke / Reject Sign-In' : '✉️ Grant Official Excuse'}
                 </h2>
                 <p style={{ margin: '6px 0 0', fontSize: 13, color: '#64748b' }}>
                   {activeModal.type === 'checkin'
                     ? 'You are signing this member in on their behalf.'
+                    : activeModal.type === 'reject'
+                    ? 'You are revoking this member check-in sign-in. Their status will revert to Absent.'
                     : 'You are granting an approved excuse for this member.'}
                 </p>
               </div>
@@ -881,50 +1015,58 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             </div>
 
             {/* Member name pill */}
-            <div style={{ background: '#f1f5f9', borderRadius: 10, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 22 }}>{activeModal.type === 'checkin' ? '👤' : '📋'}</span>
+            <div style={{ background: activeModal.type === 'reject' ? '#fee2e2' : '#f1f5f9', borderRadius: 10, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 22 }}>{activeModal.type === 'checkin' ? '👤' : activeModal.type === 'reject' ? '⚠️' : '📋'}</span>
               <div>
-                <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Member</div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{activeModal.memberName}</div>
+                <div style={{ fontSize: 12, color: activeModal.type === 'reject' ? '#991b1b' : '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Member</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: activeModal.type === 'reject' ? '#991b1b' : 'var(--navy)' }}>{activeModal.memberName}</div>
               </div>
             </div>
 
             {/* Note / Reason field */}
-            <div style={{ display: 'grid', gap: 8 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                {activeModal.type === 'checkin'
-                  ? 'Reason for Manual Check-In (optional)'
-                  : 'Official Reason / Letter Reference *'}
-              </label>
-              <textarea
-                value={modalNote}
-                onChange={(e) => setModalNote(e.target.value)}
-                rows={3}
-                placeholder={
-                  activeModal.type === 'checkin'
-                    ? 'e.g. Phone was dead, confirmed present in person'
-                    : 'e.g. Official letter received 16 June 2026, signed by Secretary'
-                }
-                style={{
-                  width: '100%', boxSizing: 'border-box',
-                  padding: '10px 14px',
-                  borderRadius: 10,
-                  border: '1.5px solid #e2e8f0',
-                  fontSize: 13,
-                  fontFamily: 'inherit',
-                  resize: 'vertical',
-                  outline: 'none',
-                  color: '#1e293b',
-                  lineHeight: 1.6,
-                }}
-                autoFocus
-              />
-              {activeModal.type === 'excuse' && (
-                <p style={{ margin: 0, fontSize: 11, color: '#94a3b8' }}>
-                  * Required. This is recorded as the official excuse in the attendance log.
-                </p>
-              )}
-            </div>
+            {activeModal.type !== 'reject' && (
+              <div style={{ display: 'grid', gap: 8 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                  {activeModal.type === 'checkin'
+                    ? 'Reason for Manual Check-In (optional)'
+                    : 'Official Reason / Letter Reference *'}
+                </label>
+                <textarea
+                  value={modalNote}
+                  onChange={(e) => setModalNote(e.target.value)}
+                  rows={3}
+                  placeholder={
+                    activeModal.type === 'checkin'
+                      ? 'e.g. Phone was dead, confirmed present in person'
+                      : 'e.g. Official letter received 16 June 2026, signed by Secretary'
+                  }
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    padding: '10px 14px',
+                    borderRadius: 10,
+                    border: '1.5px solid #e2e8f0',
+                    fontSize: 13,
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                    outline: 'none',
+                    color: '#1e293b',
+                    lineHeight: 1.6,
+                  }}
+                  autoFocus
+                />
+                {activeModal.type === 'excuse' && (
+                  <p style={{ margin: 0, fontSize: 11, color: '#94a3b8' }}>
+                    * Required. This is recorded as the official excuse in the attendance log.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {activeModal.type === 'reject' && (
+              <div style={{ background: '#fff5f5', border: '1px solid #fecaca', padding: '12px 14px', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>
+                Are you sure you want to remove and reject the check-in record for <strong>{activeModal.memberName}</strong>? This action will mark them as Absent in official reports.
+              </div>
+            )}
 
             {/* Action buttons */}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -940,7 +1082,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                 disabled={modalSubmitting}
                 style={{
                   padding: '10px 24px',
-                  background: activeModal.type === 'checkin' ? 'var(--navy)' : '#0284c7',
+                  background: activeModal.type === 'checkin' ? 'var(--navy)' : activeModal.type === 'reject' ? '#dc2626' : '#0284c7',
                   color: '#fff',
                   border: 'none',
                   borderRadius: 8,
@@ -955,6 +1097,8 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                   ? '⏳ Saving...'
                   : activeModal.type === 'checkin'
                   ? '✅ Confirm Check-In'
+                  : activeModal.type === 'reject'
+                  ? '❌ Confirm Sign-In Rejection'
                   : '✉️ Grant Excuse'}
               </button>
             </div>

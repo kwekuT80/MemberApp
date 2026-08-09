@@ -14,6 +14,7 @@ export const KSJI_TERMINOLOGY = {
  */
 export function isSystemMember(member: any): boolean {
   if (!member) return false;
+  if (member.id === 'f0000000-0000-0000-0000-000000000000') return true;
   if (member.is_system === true || member.is_fictitious === true) return true;
   if (member.member_type === 'system' || member.member_type === 'fictitious' || member.member_type === 'operational') return true;
 
@@ -31,6 +32,7 @@ export function isSystemMember(member: any): boolean {
     fullText.includes('operational outflow') ||
     fullText.includes('commandery welfare account') ||
     fullText.includes('welfare account (operational') ||
+    fullText.includes('welfare account') ||
     fullText.includes('fictitious')
   );
 }
