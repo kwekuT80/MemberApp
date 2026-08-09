@@ -175,14 +175,39 @@ export async function generateAnnualAssessments(year: number) {
 
 export async function getAssessmentsForYear(year: number) {
   const supabase = await createClient();
-  return fetchAllPaginated((from, to) =>
-    supabase
-      .from('financial_assessments')
-      .select('*, members(id, first_name, surname, title, membership_type, date_of_birth)')
-      .eq('year', year)
-      .order('created_at', { ascending: true })
-      .range(from, to)
-  );
+
+  const [assessmentsRes, activeMembersRes] = await Promise.all([
+    fetchAllPaginated((from, to) =>
+      supabase
+        .from('financial_assessments')
+        .select('*, members(id, first_name, surname, title, membership_type, date_of_birth, status, is_deceased)')
+        .eq('year', year)
+        .order('created_at', { ascending: true })
+        .range(from, to)
+    ),
+    fetchAllPaginated((from, to) =>
+      supabase
+        .from('members')
+        .select('id, first_name, surname, title, membership_type, date_of_birth, status, is_deceased')
+        .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+        .range(from, to)
+    )
+  ]);
+
+  const existingMemberIds = new Set((assessmentsRes || []).map((a: any) => a.member_id));
+  const missingMembers = (activeMembersRes || []).filter((m: any) => !m.is_deceased && !existingMemberIds.has(m.id));
+
+  const syntheticRows = missingMembers.map((m: any) => ({
+    id: `unbilled-${m.id}`,
+    member_id: m.id,
+    year,
+    arrears_brought_forward: 0,
+    annual_assessment: 0,
+    members: m,
+    is_unbilled: true,
+  }));
+
+  return [...(assessmentsRes || []), ...syntheticRows];
 }
 
 export async function updateIndividualAssessment(

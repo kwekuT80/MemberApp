@@ -116,16 +116,39 @@ export default function RatesAndBillingClient({
     setGenerating(false);
   }
 
-  async function handleSaveEdit(id: string) {
-    const { error } = await supabase
-      .from('financial_assessments')
-      .update({ arrears_brought_forward: parseFloat(editArrears), annual_assessment: parseFloat(editAnnual) })
-      .eq('id', id);
-    if (error) { showToast('Error updating: ' + error.message, 'err'); return; }
-    setAssessments(prev => prev.map(a => a.id === id
-      ? { ...a, arrears_brought_forward: parseFloat(editArrears), annual_assessment: parseFloat(editAnnual) }
-      : a
-    ));
+  async function handleSaveEdit(assessmentItem: any) {
+    const memberId = assessmentItem.member_id || assessmentItem.members?.id;
+    const isSynthetic = String(assessmentItem.id).startsWith('unbilled-') || assessmentItem.is_unbilled;
+
+    if (isSynthetic) {
+      const { data: newRow, error } = await supabase
+        .from('financial_assessments')
+        .upsert({
+          member_id: memberId,
+          year,
+          arrears_brought_forward: parseFloat(editArrears || '0'),
+          annual_assessment: parseFloat(editAnnual || '0'),
+        }, { onConflict: 'member_id,year' })
+        .select('*, members(id, first_name, surname, title, membership_type, date_of_birth)')
+        .single();
+
+      if (error) { showToast('Error creating bill: ' + error.message, 'err'); return; }
+
+      setAssessments(prev => prev.map(a => (a.id === assessmentItem.id ? (newRow as Assessment) : a)));
+    } else {
+      const { error } = await supabase
+        .from('financial_assessments')
+        .update({ arrears_brought_forward: parseFloat(editArrears || '0'), annual_assessment: parseFloat(editAnnual || '0') })
+        .eq('id', assessmentItem.id);
+
+      if (error) { showToast('Error updating: ' + error.message, 'err'); return; }
+
+      setAssessments(prev => prev.map(a => a.id === assessmentItem.id
+        ? { ...a, arrears_brought_forward: parseFloat(editArrears || '0'), annual_assessment: parseFloat(editAnnual || '0') }
+        : a
+      ));
+    }
+
     setEditingId(null);
     showToast('Assessment updated!', 'ok');
   }
@@ -145,12 +168,25 @@ export default function RatesAndBillingClient({
     const { data: rates } = await supabase.from('annual_assessment_rates').select('*').eq('year', newYear).maybeSingle();
     if (rates) { setRegularRate(rates.regular_rate); setSocialRate(rates.social_rate); setStudentRate(rates.student_rate); }
     else { setRegularRate(1050); setSocialRate(700); setStudentRate(350); }
-    // Load assessments
-    const { data: ass } = await supabase
-      .from('financial_assessments')
-      .select('*, members(id, first_name, surname, title, membership_type, date_of_birth)')
-      .eq('year', newYear).order('created_at');
-    setAssessments((ass || []) as Assessment[]);
+    
+    // Load assessments & active members for new year
+    const [assRes, memRes] = await Promise.all([
+      supabase.from('financial_assessments').select('*, members(id, first_name, surname, title, membership_type, date_of_birth)').eq('year', newYear).order('created_at'),
+      supabase.from('members').select('id, first_name, surname, title, membership_type, date_of_birth, status, is_deceased').not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+    ]);
+
+    const existingMemberIds = new Set((assRes.data || []).map((a: any) => a.member_id));
+    const synthetic = (memRes.data || []).filter((m: any) => !m.is_deceased && !existingMemberIds.has(m.id)).map((m: any) => ({
+      id: `unbilled-${m.id}`,
+      member_id: m.id,
+      year: newYear,
+      arrears_brought_forward: 0,
+      annual_assessment: 0,
+      members: m,
+      is_unbilled: true,
+    }));
+
+    setAssessments([...(assRes.data || []), ...synthetic] as Assessment[]);
   }
 
   const CONFIRM_PHRASE = 'GENERATE BILLS';
@@ -356,7 +392,7 @@ export default function RatesAndBillingClient({
                     <td style={{ textAlign: 'right' }}>
                       {isEditing ? (
                         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                          <button onClick={() => handleSaveEdit(a.id)} style={{ background: '#16a34a', color: 'white', border: 0, borderRadius: 6, padding: '6px 14px', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>Save</button>
+                          <button onClick={() => handleSaveEdit(a)} style={{ background: '#16a34a', color: 'white', border: 0, borderRadius: 6, padding: '6px 14px', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>Save</button>
                           <button onClick={() => setEditingId(null)} style={{ background: 'var(--bg)', color: 'var(--navy)', border: 0, borderRadius: 6, padding: '6px 14px', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>Cancel</button>
                         </div>
                       ) : (
