@@ -48,8 +48,10 @@ export default function FinancialSummaryExportButtons({
       const assessed = parseFloat(m.total_assessed as string || '0');
       const paid = parseFloat(m.total_paid as string || '0');
       const balance = parseFloat(m.outstanding_balance as string || '0');
+      const isDeceased = m.is_deceased || m.status === 'Deceased';
 
-      if (assessed <= 0 || m.payment_status === 'exempt') return 'Exempt';
+      if (isDeceased || m.payment_status === 'exempt') return 'Exempt';
+      if (assessed <= 0 || m.payment_status === 'unassessed') return 'Not Billed';
       if (balance <= 0 || m.payment_status === 'fully_paid' || m.payment_status === 'paid') return 'Fully Paid';
       if (paid > 0 || m.payment_status === 'partially_paid') return 'Partially Paid';
       return 'Delinquent';
