@@ -39,6 +39,9 @@ When attending a scheduled meeting:
    * If you are within the specified radius (e.g., 100 meters) of the meeting coordinates, the system will show: `✅ Within Range!`. The **"Check In"** button will unlock. Click it to verify your presence.
    * If you are outside the boundary, the check-in button remains locked, and it displays: `⚠️ Too Far: Move closer to check in`.
 
+### 4. Roll of Worthy Presidents
+Tap the **👑 Worthy Presidents** tab to view the historical succession roll of the 12 Worthy Presidents of St. Margaret-Mary Commandery No. 500 (1996 – Present), including tenure periods and deceased honor roll badges.
+
 ### 4. Personal Attendance Report & Standing Metrics
 In **Attendance** (`/me/attendance`), your personal report displays:
 * **📊 Attendance Data vs Assessment**: View total meetings attended vs total scheduled, along with your calculated annual attendance compliance percentage.

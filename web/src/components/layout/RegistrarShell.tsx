@@ -45,6 +45,7 @@ export default function RegistrarShell({
     navItems.push(
       { href: '/registrar', label: '🏠 Dashboard' },
       { href: '/registrar/members', label: '👥 Members' },
+      { href: '/registrar/presidents', label: '👑 Worthy Presidents' },
       { href: '/registrar/members/new', label: '➕ Create Member' },
       { href: '/registrar/members/id-cards', label: '🪪 Batch ID Cards' },
       { href: '/registrar/reports', label: '📊 Reporting Hub' },
