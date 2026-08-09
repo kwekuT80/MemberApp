@@ -5,47 +5,110 @@ import Link from 'next/link';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { createClient } from '@/lib/supabase/server';
 
-export interface WorthyPresidentItem {
+export interface DynamicPresidentItem {
   no: number;
+  memberId: string;
   title: string;
   name: string;
   tenure: string;
   duration: string;
   status: string;
   isDeceased: boolean;
-  memberId?: string | null;
+  isIncumbent: boolean;
 }
-
-const WORTHY_PRESIDENTS: WorthyPresidentItem[] = [
-  { no: 1,  title: 'N/B', name: 'Thomas Kwao Nyaku',        tenure: '1996–1997', duration: '2 years', status: 'Deceased', isDeceased: true,  memberId: '05ca54dc-0a41-49d2-9ec1-394d1a29bd0a' },
-  { no: 2,  title: 'N/B', name: 'John Fifi Sackey',          tenure: '1998–2001', duration: '4 years', status: 'Active',   isDeceased: false, memberId: '74b2a9e9-496c-4070-b0b9-db017d2bf133' },
-  { no: 3,  title: 'N/B', name: 'Paul Kwofie',              tenure: '2002–2003', duration: '2 years', status: 'Deceased', isDeceased: true,  memberId: '3af1481b-597a-4944-9359-d059981e5bb5' },
-  { no: 4,  title: 'N/B', name: 'Oscar Bongne',             tenure: '2004–2005', duration: '2 years', status: 'Active',   isDeceased: false, memberId: '78ef4d82-49eb-407f-9c6a-ce61967567c9' },
-  { no: 5,  title: 'N/B', name: 'Ben Hagan',                tenure: '2006–2007', duration: '2 years', status: 'Deceased', isDeceased: true,  memberId: '9248180a-bb6b-4106-8ac1-49c9fc1fc103' },
-  { no: 6,  title: 'SK',  name: 'Philip Amanor',            tenure: '2008–2011', duration: '4 years', status: 'Active',   isDeceased: false, memberId: '0838bc6e-a052-45c2-a4e1-c2bf940aa075' },
-  { no: 7,  title: 'N/B', name: 'John Cozy Clottey',        tenure: '2012–2013', duration: '2 years', status: 'Deceased', isDeceased: true,  memberId: '125ca3a2-3470-49d9-88d9-9b97dc7831f1' },
-  { no: 8,  title: 'N/B', name: 'Paul Amati',               tenure: '2014–2015', duration: '2 years', status: 'Active',   isDeceased: false, memberId: '589fd6ed-503f-4d37-9826-22c2cb1e9975' },
-  { no: 9,  title: 'N/B', name: 'Francis Ahiafor',          tenure: '2016–2017', duration: '2 years', status: 'Deceased', isDeceased: true,  memberId: 'fd3733e6-a58b-4734-b244-291ab819441b' },
-  { no: 10, title: 'N/B', name: 'David Bondorin',           tenure: '2018–2019', duration: '2 years', status: 'Active',   isDeceased: false, memberId: '6b5e9719-51f6-43d2-9500-168c9cd5ab93' },
-  { no: 11, title: 'Lt.', name: 'Jonathan Dizikunu',        tenure: '2020–2023', duration: '4 years', status: 'Active',   isDeceased: false, memberId: 'c88a6e44-91eb-4724-a8cd-edaa31350e29' },
-  { no: 12, title: 'N/B', name: 'Theophilus Knox Prah',     tenure: '2024–2025', duration: '2 years', status: 'Active',   isDeceased: false, memberId: 'ef063a65-efea-4d13-8894-f7a3ca352146' },
-  { no: 13, title: 'N/B', name: 'Nii Armah Tagoe',          tenure: '2026–Present', duration: 'Incumbent', status: 'Active', isDeceased: false, memberId: 'cc9f12ab-5881-4b11-bc15-96f620d6cf54' },
-];
 
 export default async function RollOfWorthyPresidentsPage() {
   const supabase = await createClient();
 
-  // Fetch positions or members details if linked
-  const { data: dbMembers } = await supabase
-    .from('members')
-    .select('id, title, first_name, surname, status, is_deceased');
+  // Dynamically query positions table for all Presidents of the Commandery
+  const { data: dbPositions } = await supabase
+    .from('positions')
+    .select(`
+      id,
+      position_title,
+      date_from,
+      date_to,
+      members!inner (
+        id,
+        title,
+        first_name,
+        surname,
+        status,
+        is_deceased
+      )
+    `)
+    .in('position_title', ['President', 'Worthy President'])
+    .order('date_from', { ascending: true });
 
-  const memberMap = new Map((dbMembers || []).map(m => [m.id, m]));
+  // Group contiguous/sequential terms for each president dynamically
+  const presidentsList: DynamicPresidentItem[] = [];
+  const rawList = dbPositions || [];
+
+  let currentSeq = 1;
+
+  for (let i = 0; i < rawList.length; i++) {
+    const item = rawList[i];
+    const m = item.members as any;
+    if (!m) continue;
+
+    const fromYear = item.date_from ? item.date_from.substring(0, 4) : '';
+    let toYear = item.date_to ? item.date_to.substring(0, 4) : '';
+    let endYearNum = toYear ? parseInt(toYear, 10) : new Date().getFullYear();
+
+    // Check if next consecutive position is for the same member to combine terms (e.g. 2020-2021 & 2022-2023 -> 2020-2023)
+    while (i + 1 < rawList.length && (rawList[i + 1].members as any)?.id === m.id) {
+      i++;
+      const nextTo = rawList[i].date_to ? rawList[i].date_to.substring(0, 4) : '';
+      if (nextTo) {
+        toYear = nextTo;
+        endYearNum = parseInt(nextTo, 10);
+      } else {
+        toYear = '';
+      }
+    }
+
+    const startYearNum = fromYear ? parseInt(fromYear, 10) : 1996;
+    const isIncumbent = !toYear || endYearNum >= 2026;
+
+    let tenure = '';
+    let duration = '';
+
+    if (isIncumbent) {
+      tenure = `${fromYear || '2026'}–Present`;
+      duration = 'Incumbent';
+    } else {
+      tenure = `${fromYear}–${toYear}`;
+      const diff = Math.max(1, endYearNum - startYearNum + 1);
+      duration = `${diff} year${diff > 1 ? 's' : ''}`;
+    }
+
+    const isDeceased = m.is_deceased || String(m.status).toLowerCase() === 'deceased';
+
+    // Format title prefix according to app convention
+    let formattedTitle = m.title || 'Bro.';
+    if (formattedTitle === 'N Bro.' || formattedTitle === 'N Bro') {
+      formattedTitle = 'N/B';
+    }
+
+    presidentsList.push({
+      no: currentSeq++,
+      memberId: m.id,
+      title: formattedTitle,
+      name: `${m.first_name || ''} ${m.surname || ''}`.trim(),
+      tenure,
+      duration,
+      status: m.status || (isDeceased ? 'Deceased' : 'Active'),
+      isDeceased,
+      isIncumbent,
+    });
+  }
+
+  const totalPresidents = presidentsList.length;
 
   return (
     <RegistrarShell 
       title="Roll of Worthy Presidents" 
-      subtitle="St. Margaret-Mary Commandery No. 500 — Official Historical Succession of Worthy Presidents (1996 – Present)"
+      subtitle="St. Margaret-Mary Commandery No. 500 — Official Historical Succession of Worthy Presidents (Dynamic Database Registry)"
     >
       <div style={{ padding: '24px 0', color: '#0F172A', fontFamily: 'Inter, sans-serif' }}>
         
@@ -62,19 +125,19 @@ export default async function RollOfWorthyPresidentsPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20 }}>
             <div>
               <div style={{ fontSize: 13, fontWeight: 800, color: '#F59E0B', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 6 }}>
-                👑 Commandery No. 500 Honor Roll & Leadership Heritage
+                👑 Dynamic Commandery Registry & Leadership Heritage
               </div>
               <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, letterSpacing: -0.5 }}>
                 Roll of Worthy Presidents
               </h1>
               <p style={{ margin: '8px 0 0', fontSize: 14, color: '#94A3B8', maxWidth: 680 }}>
-                Chronological registry of the 13 Worthy Presidents who have led St. Margaret-Mary Commandery No. 500 from its founding in 1996 through the incumbent 2026 term.
+                Live chronological registry automatically compiled from official position records in the database.
               </p>
             </div>
             
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ background: 'rgba(255, 255, 255, 0.08)', backdropFilter: 'blur(8px)', padding: '14px 20px', borderRadius: 14, border: '1px solid rgba(255, 255, 255, 0.12)', textAlign: 'center' }}>
-                <div style={{ fontSize: 24, fontWeight: 900, color: '#F59E0B', fontFamily: 'monospace' }}>13</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: '#F59E0B', fontFamily: 'monospace' }}>{totalPresidents}</div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#CBD5E1', marginTop: 2, textTransform: 'uppercase' }}>Worthy Presidents</div>
               </div>
               <div style={{ background: 'rgba(255, 255, 255, 0.08)', backdropFilter: 'blur(8px)', padding: '14px 20px', borderRadius: 14, border: '1px solid rgba(255, 255, 255, 0.12)', textAlign: 'center' }}>
@@ -85,17 +148,20 @@ export default async function RollOfWorthyPresidentsPage() {
           </div>
         </div>
 
-        {/* Presidents Succession Table Card */}
+        {/* Dynamic Table Card */}
         <div style={{ background: 'white', borderRadius: 16, border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', marginBottom: 36 }}>
           <div style={{ padding: '20px 24px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0F172A' }}>
-                📜 Historical Roll & Succession Table
+                📜 Dynamic Succession Roll (Live Database View)
               </h3>
               <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
-                13 Worthy Presidents in order of election and term duration
+                Automatically updated from member position records in order of presidential election
               </div>
             </div>
+            <span style={{ background: '#DCFCE7', color: '#15803D', padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 800 }}>
+              ⚡ Live Database Sync
+            </span>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
@@ -111,101 +177,92 @@ export default async function RollOfWorthyPresidentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {WORTHY_PRESIDENTS.map((item) => {
-                  const dbMember = item.memberId ? memberMap.get(item.memberId) : null;
-                  const isDeceased = dbMember ? (dbMember.is_deceased || dbMember.status === 'Deceased') : item.isDeceased;
+                {presidentsList.map((item) => (
+                  <tr 
+                    key={item.memberId + '-' + item.no} 
+                    style={{ 
+                      borderBottom: '1px solid #F1F5F9',
+                      background: item.isIncumbent ? '#FEFCE8' : item.no % 2 === 0 ? '#FAFDFB' : '#FFFFFF'
+                    }}
+                  >
+                    {/* Succession Number */}
+                    <td style={{ padding: '16px 18px', textAlign: 'center', fontWeight: 900, color: '#0F172A', fontSize: 15 }}>
+                      <span style={{ 
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', 
+                        width: 28, height: 28, borderRadius: 99, 
+                        background: item.isIncumbent ? '#FEF3C7' : '#F1F5F9', 
+                        color: item.isIncumbent ? '#D97706' : '#475569',
+                        fontSize: 12, fontWeight: 900
+                      }}>
+                        {item.no}
+                      </span>
+                    </td>
 
-                  return (
-                    <tr 
-                      key={item.no} 
-                      style={{ 
-                        borderBottom: '1px solid #F1F5F9',
-                        background: item.no === 13 ? '#FEFCE8' : item.no % 2 === 0 ? '#FAFDFB' : '#FFFFFF'
-                      }}
-                    >
-                      {/* Succession Number */}
-                      <td style={{ padding: '16px 18px', textAlign: 'center', fontWeight: 900, color: '#0F172A', fontSize: 15 }}>
-                        <span style={{ 
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', 
-                          width: 28, height: 28, borderRadius: 99, 
-                          background: item.no === 13 ? '#FEF3C7' : '#F1F5F9', 
-                          color: item.no === 13 ? '#D97706' : '#475569',
-                          fontSize: 12, fontWeight: 900
-                        }}>
-                          {item.no}
+                    {/* Name & Honorific */}
+                    <td style={{ padding: '16px 18px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 18 }}>
+                          {item.isIncumbent ? '👑' : item.isDeceased ? '🕯️' : '🛡️'}
                         </span>
-                      </td>
-
-                      {/* Name & Honorific */}
-                      <td style={{ padding: '16px 18px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ fontSize: 18 }}>
-                            {item.no === 13 ? '👑' : isDeceased ? '🕯️' : '🛡️'}
-                          </span>
-                          <div>
-                            <div style={{ fontWeight: 800, color: '#0F172A', fontSize: 15 }}>
-                              {item.title} {item.name}
-                            </div>
-                            {item.no === 1 && (
-                              <div style={{ fontSize: 11, fontWeight: 700, color: '#D97706', marginTop: 1 }}>
-                                🌟 Pioneer Charter Worthy President
-                              </div>
-                            )}
-                            {item.no === 13 && (
-                              <div style={{ fontSize: 11, fontWeight: 700, color: '#166534', marginTop: 1 }}>
-                                ✨ Incumbent Worthy President (2026 – Present)
-                              </div>
-                            )}
+                        <div>
+                          <div style={{ fontWeight: 800, color: '#0F172A', fontSize: 15 }}>
+                            {item.title} {item.name}
                           </div>
+                          {item.no === 1 && (
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#D97706', marginTop: 1 }}>
+                              🌟 Pioneer Charter Worthy President
+                            </div>
+                          )}
+                          {item.isIncumbent && (
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#166534', marginTop: 1 }}>
+                              ✨ Incumbent Worthy President ({item.tenure})
+                            </div>
+                          )}
                         </div>
-                      </td>
+                      </div>
+                    </td>
 
-                      {/* Tenure */}
-                      <td style={{ padding: '16px 18px', fontWeight: 800, color: '#2563EB', fontFamily: 'monospace', fontSize: 15 }}>
-                        {item.tenure}
-                      </td>
+                    {/* Tenure */}
+                    <td style={{ padding: '16px 18px', fontWeight: 800, color: '#2563EB', fontFamily: 'monospace', fontSize: 15 }}>
+                      {item.tenure}
+                    </td>
 
-                      {/* Duration */}
-                      <td style={{ padding: '16px 18px', fontWeight: 700, color: '#475569' }}>
-                        <span style={{ background: item.no === 13 ? '#FEF3C7' : '#F1F5F9', color: item.no === 13 ? '#92400E' : '#475569', padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 800 }}>
-                          ⏱️ {item.duration}
+                    {/* Duration */}
+                    <td style={{ padding: '16px 18px', fontWeight: 700, color: '#475569' }}>
+                      <span style={{ background: item.isIncumbent ? '#FEF3C7' : '#F1F5F9', color: item.isIncumbent ? '#92400E' : '#475569', padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 800 }}>
+                        ⏱️ {item.duration}
+                      </span>
+                    </td>
+
+                    {/* Status */}
+                    <td style={{ padding: '16px 18px' }}>
+                      {item.isDeceased ? (
+                        <span style={{ background: '#FEF2F2', color: '#991B1B', border: '1px solid #FECACA', padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
+                          🕯️ Deceased (Roll of Honor)
                         </span>
-                      </td>
+                      ) : (
+                        <span style={{ background: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0', padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
+                          🟢 Active
+                        </span>
+                      )}
+                    </td>
 
-                      {/* Status */}
-                      <td style={{ padding: '16px 18px' }}>
-                        {isDeceased ? (
-                          <span style={{ background: '#FEF2F2', color: '#991B1B', border: '1px solid #FECACA', padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
-                            🕯️ Deceased (Roll of Honor)
-                          </span>
-                        ) : (
-                          <span style={{ background: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0', padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
-                            🟢 Active
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td style={{ padding: '16px 18px', textAlign: 'right' }}>
-                        {item.memberId ? (
-                          <Link 
-                            href={`/registrar/members/${item.memberId}/dossier`}
-                            style={{ 
-                              background: '#0F172A', color: 'white', 
-                              padding: '6px 14px', borderRadius: 8, 
-                              fontSize: 12, fontWeight: 800, textDecoration: 'none',
-                              display: 'inline-flex', alignItems: 'center', gap: 6
-                            }}
-                          >
-                            📂 View Dossier →
-                          </Link>
-                        ) : (
-                          <span style={{ color: '#94A3B8', fontSize: 12 }}>Archived Record</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                    {/* Actions */}
+                    <td style={{ padding: '16px 18px', textAlign: 'right' }}>
+                      <Link 
+                        href={`/registrar/members/${item.memberId}/dossier`}
+                        style={{ 
+                          background: '#0F172A', color: 'white', 
+                          padding: '6px 14px', borderRadius: 8, 
+                          fontSize: 12, fontWeight: 800, textDecoration: 'none',
+                          display: 'inline-flex', alignItems: 'center', gap: 6
+                        }}
+                      >
+                        📂 View Dossier →
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
