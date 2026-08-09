@@ -23,6 +23,21 @@ interface FinancialSummaryExportButtonsProps {
   collectionRate: number;
 }
 
+function getStatusLabel(m: any) {
+  const assessed = parseFloat(m.total_assessed as string || '0');
+  const paid = parseFloat(m.total_paid as string || '0');
+  const balance = parseFloat(m.outstanding_balance as string || '0');
+  const isDeceased = m.is_deceased || m.status === 'Deceased' || m.payment_status === 'exempt_deceased';
+  const isSeniorExempt = m.is_senior_exempt || (m.age && m.age >= 80) || m.payment_status === 'exempt_senior';
+
+  if (isDeceased) return 'Exempt (Roll of Honor)';
+  if (isSeniorExempt) return 'Exempt (Senior 80+)';
+  if (assessed <= 0 || m.payment_status === 'unassessed_new' || m.payment_status === 'unassessed') return 'Not Billed (New Initiate)';
+  if (balance <= 0 || m.payment_status === 'fully_paid' || m.payment_status === 'paid') return 'Fully Paid';
+  if (paid > 0 || m.payment_status === 'partially_paid') return 'Partially Paid';
+  return 'Delinquent';
+}
+
 export default function FinancialSummaryExportButtons({
   summaries,
   totalAssessed,
@@ -43,21 +58,6 @@ export default function FinancialSummaryExportButtons({
       'Outstanding Balance (₵)',
       'Payment Status'
     ];
-
-    const getStatusLabel = (m: any) => {
-      const assessed = parseFloat(m.total_assessed as string || '0');
-      const paid = parseFloat(m.total_paid as string || '0');
-      const balance = parseFloat(m.outstanding_balance as string || '0');
-      const isDeceased = m.is_deceased || m.status === 'Deceased' || m.payment_status === 'exempt_deceased';
-      const isSeniorExempt = m.is_senior_exempt || (m.age && m.age >= 80) || m.payment_status === 'exempt_senior';
-
-      if (isDeceased) return 'Exempt (Roll of Honor)';
-      if (isSeniorExempt) return 'Exempt (Senior 80+)';
-      if (assessed <= 0 || m.payment_status === 'unassessed_new' || m.payment_status === 'unassessed') return 'Not Billed (New Initiate)';
-      if (balance <= 0 || m.payment_status === 'fully_paid' || m.payment_status === 'paid') return 'Fully Paid';
-      if (paid > 0 || m.payment_status === 'partially_paid') return 'Partially Paid';
-      return 'Delinquent';
-    };
 
     const rows = summaries.map(m => [
       m.full_name || '',
