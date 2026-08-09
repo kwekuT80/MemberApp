@@ -46,7 +46,7 @@ export default async function CommanderyHealthPage() {
   const payments = await fetchAllPaginated((from, to) =>
     supabase
       .from('financial_payments')
-      .select('amount, month, payment_type, payment_category, notes')
+      .select('amount, month, notes')
       .eq('assessment_year', currentYear)
       .range(from, to)
   );
