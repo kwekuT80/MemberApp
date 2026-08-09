@@ -381,7 +381,7 @@ export async function getAllMemberSummaries(filters?: {
     const totalAssessed = parseFloat(row.total_assessed || 0);
     const actualDuesPaid = duesPaidByMember[memberId] ?? 0;
     const netOutstanding = totalAssessed - actualDuesPaid;
-    const paymentStatus = netOutstanding <= 0 ? 'fully_paid' : actualDuesPaid > 0 ? 'partially_paid' : 'delinquent';
+    const paymentStatus = totalAssessed <= 0 ? 'exempt' : netOutstanding <= 0 ? 'fully_paid' : actualDuesPaid > 0 ? 'partially_paid' : 'delinquent';
 
     return {
       ...row,

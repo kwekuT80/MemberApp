@@ -44,6 +44,17 @@ export default function FinancialSummaryExportButtons({
       'Payment Status'
     ];
 
+    const getStatusLabel = (m: any) => {
+      const assessed = parseFloat(m.total_assessed as string || '0');
+      const paid = parseFloat(m.total_paid as string || '0');
+      const balance = parseFloat(m.outstanding_balance as string || '0');
+
+      if (assessed <= 0 || m.payment_status === 'exempt') return 'Exempt';
+      if (balance <= 0 || m.payment_status === 'fully_paid' || m.payment_status === 'paid') return 'Fully Paid';
+      if (paid > 0 || m.payment_status === 'partially_paid') return 'Partially Paid';
+      return 'Delinquent';
+    };
+
     const rows = summaries.map(m => [
       m.full_name || '',
       m.phone_number || '',
@@ -51,7 +62,7 @@ export default function FinancialSummaryExportButtons({
       parseFloat(m.total_assessed as string || '0').toFixed(2),
       parseFloat(m.total_paid as string || '0').toFixed(2),
       parseFloat(m.outstanding_balance as string || '0').toFixed(2),
-      m.payment_status === 'paid' ? 'Fully Paid' : m.payment_status === 'partially_paid' ? 'Partially Paid' : 'Delinquent'
+      getStatusLabel(m)
     ]);
 
     const csvContent = [
@@ -79,8 +90,8 @@ export default function FinancialSummaryExportButtons({
 
     const rowsHtml = summaries.map(m => {
       const balance = parseFloat(m.outstanding_balance as string || '0');
-      const statusLabel = m.payment_status === 'paid' ? 'Fully Paid' : m.payment_status === 'partially_paid' ? 'Partially Paid' : 'Delinquent';
-      const statusColor = m.payment_status === 'paid' ? '#16a34a' : m.payment_status === 'partially_paid' ? '#d97706' : '#dc2626';
+      const statusLabel = getStatusLabel(m);
+      const statusColor = statusLabel === 'Exempt' ? '#4338ca' : statusLabel === 'Fully Paid' ? '#16a34a' : statusLabel === 'Partially Paid' ? '#d97706' : '#dc2626';
 
       return `
         <tr>

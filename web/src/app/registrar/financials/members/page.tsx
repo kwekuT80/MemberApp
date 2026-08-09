@@ -224,7 +224,14 @@ export default async function MemberSummaryPage({
                       </tr>
                     ) : (
                       summaries.map((m) => {
+                        const totalAssessedNum = parseFloat(String(m.total_assessed || 0));
+                        const totalPaidNum = parseFloat(String(m.total_paid || 0));
                         const balance = parseFloat(String(m.outstanding_balance || 0));
+
+                        const isExempt = totalAssessedNum <= 0 || m.payment_status === 'exempt';
+                        const isFullyPaid = !isExempt && (balance <= 0 || m.payment_status === 'fully_paid' || m.payment_status === 'paid');
+                        const isPartiallyPaid = !isExempt && !isFullyPaid && (totalPaidNum > 0 || m.payment_status === 'partially_paid');
+
                         return (
                           <tr key={m.id}>
                             <td>
@@ -240,23 +247,28 @@ export default async function MemberSummaryPage({
                               <span style={{ display: 'block', fontSize: 12, color: 'var(--grey)', marginTop: 2 }}>{m.email || '—'}</span>
                             </td>
                             <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                              ₵{parseFloat(String(m.total_assessed || 0)).toFixed(2)}
+                              ₵{totalAssessedNum.toFixed(2)}
                             </td>
                             <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--success)' }}>
-                              ₵{parseFloat(String(m.total_paid || 0)).toFixed(2)}
+                              ₵{totalPaidNum.toFixed(2)}
                             </td>
-                            <td style={{ textAlign: 'right', fontWeight: 900, color: balance > 0 ? 'var(--warning)' : 'var(--success)' }}>
+                            <td style={{ textAlign: 'right', fontWeight: 900, color: isExempt ? '#4338CA' : balance > 0 ? 'var(--warning)' : 'var(--success)' }}>
                               ₵{balance.toFixed(2)}
                             </td>
                             <td style={{ textAlign: 'center' }}>
-                              <span className={`badge ${
-                                m.payment_status === 'paid'
-                                  ? 'badge-green'
-                                  : m.payment_status === 'partially_paid'
-                                  ? 'badge-amber'
-                                  : 'badge-red'
-                              }`}>
-                                {m.payment_status === 'paid' ? 'Fully Paid' : m.payment_status === 'partially_paid' ? 'Partially Paid' : 'Delinquent'}
+                              <span
+                                className={`badge ${
+                                  isExempt
+                                    ? 'badge-purple'
+                                    : isFullyPaid
+                                    ? 'badge-green'
+                                    : isPartiallyPaid
+                                    ? 'badge-amber'
+                                    : 'badge-red'
+                                }`}
+                                style={isExempt ? { background: '#EEF2FF', color: '#4338CA', border: '1px solid #C7D2FE', fontWeight: 800 } : undefined}
+                              >
+                                {isExempt ? 'Exempt' : isFullyPaid ? 'Fully Paid' : isPartiallyPaid ? 'Partially Paid' : 'Delinquent'}
                               </span>
                             </td>
                             <td style={{ textAlign: 'center' }}>
