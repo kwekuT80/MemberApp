@@ -322,16 +322,38 @@ export async function getAllMemberSummaries(filters?: {
 }) {
   const supabase = await createClient();
 
+  // Paginated query for all financial_payments to compute actual non-voluntary dues paid per member
+  const allPaymentsRows = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('financial_payments')
+      .select('member_id, amount, month, payment_type, payment_category, notes')
+      .range(from, to)
+  );
+
+  const isVoluntaryPayment = (p: any) => {
+    const m = String(p.month || '').toLowerCase();
+    const type = String(p.payment_type || p.payment_category || '').toLowerCase();
+    const notes = String(p.notes || '').toLowerCase();
+    return m.includes('voluntary') || m.includes('appeal') || m.includes('relief') || m.includes('donation') ||
+           type.includes('voluntary') || type.includes('appeal') || type.includes('relief') || type.includes('donation') ||
+           notes.includes('voluntary') || notes.includes('appeal') || notes.includes('relief') || notes.includes('donation');
+  };
+
+  const duesPaidByMember: Record<string, number> = {};
+  for (const p of allPaymentsRows || []) {
+    if (!isVoluntaryPayment(p)) {
+      const mid = p.member_id;
+      duesPaidByMember[mid] = (duesPaidByMember[mid] || 0) + parseFloat(p.amount || 0);
+    }
+  }
+
   // Paginated query for member_financial_summary
   const summaryRows = await fetchAllPaginated((from, to) => {
     let query = supabase.from('member_financial_summary').select('*');
-    if (filters?.status) {
-      query = query.eq('payment_status', filters.status);
-    }
     if (filters?.search) {
       query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
     }
-    return query.order('outstanding_balance', { ascending: false }).range(from, to);
+    return query.range(from, to);
   });
 
   // Filter out fictitious operational system accounts from member financial summary views
@@ -355,11 +377,31 @@ export async function getAllMemberSummaries(filters?: {
     annualSumByMember[id] = (annualSumByMember[id] || 0) + parseFloat(a.annual_assessment || 0);
   }
 
-  // Attach annual_assessment_sum to each summary row
-  return actualSummaryRows.map((row: any) => ({
-    ...row,
-    annual_assessment_sum: annualSumByMember[row.member_id ?? row.id] ?? 0,
-  }));
+  // Calculate actual dues paid, net outstanding, and accurate status per member
+  const resultRows = actualSummaryRows.map((row: any) => {
+    const memberId = row.member_id ?? row.id;
+    const totalAssessed = parseFloat(row.total_assessed || 0);
+    const actualDuesPaid = duesPaidByMember[memberId] ?? 0;
+    const netOutstanding = totalAssessed - actualDuesPaid;
+    const paymentStatus = netOutstanding <= 0 ? 'fully_paid' : actualDuesPaid > 0 ? 'partially_paid' : 'delinquent';
+
+    return {
+      ...row,
+      total_paid: actualDuesPaid,
+      outstanding_balance: netOutstanding,
+      payment_status: paymentStatus,
+      annual_assessment_sum: annualSumByMember[memberId] ?? 0,
+    };
+  });
+
+  // Apply optional status filter
+  let finalRows = resultRows;
+  if (filters?.status) {
+    finalRows = finalRows.filter((r: any) => r.payment_status === filters.status);
+  }
+
+  // Sort by net outstanding balance DESC
+  return finalRows.sort((a: any, b: any) => b.outstanding_balance - a.outstanding_balance);
 }
 
 export async function getMemberDetailedSummary(memberId: string) {
