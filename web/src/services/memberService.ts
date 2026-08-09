@@ -337,11 +337,24 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   const currMonthlyRate  = Number(currRateRes.data?.monthly_rate  ?? DEFAULT_MONTHLY_RATE);
   const lastMonthlyRate  = Number(lastRateRes.data?.monthly_rate  ?? DEFAULT_MONTHLY_RATE);
   
+  // Determine join date & month to evaluate new member welfare rules
+  const joinDateStr = member.date_joined || member.created_at;
+  const joinDate = joinDateStr ? new Date(joinDateStr) : new Date();
+  const joinYear = joinDate.getFullYear();
+  const joinMonth = joinDate.getMonth() + 1; // 1 to 12
+
+  const isNewMemberThisYear = joinYear >= currentYear;
+
   // Welfare is billed monthly: calculate expected contributions up to the current month of the current year
-  const proRataWelfareAssessment = currMonthlyRate * currentMonth;
-  const currentWelfareAssessment = currMonthlyRate * 12;
-  const lastYearWelfareAssessment = lastMonthlyRate * 12;
-  const lastYearWelfareBalance = Math.max(0, lastYearWelfareAssessment - lastYearWelfareContribs);
+  const lastYearWelfareAssessment = isNewMemberThisYear ? 0 : lastMonthlyRate * 12;
+  const lastYearWelfareBalance = isNewMemberThisYear ? 0 : Math.max(0, lastYearWelfareAssessment - lastYearWelfareContribs);
+
+  // If member joined this year, pro-rate current year welfare from join month to December (e.g. July-Dec = 6 months = GH₵ 150.00)
+  const monthsActiveThisYear = isNewMemberThisYear ? Math.max(1, 12 - joinMonth + 1) : 12;
+  const currentWelfareAssessment = currMonthlyRate * monthsActiveThisYear;
+  const proRataWelfareAssessment = isNewMemberThisYear
+    ? currMonthlyRate * Math.max(1, currentMonth - joinMonth + 1)
+    : currMonthlyRate * currentMonth;
 
   const totalWelfareAssessed = lastYearWelfareBalance + currentWelfareAssessment;
   const netWelfareBalance = totalWelfareAssessed - currYearWelfareContribs;
