@@ -32,7 +32,9 @@ export async function generateFinancialReportCsv(year: number) {
 
   const isVoluntaryPayment = (p: any) => {
     const m = String(p.month || '').toLowerCase();
-    return m.includes('voluntary') || m.includes('appeal') || m.includes('relief') || m.includes('donation');
+    const type = String(p.payment_type || p.payment_category || '').toLowerCase();
+    return m.includes('voluntary') || m.includes('appeal') || m.includes('relief') || m.includes('donation') ||
+           type.includes('voluntary') || type.includes('appeal') || type.includes('relief') || type.includes('donation');
   };
 
   (payments || []).filter((p: any) => !isVoluntaryPayment(p)).forEach((p: any) => {

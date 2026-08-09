@@ -326,13 +326,15 @@ export async function getAllMemberSummaries(filters?: {
   const allPaymentsRows = await fetchAllPaginated((from, to) =>
     supabase
       .from('financial_payments')
-      .select('member_id, amount, month, notes')
+      .select('member_id, amount, month')
       .range(from, to)
   );
 
   const isVoluntaryPayment = (p: any) => {
     const m = String(p.month || '').toLowerCase();
-    return m.includes('voluntary') || m.includes('appeal') || m.includes('relief') || m.includes('donation');
+    const type = String(p.payment_type || p.payment_category || '').toLowerCase();
+    return m.includes('voluntary') || m.includes('appeal') || m.includes('relief') || m.includes('donation') ||
+           type.includes('voluntary') || type.includes('appeal') || type.includes('relief') || type.includes('donation');
   };
 
   const duesPaidByMember: Record<string, number> = {};
@@ -421,7 +423,9 @@ export async function getMemberDetailedSummary(memberId: string) {
 
   const isVoluntaryPayment = (p: any) => {
     const m = String(p.month || '').toLowerCase();
-    return m.includes('voluntary') || m.includes('appeal') || m.includes('relief') || m.includes('donation');
+    const type = String(p.payment_type || p.payment_category || '').toLowerCase();
+    return m.includes('voluntary') || m.includes('appeal') || m.includes('relief') || m.includes('donation') ||
+           type.includes('voluntary') || type.includes('appeal') || type.includes('relief') || type.includes('donation');
   };
 
   const totalAssessed = (assessments || []).reduce(
