@@ -95,7 +95,15 @@ export default function FinancialSummaryExportButtons({
     const rowsHtml = summaries.map(m => {
       const balance = parseFloat(m.outstanding_balance as string || '0');
       const statusLabel = getStatusLabel(m);
-      const statusColor = statusLabel === 'Exempt' ? '#4338ca' : statusLabel === 'Fully Paid' ? '#16a34a' : statusLabel === 'Partially Paid' ? '#d97706' : '#dc2626';
+      const statusColor = statusLabel.startsWith('Exempt')
+        ? '#4338ca'
+        : statusLabel === 'Fully Paid'
+        ? '#16a34a'
+        : statusLabel === 'Partially Paid'
+        ? '#d97706'
+        : statusLabel.startsWith('Not Billed')
+        ? '#475569'
+        : '#dc2626';
 
       return `
         <tr>
