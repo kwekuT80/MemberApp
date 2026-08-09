@@ -10,7 +10,7 @@ interface DuesBenchmarkTrackerProps {
   totalAssessed: number;
   paymentsThisYear: number;
   requiredDuesThreshold: number;
-  standing: 'In Good Standing' | 'Not In Good Standing';
+  standing: 'In Good Standing' | 'Not In Good Standing' | 'Exempt (Roll of Honor)' | 'Exempt';
 }
 
 export default function DuesBenchmarkTracker({

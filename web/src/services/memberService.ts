@@ -175,10 +175,10 @@ export async function saveMember(form: any): Promise<Member> {
 
 export interface PersonalReportData {
   member: any;
-  standing: 'In Good Standing' | 'Not In Good Standing';
+  standing: 'In Good Standing' | 'Not In Good Standing' | 'Exempt (Roll of Honor)' | 'Exempt';
   standingReason: string;
-  financialStanding: 'In Good Standing' | 'Not In Good Standing';
-  welfareStanding: 'In Good Standing' | 'Not In Good Standing';
+  financialStanding: 'In Good Standing' | 'Not In Good Standing' | 'Exempt (Roll of Honor)' | 'Exempt';
+  welfareStanding: 'In Good Standing' | 'Not In Good Standing' | 'Exempt (Roll of Honor)' | 'Exempt';
   financial: {
     currentYear: number;
     currentMonth: number;
