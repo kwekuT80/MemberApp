@@ -326,7 +326,7 @@ export async function getAllMemberSummaries(filters?: {
   const allPaymentsRows = await fetchAllPaginated((from, to) =>
     supabase
       .from('financial_payments')
-      .select('member_id, amount, month, payment_type, payment_category, notes')
+      .select('member_id, amount, month, notes')
       .range(from, to)
   );
 
