@@ -381,18 +381,33 @@ export async function getMemberDetailedSummary(memberId: string) {
 
   if (pErr) throw pErr;
 
+  const isVoluntaryPayment = (p: any) => {
+    const m = String(p.month || '').toLowerCase();
+    const type = String(p.payment_type || p.payment_category || '').toLowerCase();
+    const notes = String(p.notes || '').toLowerCase();
+    return m.includes('voluntary') || m.includes('appeal') || m.includes('relief') || m.includes('donation') ||
+           type.includes('voluntary') || type.includes('appeal') || type.includes('relief') || type.includes('donation') ||
+           notes.includes('voluntary') || notes.includes('appeal') || notes.includes('relief') || notes.includes('donation');
+  };
+
   const totalAssessed = (assessments || []).reduce(
     (sum, a) => sum + parseFloat(a.annual_assessment as any || 0) + parseFloat(a.arrears_brought_forward as any || 0),
     0
   );
 
-  const totalPaid = (payments || []).reduce((sum, p) => sum + parseFloat(p.amount as any || 0), 0);
+  const duesPayments = (payments || []).filter(p => !isVoluntaryPayment(p));
+  const voluntaryPayments = (payments || []).filter(p => isVoluntaryPayment(p));
+
+  const totalPaid = duesPayments.reduce((sum, p) => sum + parseFloat(p.amount as any || 0), 0);
+  const totalVoluntaryPaid = voluntaryPayments.reduce((sum, p) => sum + parseFloat(p.amount as any || 0), 0);
 
   return {
     assessments: assessments || [],
-    payments: payments || [],
+    payments: duesPayments,
+    voluntaryPayments: voluntaryPayments,
     totalAssessed,
     totalPaid,
+    totalVoluntaryPaid,
     outstandingBalance: totalAssessed - totalPaid
   };
 }

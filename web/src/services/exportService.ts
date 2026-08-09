@@ -30,7 +30,16 @@ export async function generateFinancialReportCsv(year: number) {
     memberMap.set(a.member_id, { assessed: total, paid: 0, balance: total });
   });
 
-  (payments || []).forEach((p: any) => {
+  const isVoluntaryPayment = (p: any) => {
+    const m = String(p.month || '').toLowerCase();
+    const type = String(p.payment_type || p.payment_category || '').toLowerCase();
+    const notes = String(p.notes || '').toLowerCase();
+    return m.includes('voluntary') || m.includes('appeal') || m.includes('relief') || m.includes('donation') ||
+           type.includes('voluntary') || type.includes('appeal') || type.includes('relief') || type.includes('donation') ||
+           notes.includes('voluntary') || notes.includes('appeal') || notes.includes('relief') || notes.includes('donation');
+  };
+
+  (payments || []).filter((p: any) => !isVoluntaryPayment(p)).forEach((p: any) => {
     const entry = memberMap.get(p.member_id);
     if (entry) entry.paid += parseFloat(p.amount || '0');
   });

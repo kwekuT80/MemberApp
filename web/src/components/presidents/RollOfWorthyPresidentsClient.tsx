@@ -164,13 +164,13 @@ export default function RollOfWorthyPresidentsClient({
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ background: '#F8FAFC', color: '#475569', textAlign: 'left', borderBottom: '2px solid #E2E8F0' }}>
-                <th style={{ padding: '16px 20px', width: 65, textAlign: 'center', fontSize: 12, fontWeight: 900, letterSpacing: 0.8, textTransform: 'uppercase' }}>NO.</th>
-                <th style={{ padding: '16px 20px', fontSize: 12, fontWeight: 900, letterSpacing: 0.8, textTransform: 'uppercase' }}>WORTHY PRESIDENT</th>
-                <th style={{ padding: '16px 20px', fontSize: 12, fontWeight: 900, letterSpacing: 0.8, textTransform: 'uppercase' }}>TENURE</th>
-                <th style={{ padding: '16px 20px', fontSize: 12, fontWeight: 900, letterSpacing: 0.8, textTransform: 'uppercase' }}>DURATION</th>
-                <th style={{ padding: '16px 20px', fontSize: 12, fontWeight: 900, letterSpacing: 0.8, textTransform: 'uppercase' }}>STATUS & RECOGNITION</th>
+                <th style={{ padding: '16px 20px', width: 65, textAlign: 'center', fontSize: 12, fontWeight: 900, letterSpacing: 0.8, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>NO.</th>
+                <th style={{ padding: '16px 20px', fontSize: 12, fontWeight: 900, letterSpacing: 0.8, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>WORTHY PRESIDENT</th>
+                <th style={{ padding: '16px 20px', fontSize: 12, fontWeight: 900, letterSpacing: 0.8, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>TENURE</th>
+                <th style={{ padding: '16px 20px', fontSize: 12, fontWeight: 900, letterSpacing: 0.8, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>DURATION</th>
+                <th style={{ padding: '16px 20px', fontSize: 12, fontWeight: 900, letterSpacing: 0.8, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>STATUS & RECOGNITION</th>
                 {isRegistrar && (
-                  <th style={{ padding: '16px 20px', textAlign: 'right', fontSize: 12, fontWeight: 900, letterSpacing: 0.8, textTransform: 'uppercase' }}>ACTION</th>
+                  <th style={{ padding: '16px 20px', textAlign: 'right', fontSize: 12, fontWeight: 900, letterSpacing: 0.8, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>ACTION</th>
                 )}
               </tr>
             </thead>
@@ -264,21 +264,25 @@ export default function RollOfWorthyPresidentsClient({
                     </td>
 
                     {/* Tenure */}
-                    <td style={{ padding: '18px 20px', fontWeight: 900, color: isIncumbent ? '#D97706' : isDeceased ? '#3730A3' : '#2563EB', fontFamily: 'monospace', fontSize: 15 }}>
+                    <td style={{ padding: '18px 20px', fontWeight: 900, color: isIncumbent ? '#D97706' : isDeceased ? '#3730A3' : '#2563EB', fontFamily: 'monospace', fontSize: 15, whiteSpace: 'nowrap' }}>
                       {item.tenure}
                     </td>
 
                     {/* Duration */}
-                    <td style={{ padding: '18px 20px', fontWeight: 700, color: '#475569' }}>
+                    <td style={{ padding: '18px 20px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
                       <span
                         style={{
                           background: isIncumbent ? '#FEF3C7' : isDeceased ? '#EEF2FF' : '#F1F5F9',
                           color: isIncumbent ? '#92400E' : isDeceased ? '#3730A3' : '#475569',
                           border: isIncumbent ? '1px solid #FCD34D' : isDeceased ? '1px solid #C7D2FE' : '1px solid #E2E8F0',
-                          padding: '5px 12px',
+                          padding: '6px 14px',
                           borderRadius: 8,
                           fontSize: 12,
                           fontWeight: 800,
+                          whiteSpace: 'nowrap',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
                         }}
                       >
                         ⏱️ {item.duration}
@@ -286,7 +290,7 @@ export default function RollOfWorthyPresidentsClient({
                     </td>
 
                     {/* Status Badge */}
-                    <td style={{ padding: '18px 20px' }}>
+                    <td style={{ padding: '18px 20px', whiteSpace: 'nowrap' }}>
                       {isIncumbent ? (
                         <span
                           style={{

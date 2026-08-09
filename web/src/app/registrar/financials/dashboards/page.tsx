@@ -46,13 +46,22 @@ export default async function CommanderyHealthPage() {
   const payments = await fetchAllPaginated((from, to) =>
     supabase
       .from('financial_payments')
-      .select('amount')
+      .select('amount, month, payment_type, payment_category, notes')
       .eq('assessment_year', currentYear)
       .range(from, to)
   );
 
+  const isVoluntaryPayment = (p: any) => {
+    const m = String(p.month || '').toLowerCase();
+    const type = String(p.payment_type || p.payment_category || '').toLowerCase();
+    const notes = String(p.notes || '').toLowerCase();
+    return m.includes('voluntary') || m.includes('appeal') || m.includes('relief') || m.includes('donation') ||
+           type.includes('voluntary') || type.includes('appeal') || type.includes('relief') || type.includes('donation') ||
+           notes.includes('voluntary') || notes.includes('appeal') || notes.includes('relief') || notes.includes('donation');
+  };
+
   const totalPaymentsSum =
-    (payments || []).reduce(
+    (payments || []).filter(p => !isVoluntaryPayment(p)).reduce(
       (total, row) => total + (Number(row.amount) || 0),
       0
     );
