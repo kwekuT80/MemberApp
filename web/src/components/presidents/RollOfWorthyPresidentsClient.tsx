@@ -234,7 +234,7 @@ export default function RollOfWorthyPresidentsClient({
                             boxShadow: isDeceased ? '0 2px 8px rgba(49, 46, 129, 0.25)' : 'none',
                           }}
                         >
-                          {isIncumbent ? '👑' : isDeceased ? '🕯️' : '🛡️'}
+                          {isIncumbent ? '👑' : isDeceased ? '🕯️' : item.status === 'Transfer-Out' ? '🔵' : '🛡️'}
                         </div>
 
                         <div>
@@ -322,6 +322,23 @@ export default function RollOfWorthyPresidentsClient({
                           }}
                         >
                           🕯️ Roll of Honor
+                        </span>
+                      ) : item.status === 'Transfer-Out' ? (
+                        <span
+                          style={{
+                            background: '#EFF6FF',
+                            color: '#1D4ED8',
+                            border: '1px solid #BFDBFE',
+                            padding: '6px 14px',
+                            borderRadius: 20,
+                            fontSize: 12,
+                            fontWeight: 800,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                          }}
+                        >
+                          🔵 Transferred Out
                         </span>
                       ) : (
                         <span
