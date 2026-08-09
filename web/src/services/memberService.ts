@@ -355,36 +355,47 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   const hasAcceptableWelfareStanding = currentProRataArrears <= maxAllowedWelfareArrears;
 
   // 3. Binary Standing Calculation (Financial & Welfare & Overall)
-  const isMemberActive = member.status === 'Active';
+  const isMemberDeceased = member.is_deceased === true || String(member.status || '').toLowerCase() === 'deceased';
+  const isMemberActive = member.status === 'Active' && !isMemberDeceased;
 
-  const financialStanding: 'In Good Standing' | 'Not In Good Standing' = (isMemberActive && hasAcceptableFinancialStanding)
+  let financialStanding: 'In Good Standing' | 'Not In Good Standing' | 'Exempt (Roll of Honor)' | 'Exempt' = (isMemberActive && hasAcceptableFinancialStanding)
     ? 'In Good Standing'
     : 'Not In Good Standing';
 
-  const welfareStanding: 'In Good Standing' | 'Not In Good Standing' = (isMemberActive && hasAcceptableWelfareStanding)
+  let welfareStanding: 'In Good Standing' | 'Not In Good Standing' | 'Exempt (Roll of Honor)' | 'Exempt' = (isMemberActive && hasAcceptableWelfareStanding)
     ? 'In Good Standing'
     : 'Not In Good Standing';
 
-  const standing: 'In Good Standing' | 'Not In Good Standing' = (financialStanding === 'In Good Standing' && welfareStanding === 'In Good Standing')
+  let standing: 'In Good Standing' | 'Not In Good Standing' | 'Exempt (Roll of Honor)' | 'Exempt' = (financialStanding === 'In Good Standing' && welfareStanding === 'In Good Standing')
     ? 'In Good Standing'
     : 'Not In Good Standing';
 
   let standingReason = 'All financial dues, welfare contributions, and membership requirements are fully satisfied for the current period.';
-  
-  const financialReasonText = isFirstHalf
-    ? `Member has paid GH₵ ${paymentsThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })} of GH₵ ${requiredDuesThreshold.toLocaleString('en-US', { minimumFractionDigits: 2 })} required for 1st Half standing (50% threshold of GH₵ ${(currentAssessment * 0.5).toLocaleString('en-US', { minimumFractionDigits: 2 })} plus prior arrears due by Aug 31).`
-    : `Member has an outstanding dues balance of GH₵ ${outstandingThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })} for the ${currentYear} period (100% full payment required by Sept 1).`;
 
-  const welfareReasonText = `Member has an outstanding welfare contribution balance of GH₵ ${currentProRataArrears.toLocaleString('en-US', { minimumFractionDigits: 2 })}, which exceeds the allowable ${MAX_ALLOWED_WELFARE_ARREARS_MONTHS}-month grace threshold.`;
+  if (isMemberDeceased) {
+    financialStanding = 'Exempt';
+    welfareStanding = 'Exempt';
+    standing = 'Exempt (Roll of Honor)';
+    standingReason = 'Member is deceased and permanently archived on the Roll of Honor. Financial dues assessments, welfare contribution obligations, and standing evaluations are disengaged.';
+  } else if (!isMemberActive) {
+    financialStanding = 'Exempt';
+    welfareStanding = 'Exempt';
+    standing = 'Exempt';
+    standingReason = `Member record is currently inactive (${member.status}). Standing evaluation is disengaged.`;
+  } else {
+    const financialReasonText = isFirstHalf
+      ? `Member has paid GH₵ ${paymentsThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })} of GH₵ ${requiredDuesThreshold.toLocaleString('en-US', { minimumFractionDigits: 2 })} required for 1st Half standing (50% threshold of GH₵ ${(currentAssessment * 0.5).toLocaleString('en-US', { minimumFractionDigits: 2 })} plus prior arrears due by Aug 31).`
+      : `Member has an outstanding dues balance of GH₵ ${outstandingThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })} for the ${currentYear} period (100% full payment required by Sept 1).`;
 
-  if (!isMemberActive) {
-    standingReason = `Member record is currently flagged as ${member.status}.`;
-  } else if (financialStanding === 'Not In Good Standing' && welfareStanding === 'Not In Good Standing') {
-    standingReason = `${financialReasonText} Additionally, ${welfareReasonText}`;
-  } else if (financialStanding === 'Not In Good Standing') {
-    standingReason = financialReasonText;
-  } else if (welfareStanding === 'Not In Good Standing') {
-    standingReason = welfareReasonText;
+    const welfareReasonText = `Member has an outstanding welfare contribution balance of GH₵ ${currentProRataArrears.toLocaleString('en-US', { minimumFractionDigits: 2 })}, which exceeds the allowable ${MAX_ALLOWED_WELFARE_ARREARS_MONTHS}-month grace threshold.`;
+
+    if (financialStanding === 'Not In Good Standing' && welfareStanding === 'Not In Good Standing') {
+      standingReason = `${financialReasonText} Additionally, ${welfareReasonText}`;
+    } else if (financialStanding === 'Not In Good Standing') {
+      standingReason = financialReasonText;
+    } else if (welfareStanding === 'Not In Good Standing') {
+      standingReason = welfareReasonText;
+    }
   }
 
   // 4. Meeting Attendance & Compliance Statistics

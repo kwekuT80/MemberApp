@@ -328,8 +328,38 @@ export default function MemberDossierPage() {
             </section>
           )}
 
-          {/* SECTION VI: SUPER ADMIN GOOD STANDING & ISSUES ANALYSIS */}
-          {isSuperAdmin && reportData && (
+          {/* ARCHIVAL MEMORIAL BANNER FOR DECEASED MEMBERS */}
+          {(member.is_deceased || member.status === 'Deceased') && (
+            <section style={section}>
+              <div style={{
+                background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)',
+                borderRadius: 12,
+                padding: '24px 28px',
+                color: 'white',
+                border: '1px solid #6366F1',
+                boxShadow: '0 8px 24px rgba(49, 46, 129, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 20
+              }}>
+                <div style={{ fontSize: 40 }}>🕯️</div>
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#FDE047', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+                    Master Roll of Honor — Archival Memorial Record
+                  </span>
+                  <h3 style={{ margin: '4px 0 0', fontSize: 20, fontWeight: 900, color: '#FFFFFF' }}>
+                    Deceased Member Record
+                  </h3>
+                  <p style={{ margin: '6px 0 0', fontSize: 13, color: '#C7D2FE', lineHeight: 1.6 }}>
+                    This record is permanently archived on the Commandery Roll of Honor for historical, biographical, and service roll purposes. Active annual dues assessments, welfare contribution obligations, and standing compliance evaluations are automatically exempt and disengaged.
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* SECTION VI: SUPER ADMIN GOOD STANDING & ISSUES ANALYSIS (ACTIVE MEMBERS ONLY) */}
+          {isSuperAdmin && reportData && !member.is_deceased && member.status === 'Active' && (
             <section style={section}>
               <h2 style={sectionLabel}>VI. Standing & Compliance Audit (Super Admin)</h2>
               <div style={{
@@ -399,8 +429,8 @@ export default function MemberDossierPage() {
             </section>
           )}
 
-          {/* SECTION VII: FINANCIAL DUES SUMMARY */}
-          {isFinancialRegistrar && reportData && (
+          {/* SECTION VII: FINANCIAL DUES SUMMARY (ACTIVE MEMBERS ONLY) */}
+          {isFinancialRegistrar && reportData && !member.is_deceased && member.status === 'Active' && (
             <section style={section}>
               <h2 style={sectionLabel}>VII. Financial Dues Ledger Summary</h2>
               <table style={table}>
@@ -455,8 +485,8 @@ export default function MemberDossierPage() {
             </section>
           )}
 
-          {/* SECTION VIII: WELFARE SCHEME SUMMARY */}
-          {isWelfareTreasurer && reportData && (
+          {/* SECTION VIII: WELFARE SCHEME SUMMARY (ACTIVE MEMBERS ONLY) */}
+          {isWelfareTreasurer && reportData && !member.is_deceased && member.status === 'Active' && (
             <section style={section}>
               <h2 style={sectionLabel}>VIII. Welfare Scheme Summary</h2>
               <table style={table}>

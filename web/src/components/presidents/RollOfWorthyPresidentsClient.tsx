@@ -199,7 +199,7 @@ export default function RollOfWorthyPresidentsClient({
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
-                          justify: 'center',
+                          justifyContent: 'center',
                           width: 32,
                           height: 32,
                           borderRadius: 99,
@@ -225,7 +225,7 @@ export default function RollOfWorthyPresidentsClient({
                             borderRadius: '50%',
                             display: 'flex',
                             alignItems: 'center',
-                            justify: 'center',
+                            justifyContent: 'center',
                             fontSize: 18,
                             background: isIncumbent ? '#FEF3C7' : isDeceased ? '#312E81' : '#E6F4EA',
                             color: isIncumbent ? '#D97706' : isDeceased ? '#FDE047' : '#166534',

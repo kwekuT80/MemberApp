@@ -56,7 +56,9 @@ export default async function PersonalReportPage() {
 
         {/* Hero Card: Standing in the Order */}
         <div style={{
-          background: isGoodStanding 
+          background: (member.is_deceased || member.status === 'Deceased')
+            ? 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)'
+            : isGoodStanding 
             ? 'linear-gradient(135deg, #064E3B 0%, #047857 100%)' 
             : 'linear-gradient(135deg, #78350F 0%, #B45309 100%)',
           borderRadius: 20,
@@ -64,9 +66,10 @@ export default async function PersonalReportPage() {
           color: 'white',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.15)',
           marginBottom: 32,
+          border: (member.is_deceased || member.status === 'Deceased') ? '1px solid #6366F1' : 'none'
         }}>
-          <div style={{ color: '#FCD34D', fontSize: 12, fontWeight: 900, letterSpacing: 1.5, textTransform: 'uppercase' }}>
-            KNIGHTS OF ST. JOHN INTERNATIONAL • STANDING REPORT
+          <div style={{ color: (member.is_deceased || member.status === 'Deceased') ? '#FDE047' : '#FCD34D', fontSize: 12, fontWeight: 900, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+            KNIGHTS OF ST. JOHN INTERNATIONAL • {(member.is_deceased || member.status === 'Deceased') ? 'ROLL OF HONOR ARCHIVAL RECORD' : 'STANDING REPORT'}
           </div>
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginTop: 12 }}>
@@ -75,7 +78,7 @@ export default async function PersonalReportPage() {
                 {member.title ? `${member.title} ` : ''}{member.first_name} {member.surname}
               </h1>
               <div style={{ fontSize: 14, opacity: 0.9, marginTop: 4 }}>
-                Member Status: <span style={{ fontWeight: 800 }}>{member.status}</span> • Reg Year: {financial.currentYear}
+                Member Status: <span style={{ fontWeight: 800 }}>{(member.is_deceased || member.status === 'Deceased') ? 'Deceased (Roll of Honor)' : member.status}</span>
               </div>
             </div>
 
@@ -83,8 +86,9 @@ export default async function PersonalReportPage() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
               {/* Overall Standing Badge */}
               <div style={{
-                background: isGoodStanding ? '#10B981' : '#F59E0B',
-                color: isGoodStanding ? '#064E3B' : '#78350F',
+                background: (member.is_deceased || member.status === 'Deceased') ? '#312E81' : isGoodStanding ? '#10B981' : '#F59E0B',
+                color: (member.is_deceased || member.status === 'Deceased') ? '#FDE047' : isGoodStanding ? '#064E3B' : '#78350F',
+                border: (member.is_deceased || member.status === 'Deceased') ? '1px solid #6366F1' : 'none',
                 padding: '10px 22px',
                 borderRadius: 50,
                 fontSize: 15,
@@ -94,35 +98,37 @@ export default async function PersonalReportPage() {
                 gap: 8,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
               }}>
-                <span>{isGoodStanding ? '✓' : '⚠️'}</span>
-                <span>Overall: {standing}</span>
+                <span>{(member.is_deceased || member.status === 'Deceased') ? '🕯️' : isGoodStanding ? '✓' : '⚠️'}</span>
+                <span>{(member.is_deceased || member.status === 'Deceased') ? 'Exempt (Roll of Honor)' : `Overall: ${standing}`}</span>
               </div>
 
               {/* Breakdown Pills */}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{
-                  background: 'rgba(255,255,255,0.18)',
-                  padding: '4px 12px',
-                  borderRadius: 100,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  border: `1px solid ${isFinancialGood ? 'rgba(52,211,153,0.5)' : 'rgba(251,191,36,0.5)'}`,
-                  color: isFinancialGood ? '#A7F3D0' : '#FDE68A'
-                }}>
-                  Dues: {financialStanding}
-                </span>
-                <span style={{
-                  background: 'rgba(255,255,255,0.18)',
-                  padding: '4px 12px',
-                  borderRadius: 100,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  border: `1px solid ${isWelfareGood ? 'rgba(52,211,153,0.5)' : 'rgba(251,191,36,0.5)'}`,
-                  color: isWelfareGood ? '#A7F3D0' : '#FDE68A'
-                }}>
-                  Welfare: {welfareStanding}
-                </span>
-              </div>
+              {!(member.is_deceased || member.status === 'Deceased') && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{
+                    background: 'rgba(255,255,255,0.18)',
+                    padding: '4px 12px',
+                    borderRadius: 100,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    border: `1px solid ${isFinancialGood ? 'rgba(52,211,153,0.5)' : 'rgba(251,191,36,0.5)'}`,
+                    color: isFinancialGood ? '#A7F3D0' : '#FDE68A'
+                  }}>
+                    Dues: {financialStanding}
+                  </span>
+                  <span style={{
+                    background: 'rgba(255,255,255,0.18)',
+                    padding: '4px 12px',
+                    borderRadius: 100,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    border: `1px solid ${isWelfareGood ? 'rgba(52,211,153,0.5)' : 'rgba(251,191,36,0.5)'}`,
+                    color: isWelfareGood ? '#A7F3D0' : '#FDE68A'
+                  }}>
+                    Welfare: {welfareStanding}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -138,17 +144,19 @@ export default async function PersonalReportPage() {
           </div>
         </div>
 
-        {/* Visual Benchmark Standing Tracker */}
-        <DuesBenchmarkTracker
-          currentYear={financial.currentYear}
-          currentMonth={financial.currentMonth}
-          lastYearArrears={financial.lastYearArrears}
-          currentAssessment={financial.currentAssessment}
-          totalAssessed={financial.totalAssessed}
-          paymentsThisYear={financial.paymentsThisYear}
-          requiredDuesThreshold={financial.requiredDuesThreshold}
-          standing={standing}
-        />
+        {/* Visual Benchmark Standing Tracker (ACTIVE MEMBERS ONLY) */}
+        {!(member.is_deceased || member.status === 'Deceased') && (
+          <DuesBenchmarkTracker
+            currentYear={financial.currentYear}
+            currentMonth={financial.currentMonth}
+            lastYearArrears={financial.lastYearArrears}
+            currentAssessment={financial.currentAssessment}
+            totalAssessed={financial.totalAssessed}
+            paymentsThisYear={financial.paymentsThisYear}
+            requiredDuesThreshold={financial.requiredDuesThreshold}
+            standing={standing}
+          />
+        )}
 
         {/* Section 1: Financial Dues Breakdown */}
         <div style={{ marginBottom: 36 }}>
