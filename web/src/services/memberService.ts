@@ -337,7 +337,11 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   const currMonthlyRate  = Number(currRateRes.data?.monthly_rate  ?? DEFAULT_MONTHLY_RATE);
   const lastMonthlyRate  = Number(lastRateRes.data?.monthly_rate  ?? DEFAULT_MONTHLY_RATE);
   
-  // Determine join date & month to evaluate new member welfare rules
+  // Determine join date, age, & month to evaluate senior 80+ exemption and new member welfare rules
+  const memberBirthYear = member.date_of_birth ? new Date(member.date_of_birth).getFullYear() : null;
+  const memberAge = memberBirthYear ? currentYear - memberBirthYear : 0;
+  const isSeniorExempt = memberAge >= 80;
+
   const joinDateStr = member.date_joined || member.created_at;
   const joinDate = joinDateStr ? new Date(joinDateStr) : new Date();
   const joinYear = joinDate.getFullYear();
@@ -345,18 +349,18 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
 
   const isNewMemberThisYear = joinYear >= currentYear;
 
-  // Welfare is billed monthly: calculate expected contributions up to the current month of the current year
-  const lastYearWelfareAssessment = isNewMemberThisYear ? 0 : lastMonthlyRate * 12;
-  const lastYearWelfareBalance = isNewMemberThisYear ? 0 : Math.max(0, lastYearWelfareAssessment - lastYearWelfareContribs);
+  // Welfare is billed monthly: calculate expected contributions up to the current month of the current year (0 for 80+ Seniors)
+  const lastYearWelfareAssessment = (isNewMemberThisYear || isSeniorExempt) ? 0 : lastMonthlyRate * 12;
+  const lastYearWelfareBalance = (isNewMemberThisYear || isSeniorExempt) ? 0 : Math.max(0, lastYearWelfareAssessment - lastYearWelfareContribs);
 
-  // If member joined this year, pro-rate current year welfare from join month to December (e.g. July-Dec = 6 months = GH₵ 150.00)
-  const monthsActiveThisYear = isNewMemberThisYear ? Math.max(1, 12 - joinMonth + 1) : 12;
-  const currentWelfareAssessment = currMonthlyRate * monthsActiveThisYear;
-  const proRataWelfareAssessment = isNewMemberThisYear
+  // If member is 80+ senior, welfare assessment is 0. If new member this year, pro-rate from join month to December.
+  const monthsActiveThisYear = (isNewMemberThisYear || isSeniorExempt) ? (isSeniorExempt ? 0 : Math.max(1, 12 - joinMonth + 1)) : 12;
+  const currentWelfareAssessment = isSeniorExempt ? 0 : currMonthlyRate * monthsActiveThisYear;
+  const proRataWelfareAssessment = isSeniorExempt ? 0 : (isNewMemberThisYear
     ? currMonthlyRate * Math.max(1, currentMonth - joinMonth + 1)
-    : currMonthlyRate * currentMonth;
+    : currMonthlyRate * currentMonth);
 
-  const totalWelfareAssessed = lastYearWelfareBalance + currentWelfareAssessment;
+  const totalWelfareAssessed = isSeniorExempt ? 0 : (lastYearWelfareBalance + currentWelfareAssessment);
   const netWelfareBalance = totalWelfareAssessed - currYearWelfareContribs;
   const welfareOutstanding = Math.max(0, netWelfareBalance);
   const welfareCredit = netWelfareBalance < 0 ? Math.abs(netWelfareBalance) : 0;
@@ -366,22 +370,22 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   const maxAllowedWelfareArrears = currMonthlyRate * MAX_ALLOWED_WELFARE_ARREARS_MONTHS;
   
   // Pro-rata arrears up to current month plus prior year balance
-  const currentProRataArrears = Math.max(0, (lastYearWelfareBalance + proRataWelfareAssessment) - currYearWelfareContribs);
-  const hasAcceptableWelfareStanding = currentProRataArrears <= maxAllowedWelfareArrears;
+  const currentProRataArrears = isSeniorExempt ? 0 : Math.max(0, (lastYearWelfareBalance + proRataWelfareAssessment) - currYearWelfareContribs);
+  const hasAcceptableWelfareStanding = isSeniorExempt ? true : currentProRataArrears <= maxAllowedWelfareArrears;
 
   // 3. Binary Standing Calculation (Financial & Welfare & Overall)
   const isMemberDeceased = member.is_deceased === true || String(member.status || '').toLowerCase() === 'deceased';
   const isMemberActive = member.status === 'Active' && !isMemberDeceased;
 
-  let financialStanding: 'In Good Standing' | 'Not In Good Standing' | 'Exempt (Roll of Honor)' | 'Exempt' = (isMemberActive && hasAcceptableFinancialStanding)
-    ? 'In Good Standing'
+  let financialStanding: 'In Good Standing' | 'Not In Good Standing' | 'Exempt (Roll of Honor)' | 'Exempt' = (isSeniorExempt || (isMemberActive && hasAcceptableFinancialStanding))
+    ? (isSeniorExempt ? 'Exempt' : 'In Good Standing')
     : 'Not In Good Standing';
 
-  let welfareStanding: 'In Good Standing' | 'Not In Good Standing' | 'Exempt (Roll of Honor)' | 'Exempt' = (isMemberActive && hasAcceptableWelfareStanding)
-    ? 'In Good Standing'
+  let welfareStanding: 'In Good Standing' | 'Not In Good Standing' | 'Exempt (Roll of Honor)' | 'Exempt' = (isSeniorExempt || (isMemberActive && hasAcceptableWelfareStanding))
+    ? (isSeniorExempt ? 'Exempt' : 'In Good Standing')
     : 'Not In Good Standing';
 
-  let standing: 'In Good Standing' | 'Not In Good Standing' | 'Exempt (Roll of Honor)' | 'Exempt' = (financialStanding === 'In Good Standing' && welfareStanding === 'In Good Standing')
+  let standing: 'In Good Standing' | 'Not In Good Standing' | 'Exempt (Roll of Honor)' | 'Exempt' = (isMemberActive && (hasAcceptableFinancialStanding || isSeniorExempt) && (hasAcceptableWelfareStanding || isSeniorExempt))
     ? 'In Good Standing'
     : 'Not In Good Standing';
 
@@ -392,6 +396,11 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
     welfareStanding = 'Exempt';
     standing = 'Exempt (Roll of Honor)';
     standingReason = 'Member is deceased and permanently archived on the Roll of Honor. Financial dues assessments, welfare contribution obligations, and standing evaluations are disengaged.';
+  } else if (isSeniorExempt) {
+    financialStanding = 'Exempt';
+    welfareStanding = 'Exempt';
+    standing = 'In Good Standing';
+    standingReason = 'Member is 80+ years of age and holds constitutional exemption from annual assessment dues and welfare contributions.';
   } else if (!isMemberActive) {
     financialStanding = 'Exempt';
     welfareStanding = 'Exempt';
