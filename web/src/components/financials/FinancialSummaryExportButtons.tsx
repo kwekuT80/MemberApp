@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 interface SummaryMember {
