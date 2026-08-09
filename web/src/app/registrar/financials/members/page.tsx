@@ -228,11 +228,11 @@ export default async function MemberSummaryPage({
                         const totalPaidNum = parseFloat(String(m.total_paid || 0));
                         const balance = parseFloat(String(m.outstanding_balance || 0));
 
-                        const isDeceased = m.is_deceased || m.status === 'Deceased';
-                        const isUnassessed = !isDeceased && (totalAssessedNum <= 0 || m.payment_status === 'unassessed');
-                        const isExempt = isDeceased || m.payment_status === 'exempt';
-                        const isFullyPaid = !isExempt && !isUnassessed && (balance <= 0 || m.payment_status === 'fully_paid' || m.payment_status === 'paid');
-                        const isPartiallyPaid = !isExempt && !isUnassessed && !isFullyPaid && (totalPaidNum > 0 || m.payment_status === 'partially_paid');
+                        const isDeceased = m.is_deceased || m.status === 'Deceased' || m.payment_status === 'exempt_deceased';
+                        const isSeniorExempt = !isDeceased && (m.is_senior_exempt || (m.age && m.age >= 80) || m.payment_status === 'exempt_senior');
+                        const isUnassessedNew = !isDeceased && !isSeniorExempt && (totalAssessedNum <= 0 || m.payment_status === 'unassessed_new' || m.payment_status === 'unassessed');
+                        const isFullyPaid = !isDeceased && !isSeniorExempt && !isUnassessedNew && (balance <= 0 || m.payment_status === 'fully_paid' || m.payment_status === 'paid');
+                        const isPartiallyPaid = !isDeceased && !isSeniorExempt && !isUnassessedNew && !isFullyPaid && (totalPaidNum > 0 || m.payment_status === 'partially_paid');
 
                         return (
                           <tr key={m.id}>
@@ -241,7 +241,7 @@ export default async function MemberSummaryPage({
                                 {m.full_name}
                               </Link>
                               <span style={{ display: 'block', fontSize: 10, color: 'var(--grey)', marginTop: 4 }}>
-                                ID: {m.id.substring(0, 8).toUpperCase()}
+                                ID: {m.id.substring(0, 8).toUpperCase()} {m.age ? `• Age ${m.age}` : ''}
                               </span>
                             </td>
                             <td>
@@ -254,15 +254,17 @@ export default async function MemberSummaryPage({
                             <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--success)' }}>
                               ₵{totalPaidNum.toFixed(2)}
                             </td>
-                            <td style={{ textAlign: 'right', fontWeight: 900, color: isExempt ? '#4338CA' : isUnassessed ? '#475569' : balance > 0 ? 'var(--warning)' : 'var(--success)' }}>
+                            <td style={{ textAlign: 'right', fontWeight: 900, color: (isDeceased || isSeniorExempt) ? '#4338CA' : isUnassessedNew ? '#475569' : balance > 0 ? 'var(--warning)' : 'var(--success)' }}>
                               ₵{balance.toFixed(2)}
                             </td>
                             <td style={{ textAlign: 'center' }}>
                               <span
                                 className={`badge ${
-                                  isExempt
+                                  isDeceased
+                                    ? 'badge-indigo'
+                                    : isSeniorExempt
                                     ? 'badge-purple'
-                                    : isUnassessed
+                                    : isUnassessedNew
                                     ? 'badge-slate'
                                     : isFullyPaid
                                     ? 'badge-green'
@@ -271,14 +273,26 @@ export default async function MemberSummaryPage({
                                     : 'badge-red'
                                 }`}
                                 style={
-                                  isExempt
+                                  isDeceased
+                                    ? { background: '#1E1B4B', color: '#F59E0B', border: '1px solid #4338CA', fontWeight: 800 }
+                                    : isSeniorExempt
                                     ? { background: '#EEF2FF', color: '#4338CA', border: '1px solid #C7D2FE', fontWeight: 800 }
-                                    : isUnassessed
+                                    : isUnassessedNew
                                     ? { background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', fontWeight: 700 }
                                     : undefined
                                 }
                               >
-                                {isExempt ? 'Exempt' : isUnassessed ? 'Not Billed' : isFullyPaid ? 'Fully Paid' : isPartiallyPaid ? 'Partially Paid' : 'Delinquent'}
+                                {isDeceased
+                                  ? 'Exempt (Roll of Honor)'
+                                  : isSeniorExempt
+                                  ? 'Exempt (Senior 80+)'
+                                  : isUnassessedNew
+                                  ? 'Not Billed (New Initiate)'
+                                  : isFullyPaid
+                                  ? 'Fully Paid'
+                                  : isPartiallyPaid
+                                  ? 'Partially Paid'
+                                  : 'Delinquent'}
                               </span>
                             </td>
                             <td style={{ textAlign: 'center' }}>

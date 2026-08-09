@@ -375,6 +375,21 @@ export async function getAllMemberSummaries(filters?: {
     annualSumByMember[id] = (annualSumByMember[id] || 0) + parseFloat(a.annual_assessment || 0);
   }
 
+  // Fetch date_of_birth for members to evaluate Senior 80+ Exemption
+  const memberDobRows = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('members')
+      .select('id, date_of_birth')
+      .range(from, to)
+  );
+
+  const dobMap: Record<string, string | null> = {};
+  for (const m of memberDobRows || []) {
+    dobMap[m.id] = m.date_of_birth;
+  }
+
+  const currentYear = new Date().getFullYear();
+
   // Calculate actual dues paid, net outstanding, and accurate status per member
   const resultRows = actualSummaryRows.map((row: any) => {
     const memberId = row.member_id ?? row.id;
@@ -382,10 +397,32 @@ export async function getAllMemberSummaries(filters?: {
     const actualDuesPaid = duesPaidByMember[memberId] ?? 0;
     const netOutstanding = totalAssessed - actualDuesPaid;
     const isDeceased = row.is_deceased || row.status === 'Deceased';
-    const paymentStatus = isDeceased ? 'exempt' : (totalAssessed <= 0 ? 'unassessed' : (netOutstanding <= 0 ? 'fully_paid' : actualDuesPaid > 0 ? 'partially_paid' : 'delinquent'));
+
+    const dob = dobMap[memberId] || row.date_of_birth;
+    const birthYear = dob ? new Date(dob).getFullYear() : null;
+    const age = birthYear ? currentYear - birthYear : 0;
+    const isSeniorExempt = age >= 80;
+
+    let paymentStatus = 'delinquent';
+    if (isDeceased) {
+      paymentStatus = 'exempt_deceased';
+    } else if (isSeniorExempt) {
+      paymentStatus = 'exempt_senior';
+    } else if (totalAssessed <= 0) {
+      paymentStatus = 'unassessed_new';
+    } else if (netOutstanding <= 0) {
+      paymentStatus = 'fully_paid';
+    } else if (actualDuesPaid > 0) {
+      paymentStatus = 'partially_paid';
+    } else {
+      paymentStatus = 'delinquent';
+    }
 
     return {
       ...row,
+      date_of_birth: dob,
+      age,
+      is_senior_exempt: isSeniorExempt,
       total_paid: actualDuesPaid,
       outstanding_balance: netOutstanding,
       payment_status: paymentStatus,
