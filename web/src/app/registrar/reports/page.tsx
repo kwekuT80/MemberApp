@@ -162,6 +162,52 @@ export default function ReportsPage() {
 
   return (
     <RegistrarShell title="Reporting Hub" subtitle="Generate and export official commandery records">
+      {/* Good Standing Batch Statements Generator Hero Banner */}
+      <div style={{
+        background: 'linear-gradient(135deg, #064E3B 0%, #047857 100%)',
+        borderRadius: 16,
+        padding: '24px 28px',
+        color: 'white',
+        marginBottom: 20,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 16,
+        boxShadow: '0 10px 25px rgba(6,78,59,0.15)',
+        border: '1px solid #059669'
+      }} className="no-print">
+        <div>
+          <div style={{ color: '#A7F3D0', fontSize: 11, fontWeight: 900, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+            SUPER ADMIN & OFFICER TOOLKIT • AUDIT & CONVENTION CERTIFICATES
+          </div>
+          <h2 style={{ margin: '6px 0 4px', fontSize: 20, fontWeight: 900, color: 'white' }}>
+            🎖️ Personal Good Standing Reports & Batch Generator
+          </h2>
+          <p style={{ margin: 0, fontSize: 13, color: '#E2E8F0', maxWidth: 620 }}>
+            Generate official Good Standing statements for individual members of choice, or batch-generate and print verified standing certificates for conventions, delegates, and financial audits.
+          </p>
+        </div>
+        <a
+          href="/registrar/reports/good-standing"
+          style={{
+            background: '#FFFFFF',
+            color: '#064E3B',
+            textDecoration: 'none',
+            padding: '12px 24px',
+            borderRadius: 10,
+            fontWeight: 900,
+            fontSize: 14,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}
+        >
+          <span>📜 Open Good Standing Studio</span>
+        </a>
+      </div>
+
       {/* Batch ID Cards Generator Hero Banner */}
       <div style={{
         background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',

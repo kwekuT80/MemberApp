@@ -342,12 +342,20 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   const memberAge = memberBirthYear ? currentYear - memberBirthYear : 0;
   const isSeniorExempt = memberAge >= 80;
 
-  const joinDateStr = member.date_joined || member.created_at;
-  const joinDate = joinDateStr ? new Date(joinDateStr) : new Date();
-  const joinYear = joinDate.getFullYear();
-  const joinMonth = joinDate.getMonth() + 1; // 1 to 12
+  // Members with historical contributions, prior assessments, or unrecorded join dates are treated as continuing members.
+  // Missing date_joined should never falsely classify an existing member as a new recruit.
+  const hasPriorHistory = (lastYearWelfareContribs > 0) || (totalContributedAllTime > currYearWelfareContribs) || Boolean(lastYearAss);
 
-  const isNewMemberThisYear = joinYear >= currentYear;
+  let isNewMemberThisYear = false;
+  let joinMonth = 1;
+
+  if (member.date_joined && !hasPriorHistory) {
+    const parsedJoin = new Date(member.date_joined);
+    if (!isNaN(parsedJoin.getTime()) && parsedJoin.getFullYear() >= currentYear) {
+      isNewMemberThisYear = true;
+      joinMonth = parsedJoin.getMonth() + 1;
+    }
+  }
 
   // Welfare is billed monthly: calculate expected contributions up to the current month of the current year (0 for 80+ Seniors)
   const lastYearWelfareAssessment = (isNewMemberThisYear || isSeniorExempt) ? 0 : lastMonthlyRate * 12;
@@ -520,5 +528,18 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
       records: attendanceRecords
     }
   };
+}
+
+export async function getBatchMemberPersonalReports(memberIds: string[]): Promise<PersonalReportData[]> {
+  const reports: PersonalReportData[] = [];
+  const chunkSize = 10;
+  for (let i = 0; i < memberIds.length; i += chunkSize) {
+    const chunk = memberIds.slice(i, i + chunkSize);
+    const results = await Promise.all(chunk.map(id => getMemberPersonalReport(id)));
+    for (const r of results) {
+      if (r) reports.push(r);
+    }
+  }
+  return reports;
 }
 
