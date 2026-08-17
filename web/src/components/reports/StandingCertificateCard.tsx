@@ -54,7 +54,7 @@ export default function StandingCertificateCard({
           Official Statement of Good Standing
         </h2>
         <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
-          Grand Commandery of Ghana • Personal Standing & Financial Audit Record
+          St. Margaret-Mary Commandery No. 500 • Personal Standing & Financial Audit Record
         </div>
       </div>
 
@@ -81,12 +81,16 @@ export default function StandingCertificateCard({
           <div style={{ fontSize: 11, fontWeight: 800, color: isDeceased ? '#FDE047' : '#FCD34D', letterSpacing: 1, textTransform: 'uppercase' }}>
             Member Record
           </div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, margin: '2px 0 0', color: 'white' }}>
-            {displayTitle} {member.first_name} {member.surname}
+          <h1 style={{ fontSize: 24, fontWeight: 900, margin: '2px 0 0', color: 'white', display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+            <span>{displayTitle} {member.first_name} {member.surname}</span>
+            {member.occupation && (
+              <span style={{ fontSize: '0.65em', fontWeight: 600, opacity: 0.95, color: isDeceased ? '#FDE047' : '#FEF08A' }}>
+                ({member.occupation})
+              </span>
+            )}
           </h1>
-          <div style={{ fontSize: 13, opacity: 0.9, marginTop: 2 }}>
+          <div style={{ fontSize: 13, opacity: 0.9, marginTop: 4 }}>
             Status: <strong style={{ color: 'white' }}>{isDeceased ? 'Deceased (Roll of Honor)' : member.status}</strong>
-            {member.occupation ? ` • ${member.occupation}` : ''}
             {member.phone ? ` • ${member.phone}` : ''}
           </div>
         </div>
