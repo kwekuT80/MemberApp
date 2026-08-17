@@ -492,30 +492,30 @@ export default async function PersonalReportPage() {
 
             <div style={{
               ...metricCardStyle,
-              background: (attendance?.complianceRate || 100) >= 70 ? '#F0FDF4' : '#FEF2F2',
-              borderColor: (attendance?.complianceRate || 100) >= 70 ? '#BBF7D0' : '#FECACA'
+              background: (attendance?.complianceRate ?? 100) >= 70 ? '#F0FDF4' : '#FEF2F2',
+              borderColor: (attendance?.complianceRate ?? 100) >= 70 ? '#BBF7D0' : '#FECACA'
             }}>
               <div style={{
                 ...metricLabelStyle,
-                color: (attendance?.complianceRate || 100) >= 70 ? '#166534' : '#991B1B'
+                color: (attendance?.complianceRate ?? 100) >= 70 ? '#166534' : '#991B1B'
               }}>
                 ATTENDANCE COMPLIANCE
               </div>
               <div style={{
                 fontSize: 22,
                 fontWeight: 900,
-                color: (attendance?.complianceRate || 100) >= 70 ? '#166534' : '#DC2626',
+                color: (attendance?.complianceRate ?? 100) >= 70 ? '#166534' : '#DC2626',
                 fontFamily: 'monospace'
               }}>
-                {attendance?.complianceRate || 100}%
+                {attendance?.complianceRate ?? 100}%
               </div>
               <div style={{
                 fontSize: 11,
                 fontWeight: 800,
-                color: (attendance?.complianceRate || 100) >= 70 ? '#166534' : '#991B1B',
+                color: (attendance?.complianceRate ?? 100) >= 70 ? '#166534' : '#991B1B',
                 marginTop: 4
               }}>
-                {(attendance?.complianceRate || 100) >= 70 ? '✓ Satisfactory Roll' : '⚠️ Below 70% Benchmark'}
+                {(attendance?.complianceRate ?? 100) >= 70 ? '✓ Satisfactory Roll' : '⚠️ Below 70% Benchmark'}
               </div>
             </div>
           </div>

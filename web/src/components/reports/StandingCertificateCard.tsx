@@ -273,10 +273,10 @@ export default function StandingCertificateCard({
             <div style={attLabel}>EXCUSED</div>
             <div style={{ ...attVal, color: '#2563EB' }}>{attendance?.excusedCount || 0}</div>
           </div>
-          <div style={{ ...attBox, background: (attendance?.complianceRate || 100) >= 70 ? '#F0FDF4' : '#FEF2F2' }}>
-            <div style={{ ...attLabel, color: (attendance?.complianceRate || 100) >= 70 ? '#166534' : '#991B1B' }}>COMPLIANCE RATE</div>
-            <div style={{ ...attVal, color: (attendance?.complianceRate || 100) >= 70 ? '#166534' : '#DC2626' }}>
-              {attendance?.complianceRate || 100}%
+          <div style={{ ...attBox, background: (attendance?.complianceRate ?? 100) >= 70 ? '#F0FDF4' : '#FEF2F2' }}>
+            <div style={{ ...attLabel, color: (attendance?.complianceRate ?? 100) >= 70 ? '#166534' : '#991B1B' }}>COMPLIANCE RATE</div>
+            <div style={{ ...attVal, color: (attendance?.complianceRate ?? 100) >= 70 ? '#166534' : '#DC2626' }}>
+              {attendance?.complianceRate ?? 100}%
             </div>
           </div>
         </div>
