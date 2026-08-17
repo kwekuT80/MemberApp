@@ -492,22 +492,40 @@ export default function MemberDossierPage() {
               <table style={table}>
                 <tbody>
                   <tr>
+                    <th style={th}>Arrears Brought Forward (Prior)</th>
+                    <td style={{ ...td, fontFamily: 'monospace', fontWeight: 700 }}>
+                      GH₵ {(reportData.welfare.lastYearBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </td>
+                    <th style={th}>Annual Assessment</th>
+                    <td style={{ ...td, fontFamily: 'monospace', fontWeight: 700 }}>
+                      GH₵ {reportData.welfare.currentAssessment.toLocaleString('en-US', { minimumFractionDigits: 2 })} (GH₵ {reportData.welfare.monthlyRate.toFixed(2)}/mo)
+                    </td>
+                  </tr>
+                  <tr>
+                    <th style={th}>Total Welfare Assessed</th>
+                    <td style={{ ...td, fontFamily: 'monospace', fontWeight: 800 }}>
+                      GH₵ {reportData.welfare.totalWelfareAssessed.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </td>
+                    <th style={th}>Paid This Year</th>
+                    <td style={{ ...td, fontWeight: 700, color: '#15803d', fontFamily: 'monospace' }}>
+                      GH₵ {reportData.welfare.contributionsThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th style={th}>Total Contributed All-Time</th>
+                    <td style={{ ...td, fontWeight: 700, fontFamily: 'monospace' }}>
+                      GH₵ {reportData.welfare.totalContributedAllTime.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </td>
+                    <th style={th}>Total Benefits Payouts</th>
+                    <td style={{ ...td, fontFamily: 'monospace' }}>
+                      GH₵ {reportData.welfare.totalBenefitsReceived.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                  <tr>
                     <th style={th}>Monthly Rate</th>
                     <td style={td}>GH₵ {reportData.welfare.monthlyRate.toLocaleString('en-US', { minimumFractionDigits: 2 })} / month</td>
-                    <th style={th}>Annual Assessment</th>
-                    <td style={td}>GH₵ {reportData.welfare.currentAssessment.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                  </tr>
-                  <tr>
-                    <th style={th}>Paid This Year</th>
-                    <td style={{ ...td, fontWeight: 700, color: '#15803d' }}>GH₵ {reportData.welfare.contributionsThisYear.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                    <th style={th}>Total Contributed All-Time</th>
-                    <td style={{ ...td, fontWeight: 700 }}>GH₵ {reportData.welfare.totalContributedAllTime.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                  </tr>
-                  <tr>
-                    <th style={th}>Total Benefits Payouts</th>
-                    <td style={td}>GH₵ {reportData.welfare.totalBenefitsReceived.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                     <th style={th}>Welfare Outstanding / Credit</th>
-                    <td style={{ ...td, fontWeight: 900, color: reportData.welfare.welfareOutstanding > 0 ? '#b91c1c' : '#15803d' }}>
+                    <td style={{ ...td, fontWeight: 900, color: reportData.welfare.welfareOutstanding > 0 ? '#b91c1c' : '#15803d', fontFamily: 'monospace' }}>
                       {reportData.welfare.welfareOutstanding > 0
                         ? `GH₵ ${reportData.welfare.welfareOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })} (Arrears)`
                         : reportData.welfare.welfareCredit > 0

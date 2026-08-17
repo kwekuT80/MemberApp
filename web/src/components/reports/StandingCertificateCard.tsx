@@ -212,26 +212,32 @@ export default function StandingCertificateCard({
       {!isDeceased && (
         <div style={{ marginBottom: 24 }}>
           <h3 style={{ fontSize: 14, fontWeight: 900, color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #E2E8F0', paddingBottom: 6, marginBottom: 12 }}>
-            2. Welfare Scheme Summary
+            2. Welfare Scheme Summary ({financial.currentYear})
           </h3>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
             <tbody>
               <tr style={{ background: '#F8FAFC' }}>
-                <th style={{ ...thStyle, width: '25%' }}>Monthly Rate</th>
-                <td style={{ ...tdStyle, width: '25%' }}>{formatCurrency(welfare.monthlyRate)} / month</td>
-                <th style={{ ...thStyle, width: '25%' }}>Annual Welfare Expected</th>
-                <td style={{ ...tdStyle, width: '25%', fontFamily: 'monospace', fontWeight: 700 }}>{formatCurrency(welfare.currentAssessment)}</td>
+                <th style={{ ...thStyle, width: '25%' }}>Arrears Brought Forward (Prior)</th>
+                <td style={{ ...tdStyle, width: '25%', fontFamily: 'monospace', fontWeight: 700 }}>{formatCurrency(welfare.lastYearBalance || 0)}</td>
+                <th style={{ ...thStyle, width: '25%' }}>Annual Assessment ({financial.currentYear})</th>
+                <td style={{ ...tdStyle, width: '25%', fontFamily: 'monospace', fontWeight: 700 }}>{formatCurrency(welfare.currentAssessment)} ({formatCurrency(welfare.monthlyRate)}/mo)</td>
               </tr>
               <tr>
+                <th style={thStyle}>Total Welfare Assessed</th>
+                <td style={{ ...tdStyle, fontFamily: 'monospace', fontWeight: 800 }}>{formatCurrency(welfare.totalWelfareAssessed)}</td>
                 <th style={thStyle}>Paid This Year</th>
                 <td style={{ ...tdStyle, fontFamily: 'monospace', fontWeight: 800, color: '#16A34A' }}>{formatCurrency(welfare.contributionsThisYear)}</td>
-                <th style={thStyle}>Total Contributed All-Time</th>
-                <td style={{ ...tdStyle, fontFamily: 'monospace', fontWeight: 700 }}>{formatCurrency(welfare.totalContributedAllTime)}</td>
               </tr>
               <tr style={{ background: '#F8FAFC' }}>
-                <th style={thStyle}>Total Benefits Received</th>
+                <th style={thStyle}>Total Contributed All-Time</th>
+                <td style={{ ...tdStyle, fontFamily: 'monospace', fontWeight: 700 }}>{formatCurrency(welfare.totalContributedAllTime)}</td>
+                <th style={thStyle}>Total Benefits Payouts</th>
                 <td style={{ ...tdStyle, fontFamily: 'monospace' }}>{formatCurrency(welfare.totalBenefitsReceived)}</td>
-                <th style={thStyle}>Welfare Balance</th>
+              </tr>
+              <tr>
+                <th style={thStyle}>Monthly Rate</th>
+                <td style={tdStyle}>{formatCurrency(welfare.monthlyRate)} / month</td>
+                <th style={thStyle}>Net Balance (Welfare)</th>
                 <td style={{ ...tdStyle, fontFamily: 'monospace', fontWeight: 900, color: welfare.welfareOutstanding > 0 ? '#DC2626' : '#16A34A' }}>
                   {welfare.welfareOutstanding > 0
                     ? `${formatCurrency(welfare.welfareOutstanding)} (Arrears)`
@@ -284,18 +290,27 @@ export default function StandingCertificateCard({
         </div>
       )}
 
-      {/* Official Sign-Off Attestation Block */}
+      {/* Official Endorsement & Attestation Block */}
       {showSignatureBlock && (
-        <div style={{ marginTop: 36, paddingTop: 20, borderTop: '1px solid #CBD5E1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 36 }}>
-          <div>
-            <div style={{ borderBottom: '1px solid #94A3B8', height: 32, marginBottom: 6 }}></div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>Financial Registrar / Registrar</div>
-            <div style={{ fontSize: 10, color: '#94A3B8' }}>Signature & Date</div>
+        <div style={{ marginTop: 32, paddingTop: 18, borderTop: '1px solid #CBD5E1' }}>
+          <div style={{ fontSize: 11, color: '#64748B', fontStyle: 'italic', marginBottom: 18, textAlign: 'center' }}>
+            "We hereby attest and endorse that this official statement accurately reflects the standing and records of the above-named member in accordance with the Constitution and regulations of the Order."
           </div>
-          <div>
-            <div style={{ borderBottom: '1px solid #94A3B8', height: 32, marginBottom: 6 }}></div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>Worthy President</div>
-            <div style={{ fontSize: 10, color: '#94A3B8' }}>Official Seal & Verification</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40 }}>
+            <div>
+              <div style={{ borderBottom: '1px solid #94A3B8', height: 36, marginBottom: 6 }}></div>
+              <div style={{ fontSize: 11.5, fontWeight: 900, color: '#1E293B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Correspondence & Recording Secretary
+              </div>
+              <div style={{ fontSize: 10, color: '#64748B' }}>Signature & Date</div>
+            </div>
+            <div>
+              <div style={{ borderBottom: '1px solid #94A3B8', height: 36, marginBottom: 6 }}></div>
+              <div style={{ fontSize: 11.5, fontWeight: 900, color: '#1E293B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Worthy President
+              </div>
+              <div style={{ fontSize: 10, color: '#64748B' }}>Signature, Seal & Endorsement</div>
+            </div>
           </div>
         </div>
       )}
