@@ -232,7 +232,7 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
     .eq('id', memberId)
     .maybeSingle();
 
-  if (memberErr || !member) return null;
+  if (memberErr || !member || isSystemMember(member)) return null;
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1; // 1-12

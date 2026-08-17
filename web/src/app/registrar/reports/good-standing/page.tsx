@@ -6,7 +6,7 @@ import RegistrarShell from '@/components/layout/RegistrarShell';
 import StandingCertificateCard from '@/components/reports/StandingCertificateCard';
 import { createClient } from '@/lib/supabase/client';
 import { getMemberPersonalReport, getBatchMemberPersonalReports, PersonalReportData } from '@/services/memberService';
-import { formatMemberTitle } from '@/lib/utils/ksji-logic';
+import { formatMemberTitle, isSystemMember } from '@/lib/utils/ksji-logic';
 
 export default function BatchGoodStandingPage() {
   const [members, setMembers] = useState<any[]>([]);
@@ -35,10 +35,12 @@ export default function BatchGoodStandingPage() {
         .order('surname', { ascending: true });
 
       if (!error && data) {
-        setMembers(data);
+        // Exclude system/service accounts (such as Operational Outflows account)
+        const realMembers = data.filter(m => !isSystemMember(m));
+        setMembers(realMembers);
         // Default select all active members
         const activeIds = new Set<string>();
-        data.forEach(m => {
+        realMembers.forEach(m => {
           if (m.status === 'Active' && !m.is_deceased) {
             activeIds.add(m.id);
           }
@@ -52,6 +54,7 @@ export default function BatchGoodStandingPage() {
 
   const filteredMembers = useMemo(() => {
     return members.filter(m => {
+      if (isSystemMember(m)) return false;
       const isDeceased = m.is_deceased || String(m.status || '').toLowerCase() === 'deceased';
       const isActive = m.status === 'Active' && !isDeceased;
 

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { createClient } from '@/lib/supabase/client';
-import { formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { formatDisplayDate, isSystemMember } from '@/lib/utils/ksji-logic';
 
 export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
@@ -30,7 +30,7 @@ export default function ReportsPage() {
     }
 
     const { data: res, error } = await query;
-    let finalData = res || [];
+    let finalData = (res || []).filter((m: any) => !isSystemMember(m));
 
     if (['el_2nd_3rd', 'el_4th', 'el_5th', 'birthdays'].includes(type)) {
       const now = new Date();
