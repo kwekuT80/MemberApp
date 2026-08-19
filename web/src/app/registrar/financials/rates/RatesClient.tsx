@@ -274,7 +274,41 @@ export default function RatesAndBillingClient({
         </div>
       )}
 
-      {/* Year Selector */}
+      {/* Year Selector & History Link */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, gap: 16, flexWrap: 'wrap' }}>
+        <div className="card" style={{ margin: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div className="label" style={{ marginBottom: 0 }}>Assessment Year</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {years.map(y => (
+                <button key={y} onClick={() => handleYearChange(y)}
+                  className={year === y ? 'tab tab-active' : 'tab'}
+                  style={{ padding: '8px 18px' }}>{y}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <a
+          href="/registrar/financials/rates/history"
+          className="btn-secondary"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '12px 18px',
+            borderRadius: 10,
+            textDecoration: 'none',
+            fontSize: 13,
+            fontWeight: 700,
+            backgroundColor: 'white',
+            border: '1px solid #cbd5e1',
+            color: '#1e293b'
+          }}
+        >
+          <span>📉</span>
+          <span>View Rate History</span>
+        </a>
+      </div>
       <div className="card" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div className="label" style={{ marginBottom: 0 }}>Assessment Year</div>

@@ -1,10 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Sidebar, { SidebarItem } from './Sidebar';
+import Sidebar, { SidebarItem, SidebarSection } from './Sidebar';
 import SignOutButton from '@/components/auth/SignOutButton';
 
-export default function AppShell({ children, title, subtitle, navItems }: { children: React.ReactNode; title: string; subtitle?: string; navItems: SidebarItem[]; }) {
+export default function AppShell({ 
+  children, 
+  title, 
+  subtitle, 
+  navItems 
+}: { 
+  children: React.ReactNode; 
+  title: string; 
+  subtitle?: string; 
+  navItems: (SidebarItem | SidebarSection)[]; 
+}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -59,4 +69,3 @@ export default function AppShell({ children, title, subtitle, navItems }: { chil
     </div>
   );
 }
-
