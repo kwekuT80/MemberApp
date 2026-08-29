@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import MemberShell from '@/components/layout/MemberShell';
 import { getWelfareContributions, getWelfareDisbursements, getWelfareCategories } from '@/services/welfareService';
 import { WelfareContribution, WelfareDisbursement, WelfareCategory } from '@/types/welfare';
-import { formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { formatDisplayDate, calculateExpectedWelfare } from '@/lib/utils/ksji-logic';
 
 export default function MemberWelfarePage() {
   const [contributions, setContributions] = useState<WelfareContribution[]>([]);
@@ -65,8 +65,28 @@ export default function MemberWelfarePage() {
     .filter(c => c.period_year === currentYear)
     .reduce((acc, c) => acc + Number(c.amount || 0), 0);
 
-  const expectedProRataDues = 25.00 * currentMonth;
-  const currentArrears = Math.max(0, expectedProRataDues - currentYearContrib);
+  // Find earliest contribution in personal history
+  let earliestContrib: { year: number; month: number; payment_date: string | null } | null = null;
+  contributions.forEach(c => {
+    const pYear = c.period_year || (c.payment_date ? new Date(c.payment_date).getFullYear() : null);
+    const pMonth = c.period_month || (c.payment_date ? new Date(c.payment_date).getMonth() + 1 : 1);
+    if (pYear) {
+      if (!earliestContrib || pYear < earliestContrib.year || (pYear === earliestContrib.year && pMonth < earliestContrib.month)) {
+        earliestContrib = { year: pYear, month: pMonth, payment_date: c.payment_date };
+      }
+    }
+  });
+
+  const { expectedCurrentYear, isSeniorExempt } = member
+    ? calculateExpectedWelfare({
+        member,
+        earliestContribution: earliestContrib,
+        currentYear,
+        currentMonth,
+      })
+    : { expectedCurrentYear: 25.00 * currentMonth, isSeniorExempt: false };
+
+  const currentArrears = isSeniorExempt ? 0 : Math.max(0, expectedCurrentYear - currentYearContrib);
   const totalMyContrib = contributions.reduce((acc, c) => acc + Number(c.amount || 0), 0);
   const totalMyDisb = disbursements.reduce((acc, d) => acc + Number(d.amount || 0), 0);
 

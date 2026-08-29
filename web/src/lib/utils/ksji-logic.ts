@@ -378,3 +378,182 @@ export function buildFormalCitation(params: {
 
   return `This citation is proudly presented in recognition of ${fullName}, a ${rankTerm} of the Knights of St. John International. Having been initiated on ${joinedDate}, he has since exemplified the highest ideals of our Order through his dedicated service as ${highestPos} and beyond. His journey through the degrees of exemplification stands as a testament to his faith, fraternity, and unwavering commitment to the growth of the Commandery. In witness of his exemplary character and leadership, we hereby certify his standing as a true Knight of the Order.`;
 }
+
+// ============================================================================
+// WELFARE DUES & SUBSCRIPTION STANDING LOGIC
+// ============================================================================
+
+/**
+ * Welfare calculation parameters for a member
+ */
+export interface MemberWelfareCalculationParams {
+  member: {
+    id?: string;
+    date_joined?: string | null;
+    date_of_birth?: string | null;
+    status?: string | null;
+    is_deceased?: boolean | null;
+  };
+  earliestContribution?: {
+    year: number;
+    month?: number | null;
+    payment_date?: string | null;
+  } | null;
+  ratesMap?: Map<number, number>; // Map of year -> monthly_rate (e.g. 2025 -> 25, 2026 -> 25)
+  defaultMonthlyRate?: number;    // Default: 25.00
+  baseStartYear?: number;         // Default: 2022 (when digital welfare tracking started)
+  currentYear?: number;           // Defaults to current year
+  currentMonth?: number;          // Defaults to current month (1-12)
+}
+
+export interface ExpectedWelfareResult {
+  expectedCumulative: number;
+  expectedCurrentYear: number;
+  isSeniorExempt: boolean;
+  effectiveStartYear: number;
+  effectiveStartMonth: number;
+  monthsActiveThisYear: number;
+  startSource: 'date_joined' | 'earliest_welfare_ledger' | 'genesis_2022' | 'senior_exempt';
+}
+
+/**
+ * Calculates a member's expected cumulative welfare contributions.
+ *
+ * To accurately determine when a brother joined and avoid billing for periods prior to his membership:
+ * 1. Checks Senior 80+ exemption (expected = GH₵ 0.00).
+ * 2. Checks `date_joined` on the member profile (if >= 2022).
+ * 3. Cross-references the earliest period (year & month) the brother appears in the welfare ledger.
+ *    If a brother has no `date_joined` entered or if his earliest ledger payment shows he joined between 2022 and 2026,
+ *    his expected dues begin strictly from his earliest appearance in the welfare ledger.
+ * 4. For members whose records/payments date back to inception (2022 M1 or earlier), defaults to Jan 2022.
+ */
+export function calculateExpectedWelfare(params: MemberWelfareCalculationParams): ExpectedWelfareResult {
+  const currentYear = params.currentYear ?? new Date().getFullYear();
+  const currentMonth = params.currentMonth ?? (new Date().getMonth() + 1);
+  const baseStartYear = params.baseStartYear ?? 2022;
+  const defaultMonthlyRate = params.defaultMonthlyRate ?? 25.00;
+  const ratesMap = params.ratesMap ?? new Map<number, number>();
+  const member = params.member;
+
+  // Senior 80+ Exemption Rule
+  let isSeniorExempt = false;
+  if (member.date_of_birth) {
+    const bYear = new Date(member.date_of_birth).getFullYear();
+    if (!isNaN(bYear) && (currentYear - bYear >= 80)) {
+      isSeniorExempt = true;
+    }
+  }
+
+  if (isSeniorExempt) {
+    return {
+      expectedCumulative: 0,
+      expectedCurrentYear: 0,
+      isSeniorExempt: true,
+      effectiveStartYear: currentYear,
+      effectiveStartMonth: 1,
+      monthsActiveThisYear: 0,
+      startSource: 'senior_exempt',
+    };
+  }
+
+  // 1. Check date_joined candidate
+  let candidateYear: number | null = null;
+  let candidateMonth: number | null = null;
+
+  if (member.date_joined) {
+    const joined = new Date(member.date_joined);
+    if (!isNaN(joined.getTime())) {
+      const jYear = joined.getFullYear();
+      const jMonth = joined.getMonth() + 1; // 1-12
+      if (jYear >= baseStartYear) {
+        candidateYear = jYear;
+        candidateMonth = Math.min(Math.max(jMonth, 1), 12);
+      }
+    }
+  }
+
+  // 2. Check earliest welfare ledger entry
+  let ecYear: number | null = params.earliestContribution?.year ?? null;
+  let ecMonth: number = params.earliestContribution?.month ?? 1;
+
+  if (!ecMonth && params.earliestContribution?.payment_date) {
+    const pDate = new Date(params.earliestContribution.payment_date);
+    if (!isNaN(pDate.getTime())) {
+      ecMonth = pDate.getMonth() + 1;
+    }
+  }
+
+  // 3. Resolve effective start year & month
+  let effectiveStartYear = baseStartYear;
+  let effectiveStartMonth = 1;
+  let startSource: 'date_joined' | 'earliest_welfare_ledger' | 'genesis_2022' | 'senior_exempt' = 'genesis_2022';
+
+  if (candidateYear && ecYear) {
+    // If both exist, take the earlier one
+    if (ecYear < candidateYear || (ecYear === candidateYear && ecMonth < (candidateMonth || 1))) {
+      effectiveStartYear = ecYear;
+      effectiveStartMonth = ecMonth;
+      startSource = 'earliest_welfare_ledger';
+    } else {
+      effectiveStartYear = candidateYear;
+      effectiveStartMonth = candidateMonth || 1;
+      startSource = 'date_joined';
+    }
+  } else if (candidateYear) {
+    effectiveStartYear = candidateYear;
+    effectiveStartMonth = candidateMonth || 1;
+    startSource = 'date_joined';
+  } else if (ecYear && ecYear > baseStartYear) {
+    effectiveStartYear = ecYear;
+    effectiveStartMonth = ecMonth;
+    startSource = 'earliest_welfare_ledger';
+  } else {
+    effectiveStartYear = baseStartYear;
+    effectiveStartMonth = 1;
+    startSource = 'genesis_2022';
+  }
+
+  // If start is in the future
+  if (effectiveStartYear > currentYear) {
+    return {
+      expectedCumulative: 0,
+      expectedCurrentYear: 0,
+      isSeniorExempt: false,
+      effectiveStartYear,
+      effectiveStartMonth,
+      monthsActiveThisYear: 0,
+      startSource,
+    };
+  }
+
+  let expectedCumulative = 0;
+  let expectedCurrentYear = 0;
+  let monthsActiveThisYear = 0;
+
+  for (let yr = effectiveStartYear; yr <= currentYear; yr++) {
+    const monthlyRate = ratesMap.get(yr) ?? defaultMonthlyRate;
+    const startM = (yr === effectiveStartYear) ? effectiveStartMonth : 1;
+    const endM = (yr === currentYear) ? currentMonth : 12;
+
+    if (endM >= startM) {
+      const months = (endM - startM + 1);
+      const yrExpected = months * monthlyRate;
+      expectedCumulative += yrExpected;
+
+      if (yr === currentYear) {
+        expectedCurrentYear = yrExpected;
+        monthsActiveThisYear = months;
+      }
+    }
+  }
+
+  return {
+    expectedCumulative,
+    expectedCurrentYear,
+    isSeniorExempt: false,
+    effectiveStartYear,
+    effectiveStartMonth,
+    monthsActiveThisYear,
+    startSource,
+  };
+}

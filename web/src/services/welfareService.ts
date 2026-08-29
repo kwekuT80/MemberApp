@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { calculateExpectedWelfare } from '@/lib/utils/ksji-logic';
 import { fetchAllPaginated } from '@/lib/supabase/pagination';
 import { 
   WelfareCategory, 
@@ -45,7 +46,7 @@ export async function getAllWelfareContributions() {
   return fetchAllPaginated((from, to) =>
     supabase
       .from('welfare_contributions')
-      .select('member_id, amount, period_year')
+      .select('member_id, amount, period_year, period_month, payment_date')
       .range(from, to)
   );
 }
@@ -137,16 +138,44 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
     }
   });
 
-  // Calculate cumulative arrears for active vs inactive standing
-  const fullYearsCount = Math.max(0, currentYear - 2022);
+  // Calculate cumulative arrears for active vs inactive standing using member-specific join dates, earliest ledger appearances & rates
   const currentMonth = new Date().getMonth() + 1;
-  const expectedCumulativePerMember = (fullYearsCount * 12 * 25.00) + (currentMonth * 25.00);
+  const { data: ratesData } = await supabase
+    .from('welfare_contribution_rates')
+    .select('year, monthly_rate');
+  const ratesMap = new Map<number, number>(
+    (ratesData || []).map((r: any) => [r.year, Number(r.monthly_rate)])
+  );
+
+  // Determine earliest contribution per member
+  const earliestContribMap = new Map<string, { year: number; month: number; payment_date: string | null }>();
+  (contributions || []).forEach(c => {
+    if (!c.member_id) return;
+    const pYear = c.period_year || (c.payment_date ? new Date(c.payment_date).getFullYear() : null);
+    const pMonth = c.period_month || (c.payment_date ? new Date(c.payment_date).getMonth() + 1 : 1);
+    if (pYear) {
+      const existing = earliestContribMap.get(c.member_id);
+      if (!existing || pYear < existing.year || (pYear === existing.year && pMonth < existing.month)) {
+        earliestContribMap.set(c.member_id, { year: pYear, month: pMonth, payment_date: c.payment_date });
+      }
+    }
+  });
 
   let activeSubscribers = 0;
-  eligibleMemberIds.forEach(id => {
-    const totalPaid = memberContribMap.get(id) || 0;
-    const arrears = Math.max(0, expectedCumulativePerMember - totalPaid);
-    if (arrears <= 75.00) {
+  eligibleMembers.forEach(m => {
+    const totalPaid = memberContribMap.get(m.id) || 0;
+    const earliestContrib = earliestContribMap.get(m.id) || null;
+    const { expectedCumulative, isSeniorExempt } = calculateExpectedWelfare({
+      member: m,
+      earliestContribution: earliestContrib,
+      ratesMap,
+      defaultMonthlyRate: 25.00,
+      baseStartYear: 2022,
+      currentYear,
+      currentMonth,
+    });
+    const arrears = isSeniorExempt ? 0 : Math.max(0, expectedCumulative - totalPaid);
+    if (isSeniorExempt || arrears <= 75.00) {
       activeSubscribers++;
     }
   });
