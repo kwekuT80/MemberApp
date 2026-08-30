@@ -6,6 +6,8 @@ import { isSystemMember } from '@/lib/utils/ksji-logic';
 const FULL_SELECT = `
   *,
   children(*),
+  dependents(*),
+  emergency_contacts(*),
   positions(*),
   degrees(*),
   spouse(*),
