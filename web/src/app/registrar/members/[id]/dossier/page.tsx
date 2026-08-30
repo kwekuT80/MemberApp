@@ -399,29 +399,31 @@ export default function MemberDossierPage() {
             </table>
           </section>
 
-          {/* SECTION V: MILITARY & RANKS */}
+          {/* SECTION V: KSJI UNIFORMED RANKS & COMMISSIONS */}
           {(safeMilitary.length > 0 || safeRanks.length > 0) && (
             <section style={section}>
-              <h2 style={sectionLabel}>V. Military & Uniformed Rank Records</h2>
-              {safeMilitary.some((m: any) => m.is_military || m.branch || m.rank || m.uniform_blessed_date) && (
+              <h2 style={sectionLabel}>V. KSJI Uniformed Ranks & Officer Commissions</h2>
+              {safeMilitary.some((m: any) => m.is_military || m.current_rank || m.commission || m.uniform_blessed_date || m.first_uniform_use_date) && (
                 <div style={{ marginBottom: 20 }}>
-                  <h3 style={subSectionTitle}>Military & Uniform Service Details</h3>
+                  <h3 style={subSectionTitle}>KSJI Uniform Status & Current Officer Rank</h3>
                   <table style={table}>
                     <thead>
                       <tr>
-                        <th style={tableH}>Service Branch</th>
-                        <th style={tableH}>Service Number</th>
-                        <th style={tableH}>Rank</th>
+                        <th style={tableH}>In Uniform?</th>
+                        <th style={tableH}>Current KSJI Rank</th>
+                        <th style={tableH}>Officer Commission</th>
                         <th style={tableH}>Uniform Blessed Date</th>
-                        <th style={tableH}>First Use Date</th>
+                        <th style={tableH}>First Uniform Use Date</th>
                       </tr>
                     </thead>
                     <tbody>
                       {safeMilitary.map((m: any, idx: number) => (
                         <tr key={idx}>
-                          <td style={td}>{m.branch || (m.is_military ? 'Armed Forces' : 'N/A')}</td>
-                          <td style={td}>{m.service_number || 'N/A'}</td>
-                          <td style={td}>{m.rank || m.current_rank || 'N/A'}</td>
+                          <td style={{ ...td, fontWeight: 700, color: m.is_military ? '#15803d' : '#64748b' }}>
+                            {m.is_military ? 'Yes (Uniformed Knight)' : 'No'}
+                          </td>
+                          <td style={{ ...td, fontWeight: 800, color: '#10233f' }}>{m.current_rank || 'N/A'}</td>
+                          <td style={td}>{m.commission || 'Local Commandery'}</td>
                           <td style={td}>{formatDisplayDate(m.uniform_blessed_date)}</td>
                           <td style={td}>{formatDisplayDate(m.first_uniform_use_date)}</td>
                         </tr>
@@ -432,21 +434,25 @@ export default function MemberDossierPage() {
               )}
               {safeRanks.length > 0 && (
                 <div>
-                  <h3 style={subSectionTitle}>KSJI Uniformed Ranks</h3>
+                  <h3 style={subSectionTitle}>KSJI Officer Commission & Promotion History</h3>
                   <table style={table}>
                     <thead>
                       <tr>
-                        <th style={tableH}>Date</th>
-                        <th style={tableH}>Rank Title</th>
-                        <th style={tableH}>Commission Type</th>
+                        <th style={tableH}>Date of Commission</th>
+                        <th style={tableH}>KSJI Rank Title</th>
+                        <th style={tableH}>Current Active Rank?</th>
+                        <th style={tableH}>Notes / Commission Reference</th>
                       </tr>
                     </thead>
                     <tbody>
                       {safeRanks.map((r: any, idx: number) => (
                         <tr key={idx}>
-                          <td style={td}>{formatDisplayDate(r.rank_date)}</td>
+                          <td style={td}>{formatDisplayDate(r.commission_date || r.rank_date)}</td>
                           <td style={{ ...td, fontWeight: 700 }}>{r.rank_title || 'N/A'}</td>
-                          <td style={td}>{r.commission_type || 'N/A'}</td>
+                          <td style={{ ...td, fontWeight: 600, color: r.is_current ? '#15803d' : '#64748b' }}>
+                            {r.is_current ? 'Yes' : 'No'}
+                          </td>
+                          <td style={td}>{r.notes || r.commission_type || '—'}</td>
                         </tr>
                       ))}
                     </tbody>

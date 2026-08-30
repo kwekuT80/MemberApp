@@ -17,7 +17,7 @@ const memberNav = [
       { href: '/me/presidents', label: '👑 Worthy Presidents' },
       { href: '/me/education', label: '🎓 Exemplification' },
       { href: '/me/positions', label: '🎖️ Positions' },
-      { href: '/me/military', label: '⚔️ Military' },
+      { href: '/me/military', label: '⚔️ Uniform & Ranks' },
       { href: '/me/attendance', label: '📅 Attendance' },
     ]
   },

@@ -30,7 +30,7 @@ function formatDegreeSummary(d: any): string {
 export default function MemberMainForm({ initialMember, mode, redirectTo }: Props) {
   const supabase = createClient();
   const TABS = mode === 'registrar' 
-    ? ['Bio', 'Family', 'Employment', 'Degrees', 'Military', 'Lifecycle']
+    ? ['Bio', 'Family', 'Employment', 'Degrees', 'Uniform & Ranks', 'Lifecycle']
     : ['Bio', 'Family', 'Employment'];
     
   const [activeTab, setActiveTab] = useState(0);
@@ -361,11 +361,11 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
           <div className="grid-cols-2">
             <div style={{ gridColumn: '1 / -1', marginBottom: 20, padding: 16, background: 'rgba(212, 175, 55, 0.05)', borderRadius: 12, border: '1px dashed var(--gold)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                <div>
-                 <div style={{ fontWeight: 800, color: 'var(--navy)' }}>Uniformed Rank Records & Positions</div>
-                 <div style={{ fontSize: 12, opacity: 0.7 }}>Manage commissions, promotions, and service history.</div>
+                 <div style={{ fontWeight: 800, color: 'var(--navy)' }}>KSJI Uniform & Officer Rank Records</div>
+                 <div style={{ fontSize: 12, opacity: 0.7 }}>Manage KSJI uniform status, officer ranks, commissions, and promotions.</div>
                </div>
                {form.id ? (
-                 <Link href={mode === 'self' ? '/me/military' : `/registrar/members/${form.id}/military`} className="tab tab-active">Manage Military & Ranks →</Link>
+                 <Link href={mode === 'self' ? '/me/military' : `/registrar/members/${form.id}/military`} className="tab tab-active">Manage Uniform & Ranks →</Link>
                ) : <span style={{ fontSize: 12, fontStyle: 'italic' }}>Save member first to manage military.</span>}
             </div>
             <InputField label="Uniformed Position" value={form.uniform_positions} onChange={(v: string) => updateField('uniform_positions', v)} />

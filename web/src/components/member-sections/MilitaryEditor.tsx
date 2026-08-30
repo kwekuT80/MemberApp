@@ -67,18 +67,18 @@ export default function MilitaryEditor({ memberId, initialMilitary, initialRanks
   return (
     <div style={card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>Military</h2>
+        <h2 style={{ margin: 0 }}>KSJI Uniform & Officer Ranks</h2>
         {!isEditing && (
           <button type='button' onClick={() => setIsEditing(true)} style={secondaryButton}>✏️ Edit Records</button>
         )}
       </div>
 
       <div style={subCard}>
-        <h3 style={{ margin: '0 0 12px' }}>Uniformed Rank</h3>
+        <h3 style={{ margin: '0 0 12px' }}>KSJI Uniform Status & Current Rank</h3>
         <div style={grid}>
           {isEditing ? (
             <>
-              {checkboxField('In uniform?', !!military.is_military, (v) => setMilitary((cur) => ({ ...cur, is_military: v })))}
+              {checkboxField('In uniform (Uniformed Knight)?', !!military.is_military, (v) => setMilitary((cur) => ({ ...cur, is_military: v })))}
               {dateField('Uniform Blessed Date', military.uniform_blessed_date || '', (v) => setMilitary((cur) => ({ ...cur, uniform_blessed_date: v })))}
               {dateField('First Uniform Use Date', military.first_uniform_use_date || '', (v) => setMilitary((cur) => ({ ...cur, first_uniform_use_date: v })))}
               {field('Current Rank', military.current_rank || '', (v) => setMilitary((cur) => ({ ...cur, current_rank: v })))}
@@ -86,11 +86,11 @@ export default function MilitaryEditor({ memberId, initialMilitary, initialRanks
             </>
           ) : (
             <>
-              <ReadOnlyField label='In uniform?' value={military.is_military ? 'Yes' : 'No'} />
+              <ReadOnlyField label='In uniform (Uniformed Knight)?' value={military.is_military ? 'Yes' : 'No'} />
               <ReadOnlyField label='Uniform Blessed Date' value={military.uniform_blessed_date} />
               <ReadOnlyField label='First Uniform Use Date' value={military.first_uniform_use_date} />
               <ReadOnlyField label='Current Rank' value={military.current_rank} />
-              <ReadOnlyField label='Commission' value={military.commission} />
+              <ReadOnlyField label='Officer Commission' value={military.commission} />
             </>
           )}
         </div>
@@ -98,7 +98,7 @@ export default function MilitaryEditor({ memberId, initialMilitary, initialRanks
 
       <div style={subCard}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0 }}>Commission History</h3>
+          <h3 style={{ margin: 0 }}>Officer Commission & Promotion History</h3>
           {isEditing && (
             <button type='button' onClick={() => setRanks((items) => [...items, { rank_title: '', commission_date: '', is_current: false, notes: '' }])} style={secondaryButton}>+ Add rank</button>
           )}
@@ -139,7 +139,7 @@ export default function MilitaryEditor({ memberId, initialMilitary, initialRanks
       
       {isEditing && (
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
-          <button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save uniformed rank records'}</button>
+          <button type='button' onClick={handleSave} disabled={busy} style={primaryButton}>{busy ? 'Saving…' : 'Save KSJI Uniform Records'}</button>
           <button type='button' onClick={() => { 
             setIsEditing(false); 
             setMilitary(initialMilitary ? { ...initialMilitary, uniform_blessed_date: toInputDate(initialMilitary.uniform_blessed_date), first_uniform_use_date: toInputDate(initialMilitary.first_uniform_use_date) } : { is_military: false, uniform_blessed_date: '', first_uniform_use_date: '', current_rank: '', commission: '' });

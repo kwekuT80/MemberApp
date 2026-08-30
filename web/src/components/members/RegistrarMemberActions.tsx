@@ -7,7 +7,7 @@ export default function RegistrarMemberActions({ memberId }: { memberId: string 
     ['Family', `/registrar/members/${memberId}/family`],
     ['Exemplification', `/registrar/members/${memberId}/education`],
     ['Positions', `/registrar/members/${memberId}/positions`],
-    ['Military', `/registrar/members/${memberId}/military`],
+    ['Uniform & Ranks', `/registrar/members/${memberId}/military`],
     ['Emergency', `/registrar/members/${memberId}/emergency`],
   ] as const;
 

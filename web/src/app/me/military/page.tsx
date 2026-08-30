@@ -13,7 +13,7 @@ export default async function MeMilitaryPage() {
 
   if (!member?.id) {
     return (
-      <MemberShell title='Military' subtitle='Create your main member record first.'>
+      <MemberShell title='Uniform & Ranks' subtitle='Create your main member record first.'>
         <EmptyState message='Please save your main member record before editing military information.' />
       </MemberShell>
     );
