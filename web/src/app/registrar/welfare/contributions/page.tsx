@@ -74,7 +74,12 @@ export default function WelfareContributionsPage() {
       const filtered = (memberList || []).filter(m => {
         if (m.is_deceased) return false;
         const s = String(m.status || '').trim().toLowerCase();
-        return !['deceased', 'dismissed', 'transfer-out'].includes(s);
+        if (['deceased', 'dismissed', 'transfer-out', 'system'].includes(s)) return false;
+        const fullName = `${m.first_name || ''} ${m.surname || ''}`.toLowerCase();
+        if (fullName.includes('system account') || fullName.includes('operational outflow') || fullName.includes('commandery welfare')) {
+          return false;
+        }
+        return true;
       });
       setMembers(filtered);
     } catch (err) {
