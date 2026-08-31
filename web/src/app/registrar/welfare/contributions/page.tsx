@@ -6,6 +6,7 @@ import {
   getWelfareContributions, 
   recordWelfareContribution, 
   deleteWelfareContribution,
+  reclassifyWelfareToDues,
   getAllWelfareContributionRates
 } from '@/services/welfareService';
 import { createClient } from '@/lib/supabase/client';
@@ -19,6 +20,15 @@ export default function WelfareContributionsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
+  
+  // Reclassify Modal State
+  const [reclassifyModalOpen, setReclassifyModalOpen] = useState(false);
+  const [selectedContrib, setSelectedContrib] = useState<WelfareContribution | null>(null);
+  const [targetAssessmentYear, setTargetAssessmentYear] = useState(new Date().getFullYear().toString());
+  const [targetMonth, setTargetMonth] = useState('Annual Assessment');
+  const [reclassifyReason, setReclassifyReason] = useState('');
+  const [reclassifying, setReclassifying] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Form State
   const [memberId, setMemberId] = useState('');
@@ -114,6 +124,44 @@ export default function WelfareContributionsPage() {
       alert(err.message || 'Failed to record contribution');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleOpenReclassify = (contrib: WelfareContribution) => {
+    setSelectedContrib(contrib);
+    setTargetAssessmentYear(contrib.period_year ? contrib.period_year.toString() : new Date().getFullYear().toString());
+    setTargetMonth('Annual Assessment');
+    setReclassifyReason('Miscategorized payment reallocated from Welfare to Assessment');
+    setReclassifyModalOpen(true);
+  };
+
+  const handleConfirmReclassify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedContrib) return;
+
+    setReclassifying(true);
+    try {
+      const res = await reclassifyWelfareToDues(selectedContrib.id, {
+        assessmentYear: parseInt(targetAssessmentYear, 10),
+        month: targetMonth || 'Annual Assessment',
+        reason: reclassifyReason,
+      });
+
+      if (!res.success) {
+        alert(res.error || 'Failed to reclassify payment');
+        setReclassifying(false);
+        return;
+      }
+
+      setToastMessage('✓ Successfully moved payment to Commandery Assessment Dues!');
+      setTimeout(() => setToastMessage(null), 4000);
+      setReclassifyModalOpen(false);
+      setSelectedContrib(null);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Error reclassifying payment');
+    } finally {
+      setReclassifying(false);
     }
   };
 

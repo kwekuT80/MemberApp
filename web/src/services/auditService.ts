@@ -1,7 +1,7 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
 
-export type AuditAction = 'payment_amount_change' | 'rate_change' | 'assessment_edit' | 'payment_delete';
+export type AuditAction = 'payment_amount_change' | 'rate_change' | 'assessment_edit' | 'payment_delete' | 'payment_reclassify_to_dues' | 'payment_reclassify_to_welfare';
 export type EntityType = 'payment' | 'rate' | 'assessment';
 
 interface LogEntryParams {

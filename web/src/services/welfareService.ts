@@ -547,3 +547,104 @@ export async function upsertWelfareContributionRate(payload: {
   return data;
 }
 
+
+export async function reclassifyWelfareToDues(
+  welfareContributionId: string,
+  payload: {
+    assessmentYear: number;
+    month?: string;
+    reason?: string;
+  }
+): Promise<{ success: boolean; error?: string; paymentId?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // 1. Fetch the existing welfare contribution
+    const { data: existing, error: fetchErr } = await supabase
+      .from('welfare_contributions')
+      .select('*, members:member_id(first_name, surname, title)')
+      .eq('id', welfareContributionId)
+      .single();
+
+    if (fetchErr || !existing) {
+      return { success: false, error: fetchErr?.message || 'Welfare contribution not found' };
+    }
+
+    // 2. Insert into financial_payments (Assessment Dues ledger)
+    const { data: newPayment, error: insertErr } = await supabase
+      .from('financial_payments')
+      .insert({
+        member_id: existing.member_id,
+        assessment_year: payload.assessmentYear,
+        month: payload.month || 'Jan',
+        amount: existing.amount,
+        payment_date: existing.payment_date,
+        recorded_by: user?.id || existing.recorded_by || null,
+      })
+      .select()
+      .single();
+
+    if (insertErr || !newPayment) {
+      return { success: false, error: insertErr?.message || 'Failed to create assessment payment record' };
+    }
+
+    // 3. Delete from welfare_contributions
+    const { error: delErr } = await supabase
+      .from('welfare_contributions')
+      .delete()
+      .eq('id', welfareContributionId);
+
+    if (delErr) {
+      console.error('Warning: Failed to delete source welfare record after reclassification:', delErr);
+    }
+
+    // 4. Log in financial audit log
+    try {
+      await supabase.from('financial_audit_log').insert({
+        action: 'payment_reclassify_to_dues',
+        entity_type: 'payment',
+        entity_id: newPayment.id,
+        member_id: existing.member_id,
+        old_values: {
+          source_fund: 'Welfare Contribution',
+          welfare_contribution_id: existing.id,
+          amount: existing.amount,
+          period_year: existing.period_year,
+          period_month: existing.period_month,
+          payment_method: existing.payment_method,
+        },
+        new_values: {
+          destination_fund: 'Commandery Assessment Dues',
+          payment_id: newPayment.id,
+          assessment_year: payload.assessmentYear,
+          month: payload.month || 'Jan',
+          amount: existing.amount,
+          reclassification_reason: payload.reason || 'Miscategorized payment moved from Welfare to Assessment',
+        },
+        changed_by: user?.id || null,
+        changed_at: new Date().toISOString(),
+      });
+    } catch (auditErr) {
+      console.error('Audit logging failed for reclassification:', auditErr);
+    }
+
+    // 5. Log in welfare audit log
+    await logWelfareAudit({
+      action: 'contribution_delete',
+      entityType: 'welfare_contribution',
+      entityId: existing.id,
+      memberId: existing.member_id,
+      oldValues: existing,
+      newValues: {
+        reclassified_to_dues: true,
+        destination_payment_id: newPayment.id,
+        reason: payload.reason || 'Reclassified to Commandery Assessment Dues',
+      },
+    });
+
+    return { success: true, paymentId: newPayment.id };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Unexpected server error' };
+  }
+}

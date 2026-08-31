@@ -42,6 +42,15 @@ export default function PaymentsClient({
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  // Reclassify Modal State
+  const [reclassifyModalOpen, setReclassifyModalOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [targetWelfareYear, setTargetWelfareYear] = useState(new Date().getFullYear().toString());
+  const [targetWelfareMonth, setTargetWelfareMonth] = useState((new Date().getMonth() + 1).toString());
+  const [targetPaymentMethod, setTargetPaymentMethod] = useState<'cash' | 'mobile_money' | 'bank_transfer' | 'cheque'>('mobile_money');
+  const [reclassifyReason, setReclassifyReason] = useState('');
+  const [reclassifying, setReclassifying] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
 
   function showToast(msg: string, type: 'ok' | 'err') {

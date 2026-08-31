@@ -568,3 +568,86 @@ export async function getReminderHistory(params?: {
 
   return data || [];
 }
+
+export async function reclassifyDuesToWelfare(
+  financialPaymentId: string,
+  payload: {
+    periodYear: number;
+    periodMonth?: number;
+    paymentMethod?: 'cash' | 'mobile_money' | 'bank_transfer' | 'cheque';
+    reason?: string;
+  }
+): Promise<{ success: boolean; error?: string; contributionId?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // 1. Fetch the existing financial payment
+    const { data: existing, error: fetchErr } = await supabase
+      .from('financial_payments')
+      .select('*, members:member_id(first_name, surname, title)')
+      .eq('id', financialPaymentId)
+      .single();
+
+    if (fetchErr || !existing) {
+      return { success: false, error: fetchErr?.message || 'Assessment payment record not found' };
+    }
+
+    // 2. Insert into welfare_contributions
+    const { data: newContrib, error: insertErr } = await supabase
+      .from('welfare_contributions')
+      .insert({
+        member_id: existing.member_id,
+        amount: existing.amount,
+        payment_date: existing.payment_date || new Date().toISOString(),
+        period_year: payload.periodYear,
+        period_month: payload.periodMonth || 1,
+        payment_method: payload.paymentMethod || 'mobile_money',
+        notes: `Reclassified from ${existing.assessment_year} Assessment Dues. ${payload.reason || ''}`.trim(),
+        recorded_by: user?.id || existing.recorded_by || null,
+      })
+      .select()
+      .single();
+
+    if (insertErr || !newContrib) {
+      return { success: false, error: insertErr?.message || 'Failed to create welfare contribution record' };
+    }
+
+    // 3. Delete from financial_payments
+    const { error: delErr } = await supabase
+      .from('financial_payments')
+      .delete()
+      .eq('id', financialPaymentId);
+
+    if (delErr) {
+      console.error('Warning: Failed to delete source assessment payment after reclassification:', delErr);
+    }
+
+    // 4. Log in financial audit log
+    await logFinancialChange({
+      action: 'payment_reclassify_to_welfare',
+      entityType: 'payment',
+      entityId: existing.id,
+      memberId: existing.member_id,
+      oldValues: {
+        source_fund: 'Commandery Assessment Dues',
+        payment_id: existing.id,
+        assessment_year: existing.assessment_year,
+        month: existing.month,
+        amount: existing.amount,
+      },
+      newValues: {
+        destination_fund: 'Welfare Contribution',
+        welfare_contribution_id: newContrib.id,
+        period_year: payload.periodYear,
+        period_month: payload.periodMonth || 1,
+        amount: existing.amount,
+        reclassification_reason: payload.reason || 'Miscategorized payment moved from Assessment to Welfare',
+      },
+    });
+
+    return { success: true, contributionId: newContrib.id };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Unexpected server error' };
+  }
+}

@@ -10,6 +10,8 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   rate_change: 'Rate Configuration Changed',
   assessment_edit: 'Assessment Edited',
   payment_delete: 'Payment Deleted',
+  payment_reclassify_to_dues: 'Moved from Welfare to Dues',
+  payment_reclassify_to_welfare: 'Moved from Dues to Welfare',
 };
 
 const ACTION_COLORS: Record<AuditAction, string> = {
@@ -17,6 +19,8 @@ const ACTION_COLORS: Record<AuditAction, string> = {
   rate_change: 'bg-purple-100 text-purple-800',
   assessment_edit: 'bg-yellow-100 text-yellow-800',
   payment_delete: 'bg-red-100 text-red-800',
+  payment_reclassify_to_dues: 'bg-green-100 text-green-800',
+  payment_reclassify_to_welfare: 'bg-indigo-100 text-indigo-800',
 };
 
 export default function AuditLogClient() {
@@ -188,6 +192,8 @@ export default function AuditLogClient() {
             <option value="rate_change">Rate Configuration Changed</option>
             <option value="assessment_edit">Assessment Edited</option>
             <option value="payment_delete">Payment Deleted</option>
+            <option value="payment_reclassify_to_dues">Moved from Welfare to Dues</option>
+            <option value="payment_reclassify_to_welfare">Moved from Dues to Welfare</option>
           </select>
         </label>
 
