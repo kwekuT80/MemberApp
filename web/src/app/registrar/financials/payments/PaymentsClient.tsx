@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { useRouter } from 'next/navigation';
+import { reclassifyDuesToWelfare, getPaymentsForYear } from '@/services/financialService';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -28,6 +30,7 @@ export default function PaymentsClient({
   initialPayments: Payment[];
   currentUserId: string;
 }) {
+  const router = useRouter();
   const supabase = createClient();
   const [year, setYear] = useState(initialYear);
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
@@ -141,6 +144,49 @@ export default function PaymentsClient({
       showToast(`🎉 Recorded GH₵ ${savedAmt} (${paymentCategory === 'assessment' ? 'Dues' : 'Voluntary Relief'}) for ${savedName}!`, 'ok');
     } else {
       showToast(`🎉 Payment recorded for ${savedName}!`, 'ok');
+    }
+  }
+
+  function handleOpenReclassify(payment: Payment) {
+    setSelectedPayment(payment);
+    setTargetWelfareYear(payment.assessment_year ? payment.assessment_year.toString() : new Date().getFullYear().toString());
+    setTargetWelfareMonth((new Date().getMonth() + 1).toString());
+    setTargetPaymentMethod('mobile_money');
+    setReclassifyReason('Miscategorized payment reallocated from Assessment Dues to Welfare Scheme');
+    setReclassifyModalOpen(true);
+  }
+
+  async function handleConfirmReclassify(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedPayment) return;
+
+    setReclassifying(true);
+    try {
+      const res = await reclassifyDuesToWelfare(selectedPayment.id, {
+        periodYear: parseInt(targetWelfareYear, 10),
+        periodMonth: parseInt(targetWelfareMonth, 10) || 1,
+        paymentMethod: targetPaymentMethod,
+        reason: reclassifyReason,
+      });
+
+      if (!res.success) {
+        showToast(res.error || 'Failed to reclassify payment', 'err');
+        setReclassifying(false);
+        return;
+      }
+
+      showToast('✓ Successfully moved payment to Welfare Scheme!', 'ok');
+      setReclassifyModalOpen(false);
+      setSelectedPayment(null);
+      
+      // Refresh list
+      const updated = await getPaymentsForYear(year);
+      setPayments(updated);
+      router.refresh();
+    } catch (err: any) {
+      showToast(err.message || 'Error reclassifying payment', 'err');
+    } finally {
+      setReclassifying(false);
     }
   }
 
@@ -547,6 +593,17 @@ export default function PaymentsClient({
                       <span style={{ fontWeight: 800, color: isVol ? '#6D28D9' : '#166534', fontSize: 15, fontFamily: 'monospace' }}>
                         {fmt(parseFloat(p.amount as any))}
                       </span>
+                      <button
+                        onClick={() => handleOpenReclassify(p)}
+                        style={{
+                          background: '#F5F3FF', color: '#6D28D9', border: '1px solid #DDD6FE',
+                          borderRadius: 6, padding: '4px 10px', fontSize: 12,
+                          fontWeight: 700, cursor: 'pointer',
+                        }}
+                        title="Reclassify to Welfare Scheme Contribution"
+                      >
+                        🔄 Move to Welfare
+                      </button>
                       <button
                         onClick={() => handleDelete(p.id)}
                         disabled={deleting === p.id}

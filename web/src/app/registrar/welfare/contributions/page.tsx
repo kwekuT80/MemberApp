@@ -20,15 +20,6 @@ export default function WelfareContributionsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
-  
-  // Reclassify Modal State
-  const [reclassifyModalOpen, setReclassifyModalOpen] = useState(false);
-  const [selectedContrib, setSelectedContrib] = useState<WelfareContribution | null>(null);
-  const [targetAssessmentYear, setTargetAssessmentYear] = useState(new Date().getFullYear().toString());
-  const [targetMonth, setTargetMonth] = useState('Annual Assessment');
-  const [reclassifyReason, setReclassifyReason] = useState('');
-  const [reclassifying, setReclassifying] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Form State
   const [memberId, setMemberId] = useState('');
@@ -40,6 +31,15 @@ export default function WelfareContributionsPage() {
   const [referenceNo, setReferenceNo] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Reclassify Modal State
+  const [reclassifyModalOpen, setReclassifyModalOpen] = useState(false);
+  const [selectedContrib, setSelectedContrib] = useState<WelfareContribution | null>(null);
+  const [targetAssessmentYear, setTargetAssessmentYear] = useState(new Date().getFullYear().toString());
+  const [targetMonth, setTargetMonth] = useState('Annual Assessment');
+  const [reclassifyReason, setReclassifyReason] = useState('');
+  const [reclassifying, setReclassifying] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const supabase = createClient();
 
@@ -112,16 +112,14 @@ export default function WelfareContributionsPage() {
       setReferenceNo('');
       setNotes('');
 
-      if (keepModalOpen) {
-        alert(`🎉 Contribution of GH₵ ${parseFloat(amount).toFixed(2)} recorded for ${memberName}! Select next member.`);
-      } else {
-        alert(`Welfare contribution recorded for ${memberName}!`);
+      if (!keepModalOpen) {
         setShowModal(false);
       }
-      loadData();
+
+      await loadData();
+      alert(`Welfare contribution recorded successfully for ${memberName}.`);
     } catch (err: any) {
-      console.error('Record contribution error:', err);
-      alert(err.message || 'Failed to record contribution');
+      alert(err.message || 'Error recording contribution');
     } finally {
       setSubmitting(false);
     }
@@ -166,34 +164,30 @@ export default function WelfareContributionsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this welfare contribution entry? An audit trail entry will be recorded.')) return;
+    if (!confirm('Are you sure you want to delete this contribution record? This action will be logged in the audit trail.')) return;
     try {
       await deleteWelfareContribution(id);
-      loadData();
-    } catch (err) {
-      alert('Failed to delete entry');
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Error deleting contribution');
     }
   };
 
-  const filteredContributions = contributions.filter(c => {
-    const name = c.members ? `${c.members.first_name} ${c.members.surname}`.toLowerCase() : '';
-    const ref = (c.reference_no || '').toLowerCase();
-    const query = searchQuery.toLowerCase();
-    return name.includes(query) || ref.includes(query);
-  });
-
-  const exportCSV = () => {
-    const headers = ['Member Name', 'Payment Date', 'Year', 'Month', 'Method', 'Reference', 'Amount (GHc)'];
-    const rows = filteredContributions.map(c => [
-      c.members ? `${c.members.first_name} ${c.members.surname}` : 'Unknown',
+  const downloadCSV = () => {
+    if (contributions.length === 0) return;
+    const headers = ['Member Name', 'Payment Date', 'Period Year', 'Period Month', 'Amount (GHS)', 'Payment Method', 'Reference No', 'Notes'];
+    const rows = contributions.map(c => [
+      c.members ? `"${c.members.first_name} ${c.members.surname}"` : 'Unknown',
       c.payment_date,
       c.period_year,
       c.period_month || '',
+      c.amount,
       c.payment_method,
-      c.reference_no || '',
-      c.amount
+      `"${c.reference_no || ''}"`,
+      `"${c.notes || ''}"`,
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -203,37 +197,94 @@ export default function WelfareContributionsPage() {
     document.body.removeChild(link);
   };
 
+  const filteredContributions = contributions.filter(c => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    const name = c.members ? `${c.members.first_name} ${c.members.surname}`.toLowerCase() : '';
+    const ref = (c.reference_no || '').toLowerCase();
+    const notes = (c.notes || '').toLowerCase();
+    return name.includes(q) || ref.includes(q) || notes.includes(q);
+  });
+
   return (
-    <RegistrarShell title="Welfare Contributions Ledger" subtitle="Record and track member welfare dues and subscriptions">
-      <div style={{ padding: '24px 0', fontFamily: 'Inter, sans-serif' }}>
+    <RegistrarShell 
+      title="Welfare Contributions Ledger"
+      subtitle="Record and track member welfare dues and subscriptions"
+    >
+      <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 60 }}>
         
-        {/* Actions & Filters Header */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-          <input 
-            type="text"
-            placeholder="🔍 Search member name or reference..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #CBD5E1', width: 320, fontSize: 14 }}
-          />
+        {/* Toast Alert */}
+        {toastMessage && (
+          <div style={{
+            position: 'fixed', top: 24, right: 24, zIndex: 9999,
+            background: '#166534', color: 'white', padding: '14px 24px',
+            borderRadius: 12, fontWeight: 700, fontSize: 14, boxShadow: '0 8px 30px rgba(0,0,0,0.2)'
+          }}>
+            {toastMessage}
+          </div>
+        )}
+
+        {/* Top Action Bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ position: 'relative', width: 320 }}>
+            <input 
+              type="text"
+              placeholder="Search member name or reference..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 16px 10px 36px',
+                borderRadius: 8,
+                border: '1px solid #CBD5E1',
+                fontSize: 14,
+                outline: 'none',
+                background: 'white',
+              }}
+            />
+            <span style={{ position: 'absolute', left: 12, top: 10, color: '#94A3B8' }}>🔍</span>
+          </div>
 
           <div style={{ display: 'flex', gap: 12 }}>
             <button 
-              onClick={exportCSV} 
-              style={{ background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '10px 20px', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}
+              onClick={downloadCSV}
+              style={{
+                background: 'white',
+                border: '1px solid #CBD5E1',
+                padding: '10px 18px',
+                borderRadius: 8,
+                fontWeight: 700,
+                color: '#334155',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
             >
               📥 Export CSV
             </button>
+
             <button 
-              onClick={() => setShowModal(true)} 
-              style={{ background: '#10B981', color: 'white', border: 'none', padding: '10px 24px', borderRadius: 8, fontWeight: 800, cursor: 'pointer' }}
+              onClick={() => setShowModal(true)}
+              style={{
+                background: '#10B981',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: 8,
+                fontWeight: 800,
+                color: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
             >
               ➕ Record Contribution
             </button>
           </div>
         </div>
 
-        {/* Ledger Table */}
+        {/* Contributions Table */}
         <div style={{ background: 'white', borderRadius: 16, border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
           {loading ? (
             <div style={{ padding: 40, textAlign: 'center', color: '#64748B' }}>Loading contributions ledger...</div>
@@ -274,12 +325,30 @@ export default function WelfareContributionsPage() {
                       GH₵ {Number(c.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                      <button 
-                        onClick={() => handleDelete(c.id)}
-                        style={{ background: 'none', border: 'none', color: '#EF4444', fontWeight: 800, cursor: 'pointer' }}
-                      >
-                        🗑️ Delete
-                      </button>
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
+                        <button 
+                          onClick={() => handleOpenReclassify(c)}
+                          style={{
+                            background: '#F0FDF4',
+                            border: '1px solid #BBF7D0',
+                            color: '#15803D',
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                          title="Reclassify to Commandery Assessment Dues"
+                        >
+                          🔄 Move to Dues
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(c.id)}
+                          style={{ background: 'none', border: 'none', color: '#EF4444', fontWeight: 800, cursor: 'pointer' }}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -387,6 +456,90 @@ export default function WelfareContributionsPage() {
                   </button>
                   <button type="button" onClick={e => handleSubmit(e, true)} disabled={submitting} style={{ background: '#10B981', color: 'white', border: 'none', padding: '10px 18px', borderRadius: 8, fontWeight: 800, cursor: 'pointer' }}>
                     {submitting ? 'Saving...' : '➕ Save & Add Another'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Reclassify Modal */}
+        {reclassifyModalOpen && selectedContrib && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110 }}>
+            <div style={{ background: 'white', borderRadius: 16, padding: 32, maxWidth: 480, width: '90%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#10233F' }}>
+                    🔄 Move Payment to Assessment Dues
+                  </h3>
+                  <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748B' }}>
+                    Transfer miscategorized welfare contribution into the Commandery assessment dues ledger.
+                  </p>
+                </div>
+                <button onClick={() => setReclassifyModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              </div>
+
+              <div style={{ background: '#F8FAFC', padding: 14, borderRadius: 8, border: '1px solid #E2E8F0', marginBottom: 18, fontSize: 13 }}>
+                <div><strong>Member:</strong> {selectedContrib.members ? `${selectedContrib.members.title || 'Bro.'} ${selectedContrib.members.first_name} ${selectedContrib.members.surname}` : 'Member'}</div>
+                <div style={{ marginTop: 4 }}><strong>Amount:</strong> <span style={{ color: '#10B981', fontWeight: 800 }}>GH₵ {Number(selectedContrib.amount).toFixed(2)}</span></div>
+                <div style={{ marginTop: 4 }}><strong>Original Payment Date:</strong> {formatDisplayDate(selectedContrib.payment_date)}</div>
+              </div>
+
+              <form onSubmit={handleConfirmReclassify}>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#475569', marginBottom: 6 }}>
+                    TARGET ASSESSMENT YEAR
+                  </label>
+                  <input 
+                    type="number"
+                    value={targetAssessmentYear}
+                    onChange={e => setTargetAssessmentYear(e.target.value)}
+                    required
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #CBD5E1' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#475569', marginBottom: 6 }}>
+                    ALLOCATION / MONTH DESCRIPTION
+                  </label>
+                  <input 
+                    type="text"
+                    value={targetMonth}
+                    onChange={e => setTargetMonth(e.target.value)}
+                    placeholder="e.g. Annual Assessment, Jan, Mar"
+                    required
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #CBD5E1' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#475569', marginBottom: 6 }}>
+                    REASON / AUDIT NOTE
+                  </label>
+                  <input 
+                    type="text"
+                    value={reclassifyReason}
+                    onChange={e => setReclassifyReason(e.target.value)}
+                    placeholder="e.g. Mistakenly entered as welfare at meeting"
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #CBD5E1' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button 
+                    type="button" 
+                    onClick={() => setReclassifyModalOpen(false)}
+                    style={{ flex: 1, padding: 12, borderRadius: 8, border: '1px solid #CBD5E1', background: '#F8FAFC', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={reclassifying}
+                    style={{ flex: 2, padding: 12, borderRadius: 8, border: 'none', background: '#166534', color: 'white', fontWeight: 800, cursor: 'pointer' }}
+                  >
+                    {reclassifying ? 'Transferring...' : 'Confirm Transfer to Dues'}
                   </button>
                 </div>
               </form>
