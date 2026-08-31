@@ -9,9 +9,10 @@ import {
   getWelfareDisbursements 
 } from '@/services/welfareService';
 import { formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { WelfareSummary } from '@/types/welfare';
 
 export default async function WelfareDashboardPage() {
-  let summary = {
+  let summary: WelfareSummary = {
     totalContributions: 0,
     totalDisbursements: 0,
     totalWelfareBenefits: 0,
@@ -25,6 +26,10 @@ export default async function WelfareDashboardPage() {
     inactiveMembersCount: 0,
     totalMembersCount: 0,
     activeCategoriesCount: 0,
+    totalCumulativeArrears: 0,
+    currentYearArrears: 0,
+    pastYearsArrears: 0,
+    membersInArrearsCount: 0,
   };
 
   let recentContributions: any[] = [];
@@ -72,6 +77,31 @@ export default async function WelfareDashboardPage() {
               </div>
               <div style={{ fontSize: 12, color: '#CBD5E1', marginTop: 8, fontWeight: 700 }}>
                 Cumulative Reserves →
+              </div>
+            </div>
+          </Link>
+
+          {/* Card: Welfare Arrears */}
+          <Link href="/registrar/welfare/arrears" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div style={{ 
+              background: 'white', 
+              borderRadius: 16, 
+              padding: 24, 
+              border: '1px solid #FECACA',
+              borderLeft: '5px solid #DC2626',
+              boxShadow: '0 4px 12px rgba(220, 38, 38, 0.08)',
+              cursor: 'pointer',
+              height: '100%'
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#DC2626', textTransform: 'uppercase', letterSpacing: 1 }}>
+                📉 Cumulative Welfare Arrears
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: '#DC2626', marginTop: 8, fontFamily: 'monospace' }}>
+                GH₵ {(summary.totalCumulativeArrears || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 12 }}>
+                <span style={{ color: '#EA580C', fontWeight: 700 }}>2026: GH₵ {(summary.currentYearArrears || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span style={{ color: '#2563EB', fontWeight: 800 }}>View Breakdown →</span>
               </div>
             </div>
           </Link>
@@ -168,7 +198,7 @@ export default async function WelfareDashboardPage() {
             </div>
           </Link>
 
-          {/* Card 5: Operational Expenses (All-Time) */}
+          {/* Card 6: Operational Expenses (All-Time) */}
           <Link href="/registrar/welfare/disbursements" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ 
               background: 'white', 
@@ -191,7 +221,7 @@ export default async function WelfareDashboardPage() {
             </div>
           </Link>
 
-          {/* Card 6: Welfare Subscribers Breakdown */}
+          {/* Card 7: Welfare Subscribers Breakdown */}
           <Link href="/registrar/welfare/subscribers" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ 
               background: 'white', 
@@ -239,6 +269,17 @@ export default async function WelfareDashboardPage() {
           gap: 16, 
           marginBottom: 36 
         }}>
+          <Link href="/registrar/welfare/arrears" style={actionCardStyle('#DC2626')}>
+            <div style={{ fontSize: 28, marginBottom: 12 }}>📉</div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: '#0F172A' }}>Welfare Arrears Matrix</div>
+            <div style={{ fontSize: 13, color: '#64748B', marginTop: 4 }}>
+              Year-by-year collection vs arrears (2022–2026), current year obligations, and member delinquency.
+            </div>
+            <div style={{ marginTop: 16, fontWeight: 800, color: '#DC2626', fontSize: 13 }}>
+              View Arrears Breakdown →
+            </div>
+          </Link>
+
           <Link href="/registrar/welfare/contributions" style={actionCardStyle('#10B981')}>
             <div style={{ fontSize: 28, marginBottom: 12 }}>💳</div>
             <div style={{ fontWeight: 800, fontSize: 16, color: '#0F172A' }}>Record Contributions</div>

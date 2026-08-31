@@ -89,6 +89,10 @@ export interface WelfareSummary {
   inactiveMembersCount: number;
   totalMembersCount: number;
   activeCategoriesCount: number;
+  totalCumulativeArrears: number;
+  currentYearArrears: number;
+  pastYearsArrears: number;
+  membersInArrearsCount: number;
 }
 
 export interface WelfareContributionRate {
@@ -100,4 +104,51 @@ export interface WelfareContributionRate {
   commandery_id?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface WelfareYearlyArrearsItem {
+  year: number;
+  monthlyRate: number;
+  expectedTotal: number;
+  collectedTotal: number;
+  arrearsTotal: number;
+  complianceRate: number;
+}
+
+export interface WelfareMemberArrearsItem {
+  id: string;
+  name: string;
+  title: string;
+  status: string;
+  dateJoined: string | null;
+  joinLabel: string;
+  isSeniorExempt: boolean;
+  effectiveStartYear: number;
+  effectiveStartMonth: number;
+  pastYearsExpected: number;
+  pastYearsPaid: number;
+  pastYearsArrears: number;
+  currentYearExpected: number;
+  currentYearPaid: number;
+  currentYearArrears: number;
+  totalExpected: number;
+  totalPaid: number;
+  cumulativeArrears: number;
+  isSubscriber: boolean;
+}
+
+export interface WelfareArrearsReport {
+  summary: {
+    totalCumulativeArrears: number;
+    currentYearArrears: number;
+    pastYearsArrears: number;
+    totalExpectedCumulative: number;
+    totalPaidCumulative: number;
+    activeSubscribersCount: number;
+    delinquentCount: number;
+    seniorExemptCount: number;
+    totalMembersCount: number;
+  };
+  yearlyBreakdown: WelfareYearlyArrearsItem[];
+  memberBreakdown: WelfareMemberArrearsItem[];
 }
