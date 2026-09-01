@@ -1,3 +1,4 @@
+'use server';
 
 export function isEligibleWelfareMember(m: {
   first_name?: string | null;
@@ -18,7 +19,7 @@ export function isEligibleWelfareMember(m: {
   return true;
 }
 
-'use server';
+
 
 import { createClient } from '@/lib/supabase/server';
 import { calculateExpectedWelfare } from '@/lib/utils/ksji-logic';
