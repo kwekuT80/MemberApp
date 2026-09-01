@@ -557,3 +557,23 @@ export function calculateExpectedWelfare(params: MemberWelfareCalculationParams)
     startSource,
   };
 }
+
+
+export function isEligibleWelfareMember(m: {
+  first_name?: string | null;
+  surname?: string | null;
+  status?: string | null;
+  is_deceased?: boolean | null;
+}): boolean {
+  if (m.is_deceased) return false;
+  const s = String(m.status || '').trim().toLowerCase();
+  if (['deceased', 'dismissed', 'transfer-out', 'system'].includes(s)) return false;
+  const fullName = `${m.first_name || ''} ${m.surname || ''}`.toLowerCase();
+  if (fullName.includes('system account') || 
+      fullName.includes('operational outflow') || 
+      fullName.includes('commandery welfare') ||
+      fullName.includes('system')) {
+    return false;
+  }
+  return true;
+}
