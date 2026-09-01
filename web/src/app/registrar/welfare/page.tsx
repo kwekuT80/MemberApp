@@ -38,7 +38,7 @@ export default async function WelfareDashboardPage() {
   try {
     summary = await getWelfareSummary();
     recentContributions = await getWelfareContributions({ limit: 5 });
-    recentDisbursements = await getWelfareDisbursements({ limit: 5 });
+    recentDisbursements = await getWelfareDisbursements({ limit: 5, excludeOperational: true });
   } catch (err) {
     console.error('Failed to load welfare dashboard data:', err);
   }

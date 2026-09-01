@@ -372,23 +372,59 @@ export async function deleteWelfareContribution(id: string): Promise<void> {
 export async function getWelfareDisbursements(filters?: {
   memberId?: string;
   limit?: number;
+  excludeOperational?: boolean;
+  onlyOperational?: boolean;
 }): Promise<WelfareDisbursement[]> {
   const supabase = await createClient();
   let query = supabase
     .from('welfare_disbursements')
-    .select('*, members:member_id (first_name, surname, title), profiles:disbursed_by (email)')
+    .select('*, members:member_id (first_name, surname, title, status, is_deceased), profiles:disbursed_by (email)')
     .order('disbursement_date', { ascending: false });
 
   if (filters?.memberId) {
     query = query.eq('member_id', filters.memberId);
   }
-  if (filters?.limit) {
-    query = query.limit(filters.limit);
-  }
 
   const { data, error } = await query;
   if (error) throw error;
-  return data || [];
+
+  let list = data || [];
+
+  if (filters?.excludeOperational) {
+    list = list.filter(d => {
+      const isSystem = !isEligibleWelfareMember(d.members || {});
+      const cat = (d.category_name || '').toLowerCase();
+      const isExpense = cat.includes('operational') || 
+                        cat.includes('logistics') || 
+                        cat.includes('printing') || 
+                        cat.includes('stationery') || 
+                        cat.includes('bank') || 
+                        cat.includes('charge') || 
+                        cat.includes('fee');
+      return !isSystem && !isExpense;
+    });
+  }
+
+  if (filters?.onlyOperational) {
+    list = list.filter(d => {
+      const isSystem = !isEligibleWelfareMember(d.members || {});
+      const cat = (d.category_name || '').toLowerCase();
+      const isExpense = cat.includes('operational') || 
+                        cat.includes('logistics') || 
+                        cat.includes('printing') || 
+                        cat.includes('stationery') || 
+                        cat.includes('bank') || 
+                        cat.includes('charge') || 
+                        cat.includes('fee');
+      return isSystem || isExpense;
+    });
+  }
+
+  if (filters?.limit) {
+    list = list.slice(0, filters.limit);
+  }
+
+  return list;
 }
 
 export async function recordWelfareDisbursement(payload: {
