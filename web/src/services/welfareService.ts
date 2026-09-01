@@ -1,3 +1,23 @@
+
+export function isEligibleWelfareMember(m: {
+  first_name?: string | null;
+  surname?: string | null;
+  status?: string | null;
+  is_deceased?: boolean | null;
+}): boolean {
+  if (m.is_deceased) return false;
+  const s = String(m.status || '').trim().toLowerCase();
+  if (['deceased', 'dismissed', 'transfer-out', 'system'].includes(s)) return false;
+  const fullName = `${m.first_name || ''} ${m.surname || ''}`.toLowerCase();
+  if (fullName.includes('system account') || 
+      fullName.includes('operational outflow') || 
+      fullName.includes('commandery welfare') ||
+      fullName.includes('system')) {
+    return false;
+  }
+  return true;
+}
+
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
@@ -80,16 +100,11 @@ export async function getWelfareSummary(): Promise<WelfareSummary> {
   const allMembers = await fetchAllPaginated((from, to) =>
     supabase
       .from('members')
-      .select('id, date_of_birth, date_joined, status, is_deceased')
+      .select('id, first_name, surname, date_of_birth, date_joined, status, is_deceased')
       .range(from, to)
   );
 
-  const eligibleMembers = (allMembers || []).filter(m => {
-    if (m.is_deceased) return false;
-    const s = String(m.status || '').trim().toLowerCase();
-    if (s === 'deceased' || s === 'dismissed' || s === 'transfer-out') return false;
-    return true;
-  });
+  const eligibleMembers = (allMembers || []).filter(isEligibleWelfareMember);
   const eligibleMemberIds = new Set(eligibleMembers.map(m => m.id));
 
   let totalContributions = 0;
@@ -699,16 +714,7 @@ export async function getWelfareArrearsDetailedReport(): Promise<WelfareArrearsR
 
   if (membersErr) throw membersErr;
 
-  const eligibleMembers = (allMembers || []).filter(m => {
-    if (m.is_deceased) return false;
-    const s = String(m.status || '').trim().toLowerCase();
-    if (['deceased', 'dismissed', 'transfer-out', 'system'].includes(s)) return false;
-    const fullName = `${m.first_name || ''} ${m.surname || ''}`.toLowerCase();
-    if (fullName.includes('system account') || fullName.includes('operational outflow') || fullName.includes('commandery welfare')) {
-      return false;
-    }
-    return true;
-  });
+  const eligibleMembers = (allMembers || []).filter(isEligibleWelfareMember);
 
   const eligibleMemberIds = new Set(eligibleMembers.map(m => m.id));
 
