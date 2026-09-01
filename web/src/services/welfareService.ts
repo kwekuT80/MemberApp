@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { calculateExpectedWelfare } from '@/lib/utils/ksji-logic';
+import { calculateExpectedWelfare, isEligibleWelfareMember } from '@/lib/utils/ksji-logic';
 import { fetchAllPaginated } from '@/lib/supabase/pagination';
 import { 
   WelfareCategory, 
