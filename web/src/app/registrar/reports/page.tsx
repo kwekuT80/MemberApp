@@ -22,7 +22,7 @@ export default function ReportsPage() {
     } else if (type === 'master') {
       query = query.eq('status', 'Active').order('surname');
     } else if (type === 'final') {
-      query = query.eq('status', 'Deceased').order('date_of_death', { ascending: false });
+      query = query.or('status.eq.Deceased,is_deceased.eq.true').order('date_of_death', { ascending: false });
     } else if (type === 'suspended') {
       query = query.eq('status', 'Suspended').order('surname');
     } else if (type === 'dismissed') {

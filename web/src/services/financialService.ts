@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { logFinancialChange, type AuditAction, type EntityType } from './auditService';
 import { fetchAllPaginated } from '@/lib/supabase/pagination';
+import { isSystemMember } from '@/lib/utils/ksji-logic';
 
 function getPaymentFields(payment: any) {
   return { amount: payment.amount, month: payment.month, assessment_year: payment.assessment_year };
@@ -113,10 +114,18 @@ export async function generateAnnualAssessments(year: number) {
   const members = await fetchAllPaginated((from, to) =>
     supabase
       .from('members')
-      .select('id, first_name, surname, date_of_birth, membership_type, status')
+      .select('id, first_name, surname, title, date_of_birth, membership_type, status, is_deceased')
       .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
       .range(from, to)
   );
+
+  const eligibleLivingMembers = (members || []).filter((m: any) => {
+    if (m.is_deceased === true) return false;
+    const s = String(m.status || '').trim().toLowerCase();
+    if (['deceased', 'dismissed', 'transfer-out'].includes(s)) return false;
+    if (isSystemMember(m)) return false;
+    return true;
+  });
 
   // 3. Get prior year payments & assessments to calculate arrears rollover (paginated)
   const priorYear = year - 1;
@@ -148,7 +157,7 @@ export async function generateAnnualAssessments(year: number) {
   });
 
   // 4. Build upsert payload
-  const upsertRows = (members || []).map((m: any) => {
+  const upsertRows = eligibleLivingMembers.map((m: any) => {
     const birthYear = m.date_of_birth ? new Date(m.date_of_birth).getFullYear() : null;
     const discount = calcAgeDiscount(birthYear, year);
     const baseRate = calcBaseRate(m.membership_type || 'Regular', rates);
@@ -195,7 +204,13 @@ export async function getAssessmentsForYear(year: number) {
   ]);
 
   const existingMemberIds = new Set((assessmentsRes || []).map((a: any) => a.member_id));
-  const missingMembers = (activeMembersRes || []).filter((m: any) => !m.is_deceased && !existingMemberIds.has(m.id));
+  const missingMembers = (activeMembersRes || []).filter((m: any) => {
+    if (m.is_deceased === true) return false;
+    const s = String(m.status || '').trim().toLowerCase();
+    if (['deceased', 'dismissed', 'transfer-out'].includes(s)) return false;
+    if (isSystemMember(m)) return false;
+    return !existingMemberIds.has(m.id);
+  });
 
   const syntheticRows = missingMembers.map((m: any) => ({
     id: `unbilled-${m.id}`,

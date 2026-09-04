@@ -14,3 +14,7 @@
 1. **Member User Manual**: Create a simple, visual guide for general members covering the `/me` portal (viewing dues ledger, updating profile info, exemplification details, family info, personal standing reports).
 2. **Officer & Admin Manual**: Create an operational handbook for users with elevated permissions (`registrar`, `financial_registrar`, `super_admin`) covering member registration, annual bill generation, rates configuration, payment logging, welfare fund management, attendance check-ins, and financial audit logs.
 
+
+## Autonomous Execution & Approval Policy
+1. **No Micro-Approvals or Over-Planning**: Do not stop to ask for confirmation or approval on routine tasks, bug fixes, or requested features.
+2. **Direct End-to-End Execution**: When the user requests a task or asks to proceed, execute the changes, run necessary build/verification checks, and report the completed result directly without creating unnecessary blocking approval gates.

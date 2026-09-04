@@ -601,40 +601,35 @@ function isEligibleForFinancialCommunication(
     return false;
   }
 
-const age =
-  calculateAge(member.date_of_birth);
-
-if (
-  age !== null &&
-  age >= 80
-) {
-  return false;
-}
-
-  if (member.is_deceased === true) {
+  const age = calculateAge(member.date_of_birth);
+  if (age !== null && age >= 80) {
     return false;
   }
 
-  if (member.date_of_death) {
+  // Deceased checks
+  if (member.is_deceased === true || member.date_of_death) {
     return false;
   }
 
-  if (member.date_of_dismissal) {
+  const status = (member.status || '').trim().toLowerCase();
+  if (['deceased', 'dismissed', 'transfer-out', 'transferred'].includes(status)) {
     return false;
   }
 
+  if (member.date_of_dismissal || member.transfer_to) {
+    return false;
+  }
+
+  // System/Operational accounts check
+  const fullText = [member.title, member.first_name, member.surname]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
   if (
-    member.status?.toLowerCase() === "dismissed"
-  ) {
-    return false;
-  }
-
-  if (member.transfer_to) {
-    return false;
-  }
-
-  if (
-    member.status?.toLowerCase() === "transferred"
+    fullText.includes('system account') ||
+    fullText.includes('operational outflow') ||
+    fullText.includes('commandery welfare') ||
+    fullText.includes('welfare account')
   ) {
     return false;
   }
