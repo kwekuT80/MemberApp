@@ -48,9 +48,9 @@ This wishlist compiles all identified improvements for the **Next.js 15 Web App*
 
 ---
 
-## Category 2: Character Encoding & UI Typography (Mojibake Elimination)
+## Category 2: Character Encoding & UI Typography [RESOLVED - NON-ISSUE]
 
-### [ ] Task 2.1: Replace Corrupted Unicode with Vector Icons on Web
+### [x] Task 2.1: Vector Icons on Web (Resolved: Non-issue — Verified clean UTF-8 on disk)
 - **Platform**: Web App (`web/src/components/layout/MemberShell.tsx`, `RegistrarShell.tsx`, `Sidebar.tsx`, `LoginForm.tsx`)
 - **Difficulty**: [Medium]
 - **KSJI Logic & Rationale**: Non-ASCII emojis in menu labels corrupted into mojibake (e.g. `'dY? Overview'`, `'dY Digital ID Card'`, `'sT,? Rates'`), undermining the professional dignity of the Commandery portal.
@@ -60,7 +60,7 @@ This wishlist compiles all identified improvements for the **Next.js 15 Web App*
 
 ---
 
-### [ ] Task 2.2: Standardize Ghanaian Cedi Currency Formatter
+### [x] Task 2.2: Ghanaian Cedi Currency Formatter (Resolved: Already using canonical GH¢)
 - **Platform**: Shared (Web & Android)
 - **Difficulty**: [Low]
 - **KSJI Logic & Rationale**: KSJI Commandery #500 operates in Ghana Cedis. Currently, corrupted strings like `GHA` or `GH,` appear on financial screens and printed PDFs.
@@ -74,7 +74,7 @@ This wishlist compiles all identified improvements for the **Next.js 15 Web App*
 
 ---
 
-### [ ] Task 2.3: Replace Corrupted Tab Emojis on Android
+### [x] Task 2.3: Tab Emojis on Android (Resolved: Non-issue — Verified clean UTF-8 on disk)
 - **Platform**: Android App (`src/screens/MemberFormScreen.js`, `FinancialHubStubScreen.js`, `ViewMemberFinancialsScreen.js`)
 - **Difficulty**: [Low]
 - **KSJI Logic & Rationale**: Member form tabs display corrupted strings (`icon: 'dY '`, `icon: 'dY"z'`).
@@ -194,7 +194,7 @@ This wishlist compiles all identified improvements for the **Next.js 15 Web App*
 
 ## Category 7: Documentation & Operational Manuals
 
-### [ ] Task 7.1: KSJI Member User Manual
+### [x] Task 7.1: KSJI Member User Manual
 - **Platform**: Documentation (`docs/MEMBER_USER_MANUAL.md`)
 - **Difficulty**: [Low]
 - **KSJI Logic & Rationale**: A simple guide for members to understand how to view their ledger, digital ID card, and submit MoMo receipts.
@@ -203,7 +203,7 @@ This wishlist compiles all identified improvements for the **Next.js 15 Web App*
 
 ---
 
-### [ ] Task 7.2: Officer & Admin Operations Handbook
+### [x] Task 7.2: Officer & Admin Operations Handbook
 - **Platform**: Documentation (`docs/OFFICER_ADMIN_MANUAL.md`)
 - **Difficulty**: [Medium]
 - **KSJI Logic & Rationale**: Operational procedures for Registrars, Financial Registrars, and Welfare Treasurers covering annual billing, payment reconciliation, attendance tracking, and reporting.

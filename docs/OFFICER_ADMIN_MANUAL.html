@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Officer & Admin Operations Handbook</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 20mm 16mm;
+      @bottom-right {
+        content: counter(page);
+        font-family: 'Inter', sans-serif;
+        font-size: 9pt;
+        color: #64748b;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.6;
+      color: #1e293b;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Cover / Header Banner */
+    .cover-header {
+      background: linear-gradient(135deg, #0A1628 0%, #162440 60%, #1C3058 100%);
+      color: #ffffff;
+      padding: 36px 32px;
+      border-radius: 12px;
+      margin-bottom: 28px;
+      border-bottom: 4px solid #C9A84C;
+      box-shadow: 0 4px 14px rgba(10, 22, 40, 0.15);
+    }
+
+    .cover-eyebrow {
+      font-size: 9pt;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #C9A84C;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .doc-title {
+      font-family: 'Cinzel', serif;
+      font-size: 22pt;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 0 0 10px 0;
+      line-height: 1.25;
+      letter-spacing: 0.5px;
+    }
+
+    .doc-subtitle {
+      font-size: 11pt;
+      color: #cbd5e1;
+      margin: 0;
+      font-weight: 400;
+    }
+
+    /* Section Headings */
+    h2.section-title {
+      font-family: 'Cinzel', serif;
+      font-size: 14pt;
+      font-weight: 700;
+      color: #0A1628;
+      border-bottom: 2px solid #C9A84C;
+      padding-bottom: 6px;
+      margin-top: 28px;
+      margin-bottom: 14px;
+      page-break-after: avoid;
+    }
+
+    h3.subsection-title {
+      font-size: 11.5pt;
+      font-weight: 700;
+      color: #162440;
+      margin-top: 18px;
+      margin-bottom: 8px;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin: 0 0 10px 0;
+      color: #334155;
+    }
+
+    ul, ol {
+      margin: 0 0 12px 0;
+      padding-left: 22px;
+    }
+
+    li {
+      margin-bottom: 5px;
+      color: #334155;
+    }
+
+    /* Code Snippets */
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9pt;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 5px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Callout Boxes */
+    .callout {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 14px 0;
+      font-size: 10pt;
+      line-height: 1.5;
+    }
+
+    .callout-info {
+      background: #FDF9EE;
+      border-left: 4px solid #C9A84C;
+      color: #785A18;
+    }
+
+    .callout-danger {
+      background: #FEF2F2;
+      border-left: 4px solid #DC2626;
+      color: #991B1B;
+      font-weight: 500;
+    }
+
+    blockquote {
+      background: #f8fafc;
+      border-left: 4px solid #94a3b8;
+      margin: 12px 0;
+      padding: 10px 16px;
+      color: #475569;
+      font-style: italic;
+    }
+
+    /* Tables */
+    .table-container {
+      margin: 14px 0 18px 0;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5pt;
+    }
+
+    th {
+      background: #0A1628;
+      color: #ffffff;
+      text-align: left;
+      padding: 9px 12px;
+      font-weight: 700;
+      border: 1px solid #0A1628;
+    }
+
+    td {
+      padding: 8px 12px;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+    }
+
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    hr.divider {
+      border: 0;
+      height: 1px;
+      background: #e2e8f0;
+      margin: 24px 0;
+    }
+
+    /* Print Specific Tweaks */
+    @media print {
+      body {
+        font-size: 10pt;
+      }
+      .cover-header {
+        border-radius: 0;
+        margin: -18mm -16mm 20mm -16mm;
+        padding: 30mm 20mm 15mm 20mm;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+      h2.section-title {
+        break-before: auto;
+      }
+      table, tr, td, th {
+        break-inside: avoid;
+      }
+    }
+
+    @media screen {
+      body {
+        background: #e2e8f0;
+        padding: 30px;
+      }
+      .page-canvas {
+        max-width: 900px;
+        margin: 0 auto;
+        background: #ffffff;
+        padding: 40px 48px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-canvas">
+    <div class="cover-header">
+      <div class="cover-eyebrow">Knights of St. John International • Commandery #500</div>
+      <div class="doc-title">Officer & Admin Operations Handbook</div>
+      <div class="doc-subtitle">Official Administrative Publication • Accra, Ghana</div>
+    </div>
+    <h1 class="doc-title">KSJI Commandery #500 — Officer &amp; Administrator Operations Handbook</h1>
+
+<p>This operational handbook provides standard operating procedures for Commandery officers with elevated permissions: <strong>Registrar</strong>, <strong>Financial Registrar</strong>, <strong>Welfare Treasurer</strong>, and <strong>Super Administrator</strong>.</p>
+
+<hr class="divider"/>
+
+<h2 class="section-title">Table of Contents</h2>
+<ol><li >[Role Hierarchy &amp; Separation of Duties](#1-role-hierarchy--separation-of-duties)</li><li >[Registrar: Membership Administration](#2-registrar-membership-administration)</li><li >[Financial Registrar: Rates &amp; Annual Billing](#3-financial-registrar-rates--annual-billing)</li><li >[Financial Registrar: Payments &amp; MoMo Reconciliation](#4-financial-registrar-payments--momo-reconciliation)</li><li >[Financial Registrar: Delinquency &amp; Aging Reports](#5-financial-registrar-delinquency--aging-reports)</li><li >[Welfare Treasurer: Welfare Fund Administration](#6-welfare-treasurer-welfare-fund-administration)</li><li >[Meeting Management &amp; Attendance Operations](#7-meeting-management--attendance-operations)</li><li >[Automated Engagement &amp; Reminder Engine](#8-automated-engagement--reminder-engine)</li><li >[Financial Audit Trails &amp; Governance](#9-financial-audit-trails--governance)</li></ol>
+
+<hr class="divider"/>
+
+<h2 class="section-title">1. Role Hierarchy &amp; Separation of Duties</h2>
+
+<p>The system enforces constitutional separation of duties across four permission tiers:</p>
+
+<div class="table-container"><table>
+  <thead><tr><th>Role</th><th>Scope &amp; Permissions</th><th>Restricted Surfaces</th></tr></thead>
+<tbody>
+  <tr><td><strong><code>member</code></strong></td><td>Personal dossier, ID card, dues ledger, MoMo upload, attendance.</td><td>No access to other members' records or commandery ledger.</td></tr>
+  <tr><td><strong><code>registrar</code></strong></td><td>Member approvals, roster management, dossier editing, meetings, attendance, notifications.</td><td>Cannot configure billing rates or record financial payments.</td></tr>
+  <tr><td><strong><code>financial_registrar</code></strong></td><td>Annual billing, rates configuration, payment recording, MoMo verification, delinquency reports.</td><td>Cannot alter ritual exemplification or position history.</td></tr>
+  <tr><td><strong><code>welfare_treasurer</code></strong></td><td>Welfare contribution recording, benefit disbursements, welfare arrears tracking.</td><td>Restricted to welfare fund ledger operations.</td></tr>
+  <tr><td><strong><code>super_admin</code></strong></td><td>Global administrative access across all operational hubs, audit logs, and role delegation.</td><td>Reserved for the Worthy President and designated system administrators.</td></tr>
+</tbody></table></div>
+
+<hr class="divider"/>
+
+<h2 class="section-title">2. Registrar: Membership Administration</h2>
+
+<h3 class="subsection-title">A. Approving New User Accounts</h3>
+<ol><li >Navigate to <strong>Registrar Portal</strong> (<code>/registrar/members</code>).</li><li >New member registrations appear with status <code>pending</code> in the approval queue.</li><li >Review the applicant's name and contact details:</li></ol>
+<ul><li>If the applicant exists on the master roll, click <strong>Link to Existing Record</strong>.</li><li>If they are a newly initiated brother, confirm their initiation details and approve.</li></ul>
+
+<h3 class="subsection-title">B. Updating Member Dossiers</h3>
+<ul><li>Access a member's dossier via <code>/registrar/members/[id]/dossier</code>.</li><li><strong>Exemplifications</strong>: Record degree advancement dates (1st, 2nd &amp; 3rd, 4th Degree Chevalier, Noble Degree).</li><li><strong>Uniform Ranks &amp; Commissions</strong>: Record uniform blessings and military ranks.</li><li><strong>Roll of Worthy Presidents</strong>: Add past Worthy Presidents to the roll of honor.</li></ul>
+
+<h3 class="subsection-title">C. Archival Policy for Deceased &amp; Transferred Members</h3>
+<div class="callout callout-danger"><strong>CRITICAL CONSTITUTIONAL RULE:</strong></div>
+<div class="callout callout-info"><em>NEVER delete a deceased brother from the database.</em></div>
+<blockquote>When a brother passes on:</blockquote>
+<blockquote>1. Set <code>status = 'Deceased'</code> and <code>is_deceased = true</code>.</blockquote>
+<blockquote>2. Enter <code>date_of_death</code>, <code>burial_date</code>, and <code>burial_place</code>.</blockquote>
+<blockquote>3. The system permanently archives his record on the <strong>Final Roll</strong> and automatically excludes him from all future dues assessments, billing runs, and automated communications.</blockquote>
+<blockquote>4. For brothers transferring out of jurisdiction, set <code>status = 'Transfer-Out'</code> with target commandery details.</blockquote>
+
+<hr class="divider"/>
+
+<h2 class="section-title">3. Financial Registrar: Rates &amp; Annual Billing</h2>
+
+<h3 class="subsection-title">A. Annual Rate Configuration</h3>
+<p>Before generating bills for a new calendar year:</p>
+<ol><li >Navigate to <strong>Rates &amp; Billing</strong> (<code>/registrar/financials/rates</code>).</li><li >Enter the approved Commandery dues rates for the year:</li></ol>
+<ul><li><strong>Regular Rate</strong>: Standard dues rate (e.g. <code>GH¢ 150.00</code>).</li><li><strong>Social Rate</strong>: Rate for social/non-uniform members.</li><li><strong>Student Rate</strong>: Concessionary rate for students.</li></ul>
+<ol><li >Click <strong>Save Rates</strong>. The system automatically archives previous rates in the <strong>Rate History Timeline</strong> for historical audit.</li></ol>
+
+<h3 class="subsection-title">B. Executing the Annual Billing Run</h3>
+<ol><li >In <strong>Rates &amp; Billing</strong>, click <strong>Generate Bills for [Year]</strong>.</li><li >The billing engine executes the following automated pipeline:</li></ol>
+<ul><li>Queries all living active members (excluding <code>Deceased</code>, <code>Dismissed</code>, and <code>Transfer-Out</code>).</li><li>Calculates age discounts:</li><li>Age &lt; 70: Standard rate.</li><li>Age 70–74: 25% discount.</li><li>Age 75–79: 50% discount.</li><li>Age 80+: 100% exemption (assessment = <code>GH¢ 0.00</code>).</li><li>Pulls prior-year unpaid balances and rolls them into <strong>Arrears Brought Forward</strong>.</li><li>Generates and upserts individual assessment rows into <code>financial_assessments</code>.</li></ul>
+
+<hr class="divider"/>
+
+<h2 class="section-title">4. Financial Registrar: Payments &amp; MoMo Reconciliation</h2>
+
+<h3 class="subsection-title">A. Manual Payment Logging</h3>
+<ol><li >Navigate to <strong>Record Payments</strong> (<code>/registrar/financials/payments</code>).</li><li >Search and select the member.</li><li >Enter payment details:</li></ol>
+<ul><li><strong>Amount (GH¢)</strong>.</li><li><strong>Payment Date</strong>.</li><li><strong>Month &amp; Year credited</strong>.</li><li><strong>Payment Method</strong>: Cash, Bank Transfer, or Mobile Money.</li><li><strong>Receipt Number / Transaction Reference</strong>.</li></ul>
+<ol><li >Click <strong>Save Payment</strong>. A receipt is logged, and the member's ledger recalculates instantly.</li></ol>
+
+<h3 class="subsection-title">B. Reconciling Member MoMo Uploads</h3>
+<ol><li >Navigate to <strong>MoMo Receipt Verification</strong> (<code>/registrar/financials/verify</code>).</li><li >Review pending submissions:</li></ol>
+<ul><li>Inspect the attached receipt screenshot.</li><li>Cross-reference the transaction ID against the Commandery bank/MoMo statement.</li></ul>
+<ol><li >Click <strong>Approve &amp; Credit</strong> to post the payment directly to the member's ledger, or <strong>Decline</strong> with an explanatory note.</li></ol>
+
+<hr class="divider"/>
+
+<h2 class="section-title">5. Financial Registrar: Delinquency &amp; Aging Reports</h2>
+
+<ol><li >Navigate to <strong>Delinquency Report</strong> (<code>/registrar/financials/delinquency</code>).</li><li >The dashboard groups overdue accounts by aging brackets:</li></ol>
+<ul><li><strong>30–90 Days (Current Cycle)</strong>.</li><li><strong>90–180 Days (Overdue - Notice Required)</strong>.</li><li><strong>180–365 Days (Critical Delinquency)</strong>.</li><li><strong>365+ Days (Severe Arrears - Intervention Required)</strong>.</li></ul>
+<ol><li >Click <strong>Export PDF / Print View</strong> to generate a clean, executive summary for the Commandery Board of Trustees or General Meeting.</li></ol>
+
+<hr class="divider"/>
+
+<h2 class="section-title">6. Welfare Treasurer: Welfare Fund Administration</h2>
+
+<ol><li >Navigate to <strong>Welfare Hub</strong> (<code>/registrar/welfare</code>).</li><li ><strong>Monthly Welfare Contributions</strong>:</li></ol>
+<ul><li>Record monthly welfare contributions per member (<code>/registrar/welfare/contributions</code>).</li><li>Track compliance against the monthly rate (<code>GH¢ 25.00/month</code>).</li></ul>
+<ol><li ><strong>Benefit Disbursements</strong>:</li></ol>
+<ul><li>Record fraternal payouts (<code>/registrar/welfare/disbursements</code>) for:</li><li>Bereavement support (member, spouse, parent).</li><li>Medical solidarity donations.</li><li>Fraternal goodwill presentations.</li><li>Operational expenses (bank charges, stationery) are tagged separately to preserve benefit metrics.</li></ul>
+<ol><li ><strong>Welfare Arrears</strong>:</li></ol>
+<ul><li>Review arrears tracking (<code>/registrar/welfare/arrears</code>) to identify brothers requiring fraternity support or welfare follow-up.</li></ul>
+
+<hr class="divider"/>
+
+<h2 class="section-title">7. Meeting Management &amp; Attendance Operations</h2>
+
+<h3 class="subsection-title">A. Scheduling a Meeting</h3>
+<ol><li >Navigate to <strong>Meetings</strong> (<code>/registrar/meetings</code>).</li><li >Click <strong>Create Meeting</strong> and configure:</li></ol>
+<ul><li><strong>Meeting Name &amp; Type</strong>: General Meeting, Officer Board, Emergency, or Drill.</li><li><strong>Date &amp; Start Time</strong>.</li><li><strong>GPS Geofence Center</strong>: Latitude and longitude of the hall (e.g. Christ the King Parish Hall).</li><li><strong>Geofence Radius</strong>: Recommended <code>100m–150m</code>.</li></ul>
+
+<h3 class="subsection-title">B. Monitoring Real-Time Check-Ins</h3>
+<ol><li >During the meeting, open the <strong>Attendance Scanner</strong> (<code>/registrar/meetings/[id]/scan</code>).</li><li >Brothers checking in via mobile GPS appear automatically as <strong>Present (GPS)</strong>.</li><li >For brothers without smartphones or arriving with digital ID cards, scan their QR code using the webcam or camera to log them as <strong>Present (QR Scan)</strong>.</li><li >Use the search bar to execute a <strong>Manual Check-In</strong> if needed.</li></ol>
+
+<h3 class="subsection-title">C. Reviewing Excuse Requests</h3>
+<ol><li >Access the <strong>Pending Excuses</strong> tab.</li><li >Review the submitted reasons and select <strong>Approve (Excused)</strong> or <strong>Decline (Absent)</strong>.</li></ol>
+
+<hr class="divider"/>
+
+<h2 class="section-title">8. Automated Engagement &amp; Reminder Engine</h2>
+
+<p>The Commandery utilizes an automated quarterly engagement workflow powered by Supabase Edge Functions and Resend:</p>
+<ul><li><strong>Schedule</strong>: Executes quarterly (January, April, July, October).</li><li><strong>Communication Categorization</strong>:</li><li><em>Appreciation</em>: For members with fully cleared accounts.</li><li><em>Encouragement</em>: For members who have paid 50%+ of their obligation.</li><li><em>Gentle Reminder</em>: For members between 25% and 50% settlement.</li><li><em>Delinquency Notice</em>: For members with zero payments recorded.</li><li><em>Registrar Intervention Case</em>: Creates an escalated case in <code>registrar_queues</code> for members with 2+ years of unpaid arrears.</li><li><em>Suspension Review</em>: Alerts the Worthy President and Registrar for accounts overdue by 3+ years.</li></ul>
+
+<hr class="divider"/>
+
+<h2 class="section-title">9. Financial Audit Trails &amp; Governance</h2>
+
+<p>To satisfy constitutional audit requirements:</p>
+<ol><li >Navigate to <strong>Financial Audit Trail</strong> (<code>/registrar/financials/audit</code>).</li><li >Every modification to rates, assessments, payments, and welfare entries is immutably logged with:</li></ol>
+<ul><li>User ID &amp; Email of the acting officer.</li><li>Exact timestamp.</li><li>Pre-change values vs post-change values (JSON diff).</li><li>Entity type and affected member ID.</li></ul>
+<ol><li >Click <strong>Download Audit Pack</strong> to export full CSV/PDF logs for the annual Commandery Audit Committee.</li></ol>
+
+<hr class="divider"/>
+
+<p><em>Commandery #500 Administration System — Built for fraternal integrity and operational excellence.</em></p>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Member User Manual</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 20mm 16mm;
+      @bottom-right {
+        content: counter(page);
+        font-family: 'Inter', sans-serif;
+        font-size: 9pt;
+        color: #64748b;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.6;
+      color: #1e293b;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Cover / Header Banner */
+    .cover-header {
+      background: linear-gradient(135deg, #0A1628 0%, #162440 60%, #1C3058 100%);
+      color: #ffffff;
+      padding: 36px 32px;
+      border-radius: 12px;
+      margin-bottom: 28px;
+      border-bottom: 4px solid #C9A84C;
+      box-shadow: 0 4px 14px rgba(10, 22, 40, 0.15);
+    }
+
+    .cover-eyebrow {
+      font-size: 9pt;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #C9A84C;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .doc-title {
+      font-family: 'Cinzel', serif;
+      font-size: 22pt;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 0 0 10px 0;
+      line-height: 1.25;
+      letter-spacing: 0.5px;
+    }
+
+    .doc-subtitle {
+      font-size: 11pt;
+      color: #cbd5e1;
+      margin: 0;
+      font-weight: 400;
+    }
+
+    /* Section Headings */
+    h2.section-title {
+      font-family: 'Cinzel', serif;
+      font-size: 14pt;
+      font-weight: 700;
+      color: #0A1628;
+      border-bottom: 2px solid #C9A84C;
+      padding-bottom: 6px;
+      margin-top: 28px;
+      margin-bottom: 14px;
+      page-break-after: avoid;
+    }
+
+    h3.subsection-title {
+      font-size: 11.5pt;
+      font-weight: 700;
+      color: #162440;
+      margin-top: 18px;
+      margin-bottom: 8px;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin: 0 0 10px 0;
+      color: #334155;
+    }
+
+    ul, ol {
+      margin: 0 0 12px 0;
+      padding-left: 22px;
+    }
+
+    li {
+      margin-bottom: 5px;
+      color: #334155;
+    }
+
+    /* Code Snippets */
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9pt;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 5px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Callout Boxes */
+    .callout {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 14px 0;
+      font-size: 10pt;
+      line-height: 1.5;
+    }
+
+    .callout-info {
+      background: #FDF9EE;
+      border-left: 4px solid #C9A84C;
+      color: #785A18;
+    }
+
+    .callout-danger {
+      background: #FEF2F2;
+      border-left: 4px solid #DC2626;
+      color: #991B1B;
+      font-weight: 500;
+    }
+
+    blockquote {
+      background: #f8fafc;
+      border-left: 4px solid #94a3b8;
+      margin: 12px 0;
+      padding: 10px 16px;
+      color: #475569;
+      font-style: italic;
+    }
+
+    /* Tables */
+    .table-container {
+      margin: 14px 0 18px 0;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5pt;
+    }
+
+    th {
+      background: #0A1628;
+      color: #ffffff;
+      text-align: left;
+      padding: 9px 12px;
+      font-weight: 700;
+      border: 1px solid #0A1628;
+    }
+
+    td {
+      padding: 8px 12px;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+    }
+
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    hr.divider {
+      border: 0;
+      height: 1px;
+      background: #e2e8f0;
+      margin: 24px 0;
+    }
+
+    /* Print Specific Tweaks */
+    @media print {
+      body {
+        font-size: 10pt;
+      }
+      .cover-header {
+        border-radius: 0;
+        margin: -18mm -16mm 20mm -16mm;
+        padding: 30mm 20mm 15mm 20mm;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+      h2.section-title {
+        break-before: auto;
+      }
+      table, tr, td, th {
+        break-inside: avoid;
+      }
+    }
+
+    @media screen {
+      body {
+        background: #e2e8f0;
+        padding: 30px;
+      }
+      .page-canvas {
+        max-width: 900px;
+        margin: 0 auto;
+        background: #ffffff;
+        padding: 40px 48px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-canvas">
+    <div class="cover-header">
+      <div class="cover-eyebrow">Knights of St. John International • Commandery #500</div>
+      <div class="doc-title">Member User Manual</div>
+      <div class="doc-subtitle">Official Administrative Publication • Accra, Ghana</div>
+    </div>
+    <h1 class="doc-title">KSJI Commandery #500 — Member User Manual</h1>
+
+<p>Welcome to the official <strong>Knights of St. John International (KSJI) Commandery #500 Member Portal and Mobile Application</strong>. This manual guides brothers through accessing their digital records, tracking financial standing, generating digital ID cards, submitting payment receipts, and checking into Commandery meetings.</p>
+
+<hr class="divider"/>
+
+<h2 class="section-title">Table of Contents</h2>
+<ol><li >[Accessing Your Account](#1-accessing-your-account)</li><li >[The Member Dashboard (<code>/me</code>)](#2-the-member-dashboard-me)</li><li >[Digital Membership ID Card](#3-digital-membership-id-card)</li><li >[Maintaining Your Service Dossier](#4-maintaining-your-service-dossier)</li><li >[Financial Ledger &amp; Dues Tracking](#5-financial-ledger--dues-tracking)</li><li >[Submitting MoMo Payment Receipts](#6-submitting-momo-payment-receipts)</li><li >[Welfare Scheme Overview](#7-welfare-scheme-overview)</li><li >[Personal Standing Report](#8-personal-standing-report)</li><li >[Meeting Attendance &amp; Check-In](#9-meeting-attendance--check-in)</li></ol>
+
+<hr class="divider"/>
+
+<h2 class="section-title">1. Accessing Your Account</h2>
+
+<h3 class="subsection-title">Web Portal</h3>
+<ul><li>Navigate to the Commandery portal URL (e.g. <code>https://app.ksji500.org</code>).</li><li>Enter your registered email address and password.</li><li>If accessing for the first time, click <strong>Register</strong>, fill in your details, select <strong>Commandery #500</strong>, and submit. The Commandery Registrar will verify and link your account to your master record.</li></ul>
+
+<h3 class="subsection-title">Mobile App (Android)</h3>
+<ul><li>Open the <strong>Member Registration App</strong> on your Android device.</li><li>Log in with your email and password. Your device securely maintains your active session.</li><li>If you forget your password, click <strong>Forgot Password</strong> on either platform to receive a secure reset link by email.</li></ul>
+
+<hr class="divider"/>
+
+<h2 class="section-title">2. The Member Dashboard (<code>/me</code>)</h2>
+
+<p>Upon logging in, you land on your personal <strong>Overview</strong>:</p>
+<ul><li><strong>Fraternal Title &amp; Name</strong>: Displays your full name and correct honorific (<em>Noble Brother</em> for N/B, or <em>Brother</em>).</li><li><strong>Good Standing Indicator</strong>: Shows whether your dues and welfare obligations meet the constitutionally required threshold for full fraternal privileges.</li><li><strong>Cadet / Commandery Details</strong>: Displays Commandery #500, baptismal records, and active rank.</li><li><strong>Birthdays Widget</strong>: Highlights fellow brothers celebrating birthdays in the current month.</li><li><strong>Quick Action Bar</strong>: One-click navigation to your ID card, payment receipt submission, dues ledger, and personal reports.</li></ul>
+
+<hr class="divider"/>
+
+<h2 class="section-title">3. Digital Membership ID Card</h2>
+
+<p>Your digital ID card serves as an official credential for fraternal verification and meetings.</p>
+
+<ol><li >Navigate to <strong>Digital ID Card</strong> (<code>/me/id-card</code> on web or via mobile menu).</li><li >The card displays:</li></ol>
+<ul><li>Your official portrait photograph.</li><li>Rank, title, and current Commandery affiliation.</li><li>Commandery #500 official crest and seal.</li><li>A unique, cryptographically verifiable <strong>QR Code</strong>.</li></ul>
+<ol><li ><strong>Verification</strong>: Officers can scan your QR code with the mobile scanner to confirm active membership and good standing in real time.</li><li ><strong>Export</strong>: Click <strong>Download / Print ID Card</strong> to generate an offline PDF copy.</li></ol>
+
+<hr class="divider"/>
+
+<h2 class="section-title">4. Maintaining Your Service Dossier</h2>
+
+<p>Your service dossier preserves your history in the Order. You can view and update each section directly:</p>
+<ul><li><strong>Main Bio (<code>/me/edit</code>)</strong>: Personal contact info, residential and postal addresses, profession, and hometown.</li><li><strong>Exemplification (<code>/me/education</code>)</strong>: Your progression through the Degrees of the Order:</li><li><em>1st Degree</em></li><li><em>2nd &amp; 3rd Degree</em></li><li><em>4th Degree (Chevaliers)</em></li><li><em>Noble Degree (Nobles Temple)</em></li><li><strong>Uniform &amp; Military Ranks (<code>/me/military</code>)</strong>: Record of uniform blessing, commission dates, and active ranks.</li><li><strong>Positions Held (<code>/me/positions</code>)</strong>: Past and current elected or appointed offices at Local, Battalion, District, Regimental, Grand, or Supreme levels.</li><li><strong>Family &amp; Emergency Contacts (<code>/me/family</code>, <code>/me/emergency</code>)</strong>: Spouse, children, dependents, and emergency points of contact.</li></ul>
+
+<div class="callout callout-info">Note: Updates to critical identity fields (e.g. date of birth, name changes) are submitted to the Registrar for audit verification before being finalized in the master roll.</div>
+
+<hr class="divider"/>
+
+<h2 class="section-title">5. Financial Ledger &amp; Dues Tracking</h2>
+
+<p>Navigate to <strong>Financials &amp; Dues</strong> (<code>/me/financials</code>) to view your real-time financial standing:</p>
+
+<h3 class="subsection-title">Ledger Components</h3>
+<ul><li><strong>Arrears Brought Forward</strong>: Any unpaid balance rolled over from prior years.</li><li><strong>Annual Assessment</strong>: The dues assessment for the active calendar year (reflecting applicable age-based discounts).</li><li><strong>Total Obligation</strong>: The sum of prior arrears and the current year's assessment.</li><li><strong>Total Paid</strong>: All payments officially verified and recorded by the Financial Registrar.</li><li><strong>Outstanding Balance</strong>: The remaining amount due. A balance of <code>GH¢ 0.00</code> indicates your account is cleared.</li></ul>
+
+<h3 class="subsection-title">Payment Timeline &amp; Benchmarks</h3>
+<ul><li><strong>1st Half Benchmark (by August 31)</strong>: Requires payment of all prior arrears plus at least 50% of the current year's assessment to maintain good standing.</li><li><strong>2nd Half Benchmark (by September 1)</strong>: Requires 100% full settlement of all obligations.</li></ul>
+
+<hr class="divider"/>
+
+<h2 class="section-title">6. Submitting MoMo Payment Receipts</h2>
+
+<p>When you make a payment via Mobile Money (MoMo) or bank transfer, you can upload your confirmation receipt directly to expedite reconciliation:</p>
+
+<ol><li >Navigate to <strong>Submit MoMo Receipt</strong> (<code>/me/payments/upload</code>).</li><li >Fill in the submission form:</li></ol>
+<ul><li><strong>Amount Paid (GH¢)</strong>: Enter the exact amount sent.</li><li><strong>Payment Date</strong>: The date the transaction was completed.</li><li><strong>Transaction ID / Reference</strong>: The SMS confirmation reference code from MTN MoMo, Telecel Cash, or your bank.</li><li><strong>Payment Type</strong>: Select <em>Annual Assessment / Dues</em> or <em>Welfare Contribution</em>.</li><li><strong>Receipt Screenshot</strong>: Attach a screenshot of your MoMo SMS or payment slip.</li></ul>
+<ol><li >Click <strong>Submit Receipt</strong>.</li><li >Your receipt enters the Financial Registrar's verification queue. Once approved, your ledger updates automatically.</li></ol>
+
+<hr class="divider"/>
+
+<h2 class="section-title">7. Welfare Scheme Overview</h2>
+
+<p>Navigate to <strong>Welfare Scheme</strong> (<code>/me/welfare</code>) to review your participation in the Commandery Welfare Scheme:</p>
+<ul><li><strong>Monthly Welfare Rate</strong>: Standard monthly welfare dues (e.g. <code>GH¢ 25.00/month</code>).</li><li><strong>Cumulative Contributions</strong>: Total contributions credited to your welfare ledger from your effective start date (joined date or ledger inception).</li><li><strong>Senior 80+ Exemption</strong>: Brothers who attain age 80 are automatically recognized as Senior Exempt, with expected contributions waived in gratitude for lifetime service.</li><li><strong>Benefit Entitlements</strong>: Review welfare provisions (bereavement support, medical solidarity, and fraternal benefits) according to Commandery bylaws.</li></ul>
+
+<hr class="divider"/>
+
+<h2 class="section-title">8. Personal Standing Report</h2>
+
+<p>Need an official statement for Battalion, District, or Grand Commandery functions?</p>
+
+<ol><li >Navigate to <strong>Personal Report</strong> (<code>/me/report</code>).</li><li >The system generates a comprehensive <strong>Fraternal &amp; Financial Standing Statement</strong> detailing:</li></ol>
+<ul><li>Your current Good Standing certification.</li><li>Assessment and payment breakdown for the year.</li><li>Welfare scheme compliance status.</li><li>Official Commandery #500 seal and authentication timestamp.</li></ul>
+<ol><li >Click <strong>Print / Save as PDF</strong> to generate an official document suitable for submission to higher echelons or transferring commanderies.</li></ol>
+
+<hr class="divider"/>
+
+<h2 class="section-title">9. Meeting Attendance &amp; Check-In</h2>
+
+<p>Commandery #500 tracks attendance to ensure constitutional participation:</p>
+
+<h3 class="subsection-title">GPS Geofenced Check-In (Mobile App)</h3>
+<ol><li >When you arrive at the meeting venue (within the designated perimeter), open the mobile app.</li><li >Tap <strong>Attendance Check-In</strong>.</li><li >Allow location permissions when prompted. The app verifies your presence within the venue geofence and registers you as <strong>Present (GPS)</strong>.</li></ol>
+
+<h3 class="subsection-title">QR Code Check-In</h3>
+<ol><li >If GPS is unavailable or indoors, present your <strong>Digital ID Card</strong> to the Registrar at the entrance.</li><li >The officer scans your QR code to immediately mark you as <strong>Present (QR Scan)</strong>.</li></ol>
+
+<h3 class="subsection-title">Submitting an Excuse for Absence</h3>
+<p>If you are unable to attend a meeting due to illness, official duty, or bereavement:</p>
+<ol><li >Navigate to <strong>Attendance</strong> (<code>/me/attendance</code>).</li><li >Select the upcoming meeting and click <strong>Submit Excuse</strong>.</li><li >Provide your reason and submit. The Registrar will review and update your status to <strong>Excused</strong> upon approval.</li></ol>
+
+<hr class="divider"/>
+
+<p><em>For support, inquiries, or account corrections, please contact the Commandery Registrar or Financial Registrar.</em></p>
+
+  </div>
+</body>
+</html>
