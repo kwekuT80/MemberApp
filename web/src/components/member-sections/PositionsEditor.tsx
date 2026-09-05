@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { savePositions } from '@/services/positionsService';
 import { PositionRecord } from '@/types/position';
 
 
@@ -166,7 +166,6 @@ const POSITION_DATA: Record<string, string[]> = {
 };
 
 export default function PositionsEditor({ memberId, initialPositions }: { memberId: string; initialPositions: any[] }) {
-  const supabase = createClient();
   const [positions, setPositions] = useState<PositionRecord[]>(initialPositions.length ? initialPositions.map((p) => ({ ...p, date_from: toInputDate(p.date_from), date_to: toInputDate(p.date_to) })) : []);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -184,26 +183,22 @@ export default function PositionsEditor({ memberId, initialPositions }: { member
     const existingIds = initialPositions.filter((p) => p.id).map((p) => p.id) as string[];
     const currentIds = positions.filter((p) => p.id).map((p) => p.id) as string[];
     const toDelete = existingIds.filter((id) => !currentIds.includes(id));
-    if (toDelete.length) await supabase.from('positions').delete().in('id', toDelete);
-    for (const position of positions) {
-      if (!(position.position_title || position.date_from || position.date_to)) continue;
-      const payload = { 
-        ...position, 
-        member_id: memberId, 
-        date_from: fromInputDate(position.date_from), 
-        date_to: fromInputDate(position.date_to),
-        level: position.level || 'Local',
-        rank: position.rank || ''
-      };
-      const result = position.id
-        ? await supabase.from('positions').update(payload).eq('id', position.id).select().single()
-        : await supabase.from('positions').insert(payload).select().single();
-      if (result.error) {
-        setError(result.error.message);
-        setBusy(false);
-        return;
-      }
+
+    const formattedPositions = positions.map((p) => ({
+      ...p,
+      date_from: fromInputDate(p.date_from),
+      date_to: fromInputDate(p.date_to),
+      level: p.level || 'Local',
+      rank: p.rank || null
+    }));
+
+    const result = await savePositions(memberId, formattedPositions, toDelete);
+    if (!result.success) {
+      setError(result.error || 'Failed to save position records.');
+      setBusy(false);
+      return;
     }
+
     setMessage('Position records saved.');
     setBusy(false);
     setIsEditing(false);

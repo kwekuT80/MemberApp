@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { saveMilitaryAndRanks } from '@/services/militaryService';
 import { MilitaryRecord } from '@/types/military';
 import { RankRecord } from '@/types/rankRecord';
 
@@ -21,7 +21,6 @@ const fromInputDate = (value?: string | null) => {
 };
 
 export default function MilitaryEditor({ memberId, initialMilitary, initialRanks }: { memberId: string; initialMilitary: MilitaryRecord | null; initialRanks: RankRecord[] }) {
-  const supabase = createClient();
   const [military, setMilitary] = useState<MilitaryRecord>(initialMilitary ? { ...initialMilitary, uniform_blessed_date: toInputDate(initialMilitary.uniform_blessed_date), first_uniform_use_date: toInputDate(initialMilitary.first_uniform_use_date) } : { is_military: false, uniform_blessed_date: '', first_uniform_use_date: '', current_rank: '', commission: '' });
   const [ranks, setRanks] = useState<RankRecord[]>(initialRanks.length ? initialRanks.map((r) => ({ ...r, commission_date: toInputDate(r.commission_date) })) : []);
   const [busy, setBusy] = useState(false);
@@ -33,31 +32,26 @@ export default function MilitaryEditor({ memberId, initialMilitary, initialRanks
     setBusy(true);
     setError(null);
     setMessage(null);
-    const militaryPayload = { ...military, member_id: memberId, uniform_blessed_date: fromInputDate(military.uniform_blessed_date), first_uniform_use_date: fromInputDate(military.first_uniform_use_date) };
-    const militaryResult = military.id
-      ? await supabase.from('military').update(militaryPayload).eq('id', military.id).select().single()
-      : await supabase.from('military').insert(militaryPayload).select().single();
-    if (militaryResult.error) {
-      setError(militaryResult.error.message);
-      setBusy(false);
-      return;
-    }
+    const militaryPayload = {
+      ...military,
+      uniform_blessed_date: fromInputDate(military.uniform_blessed_date),
+      first_uniform_use_date: fromInputDate(military.first_uniform_use_date)
+    };
     const existingIds = initialRanks.filter((r) => r.id).map((r) => r.id) as string[];
     const currentIds = ranks.filter((r) => r.id).map((r) => r.id) as string[];
     const toDelete = existingIds.filter((id) => !currentIds.includes(id));
-    if (toDelete.length) await supabase.from('uniformed_rank_records').delete().in('id', toDelete);
-    for (const rank of ranks) {
-      if (!(rank.rank_title || rank.commission_date || rank.notes || rank.is_current)) continue;
-      const payload = { ...rank, member_id: memberId, commission_date: fromInputDate(rank.commission_date) };
-      const result = rank.id
-        ? await supabase.from('uniformed_rank_records').update(payload).eq('id', rank.id).select().single()
-        : await supabase.from('uniformed_rank_records').insert(payload).select().single();
-      if (result.error) {
-        setError(result.error.message);
-        setBusy(false);
-        return;
-      }
+    const formattedRanks = ranks.map((r) => ({
+      ...r,
+      commission_date: fromInputDate(r.commission_date)
+    }));
+
+    const result = await saveMilitaryAndRanks(memberId, militaryPayload, formattedRanks, toDelete);
+    if (!result.success) {
+      setError(result.error || 'Failed to save uniform and rank records.');
+      setBusy(false);
+      return;
     }
+
     setMessage('Uniformed rank records saved.');
     setBusy(false);
     setIsEditing(false);

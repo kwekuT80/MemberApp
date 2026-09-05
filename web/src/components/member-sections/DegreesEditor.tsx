@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { saveDegrees } from '@/services/degreesService';
 import { DegreeRecord } from '@/types/degree';
 
 const toInputDate = (value?: string | null) => {
@@ -27,7 +27,6 @@ const fromInputDate = (value?: string | null) => {
 
 
 export default function DegreesEditor({ memberId, initialDegrees, degreeTypes }: { memberId: string; initialDegrees: DegreeRecord[]; degreeTypes: string[] }) {
-  const supabase = createClient();
   const [degrees, setDegrees] = useState<DegreeRecord[]>(initialDegrees.length ? initialDegrees.map((d) => ({ ...d, degree_date: toInputDate(d.degree_date) })) : []);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -45,20 +44,19 @@ export default function DegreesEditor({ memberId, initialDegrees, degreeTypes }:
     const existingIds = initialDegrees.filter((d) => d.id).map((d) => d.id) as string[];
     const currentIds = degrees.filter((d) => d.id).map((d) => d.id) as string[];
     const toDelete = existingIds.filter((id) => !currentIds.includes(id));
-    if (toDelete.length) await supabase.from('degrees').delete().in('id', toDelete);
 
-    for (const degree of degrees) {
-      if (!(degree.degree_type || degree.degree_date || degree.degree_place)) continue;
-      const payload = { ...degree, member_id: memberId, degree_date: fromInputDate(degree.degree_date) };
-      const result = degree.id
-        ? await supabase.from('degrees').update(payload).eq('id', degree.id).select().single()
-        : await supabase.from('degrees').insert(payload).select().single();
-      if (result.error) {
-        setError(result.error.message);
-        setBusy(false);
-        return;
-      }
+    const formattedDegrees = degrees.map((d) => ({
+      ...d,
+      degree_date: fromInputDate(d.degree_date)
+    }));
+
+    const result = await saveDegrees(memberId, formattedDegrees, toDelete);
+    if (!result.success) {
+      setError(result.error || 'Failed to save degree records.');
+      setBusy(false);
+      return;
     }
+
     setMessage('Degree records saved.');
     setBusy(false);
     setIsEditing(false);

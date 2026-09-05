@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { saveFamilyData } from '@/services/spouseService';
 import { SpouseRecord } from '@/types/spouse';
 import { ChildRecord } from '@/types/child';
 import { DependentRecord } from '@/types/dependent';
@@ -34,7 +34,6 @@ export default function FamilyEditor({
   initialChildren: ChildRecord[];
   initialDependents?: DependentRecord[];
 }) {
-  const supabase = createClient();
   const [spouse, setSpouse] = useState<SpouseRecord>(
     initialSpouse ? { ...initialSpouse, spouse_dob: toInputDate(initialSpouse.spouse_dob) } : {
       spouse_name: '',
@@ -71,70 +70,36 @@ export default function FamilyEditor({
     setMessage(null);
     setError(null);
 
-    // 1. Save Spouse
-    const spousePayload = { ...spouse, member_id: memberId, spouse_dob: fromInputDate(spouse.spouse_dob) };
-    const spouseResult = await supabase
-      .from('spouse')
-      .upsert(spousePayload, { onConflict: 'member_id' })
-      .select()
-      .single();
-
-    if (spouseResult.error) {
-      setError(spouseResult.error.message);
-      setBusy(false);
-      return;
-    }
-
-    // 2. Save Children
+    const spousePayload = { ...spouse, spouse_dob: fromInputDate(spouse.spouse_dob) };
     const existingIds = initialChildren.filter((c) => c.id).map((c) => c.id) as string[];
     const currentIds = children.filter((c) => c.id).map((c) => c.id) as string[];
-    const toDelete = existingIds.filter((id) => !currentIds.includes(id));
-    if (toDelete.length) await supabase.from('children').delete().in('id', toDelete);
+    const toDeleteChild = existingIds.filter((id) => !currentIds.includes(id));
+    const formattedChildren = children.map((c) => ({
+      ...c,
+      birth_date: fromInputDate(c.birth_date)
+    }));
 
-    for (const child of children) {
-      if (!(child.child_name || child.birth_date || child.birth_place)) continue;
-      const payload = { ...child, member_id: memberId, birth_date: fromInputDate(child.birth_date) };
-      const result = child.id
-        ? await supabase.from('children').update(payload).eq('id', child.id).select().single()
-        : await supabase.from('children').insert(payload).select().single();
-      if (result.error) {
-        setError(result.error.message);
-        setBusy(false);
-        return;
-      }
-    }
-
-    // 3. Save Dependents (If table is available)
     const existingDepIds = initialDependents.filter((d) => d.id).map((d) => d.id) as string[];
     const currentDepIds = dependents.filter((d) => d.id).map((d) => d.id) as string[];
     const depToDelete = existingDepIds.filter((id) => !currentDepIds.includes(id));
-    
-    // Check if table is available by writing a select test first to handle grace cases
-    const { error: tableCheck } = await supabase.from('dependents').select('id').limit(1);
-    if (!tableCheck) {
-      if (depToDelete.length) {
-        await supabase.from('dependents').delete().in('id', depToDelete);
-      }
+    const formattedDependents = dependents.map((d) => ({
+      ...d,
+      birth_date: fromInputDate(d.birth_date)
+    }));
 
-      for (const dep of dependents) {
-        if (!(dep.dependent_name || dep.relationship || dep.birth_date)) continue;
-        const payload = {
-          ...dep,
-          member_id: memberId,
-          birth_date: fromInputDate(dep.birth_date)
-        };
-        const result = dep.id
-          ? await supabase.from('dependents').update(payload).eq('id', dep.id).select().single()
-          : await supabase.from('dependents').insert(payload).select().single();
-          
-        if (result.error) {
-          setError(result.error.message);
-          setBusy(false);
-          return;
-        }
-      }
-    } else {
-      console.warn("Skipping dependents save because the table dependents is not yet created in the DB.");
+    const result = await saveFamilyData(
+      memberId,
+      spousePayload,
+      formattedChildren,
+      toDeleteChild,
+      formattedDependents,
+      depToDelete
+    );
+
+    if (!result.success) {
+      setError(result.error || 'Failed to save family records.');
+      setBusy(false);
+      return;
     }
 
     setMessage('Family and dependent records saved.');
