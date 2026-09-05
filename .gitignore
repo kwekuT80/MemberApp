@@ -28,3 +28,6 @@ ledger_excel_sheets/
 
 
 
+
+# Documentation PDFs
+*.pdf

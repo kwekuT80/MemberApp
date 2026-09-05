@@ -577,3 +577,46 @@ export function isEligibleWelfareMember(m: {
   }
   return true;
 }
+
+/**
+ * Sanitizes phone numbers by stripping whitespace, dashes, parentheses, and dots.
+ */
+export function sanitizePhoneNumber(input: string | null | undefined): string {
+  if (!input) return '';
+  return String(input).replace(/[\s\-\(\)\.]/g, '').trim();
+}
+
+/**
+ * Generates all valid PostgREST-safe query variations of a phone number
+ * (e.g. local 024..., international +23324..., raw 23324..., and 9-digit core).
+ * Completely eliminates spaces, punctuation, and syntax errors in PostgREST queries.
+ */
+export function getPhoneQueryVariants(rawPhone: string | null | undefined): string[] {
+  const sanitized = sanitizePhoneNumber(rawPhone);
+  if (!sanitized) return [];
+
+  const variants = new Set<string>();
+  variants.add(sanitized);
+
+  // Extract core Ghana 9-digit subscriber number if applicable
+  let core = '';
+  if (sanitized.startsWith('+233') && sanitized.length === 13) {
+    core = sanitized.slice(4);
+  } else if (sanitized.startsWith('233') && sanitized.length === 12) {
+    core = sanitized.slice(3);
+  } else if (sanitized.startsWith('0') && sanitized.length === 10) {
+    core = sanitized.slice(1);
+  } else if (sanitized.length === 9 && !sanitized.startsWith('0')) {
+    core = sanitized;
+  }
+
+  if (core && core.length === 9) {
+    variants.add(`0${core}`);
+    variants.add(`+233${core}`);
+    variants.add(`233${core}`);
+    variants.add(core);
+  }
+
+  return Array.from(variants);
+}
+

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { sanitizePhoneNumber, getPhoneQueryVariants } from '@/lib/utils/ksji-logic';
 
 export default function LoginForm() {
   const [mode, setMode] = useState<'signin' | 'register'>('signin');
@@ -54,12 +55,16 @@ export default function LoginForm() {
         .select('id, first_name, surname')
         .eq('commandery_id', selectedCommandery.id);
 
-      if (email && phone) {
-        query = query.or(`email.eq.${email.trim()},phone.eq.${phone.trim()},mobile.eq.${phone.trim()}`);
-      } else if (email) {
-        query = query.eq('email', email.trim());
-      } else if (phone) {
-        query = query.or(`phone.eq.${phone.trim()},mobile.eq.${phone.trim()}`);
+      const cleanEmail = email.trim();
+      const phoneVariants = getPhoneQueryVariants(phone);
+      const phoneConditions = phoneVariants.flatMap(v => [`phone.eq.${v}`, `mobile.eq.${v}`]);
+
+      if (cleanEmail && phoneConditions.length > 0) {
+        query = query.or([`email.eq.${cleanEmail}`, ...phoneConditions].join(','));
+      } else if (cleanEmail) {
+        query = query.eq('email', cleanEmail);
+      } else if (phoneConditions.length > 0) {
+        query = query.or(phoneConditions.join(','));
       }
 
       const { data, error } = await query.limit(1);
@@ -100,7 +105,7 @@ export default function LoginForm() {
             data: {
               first_name: firstName,
               surname: surname,
-              phone: phone
+              phone: sanitizePhoneNumber(phone)
             }
           }
         });
@@ -115,7 +120,7 @@ export default function LoginForm() {
               email: email.trim(),
               first_name: firstName.trim(),
               surname: surname.trim(),
-              phone: phone.trim(),
+              phone: sanitizePhoneNumber(phone),
               commandery_id: selectedCommandery.id,
               status: 'pending',
               role: 'member'

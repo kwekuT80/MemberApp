@@ -89,6 +89,7 @@ export default async function FinancialsHubPage() {
       </div>
 
       <div className="grid-cols-3" style={{ marginBottom: 32 }}>
+        <ActionCard href="/registrar/financials/breakdown" icon="📈" title="Monthly & Yearly Subtotals" description="Full multi-year comparison and month-by-month collection subtotals for Annual Dues assessments and Welfare contributions." buttonText="View Subtotals →" buttonBg="#0F172A" textColor="#FDE047" borderColor="#FDE047" />
         <ActionCard href="/registrar/financials/verify" icon="📱" title="MoMo Verification Queue" description="Review and approve member Mobile Money payment references. Automatically updates dues or welfare ledgers upon verification." buttonText="Review Queue →" buttonBg="#065f46" textColor="white" borderColor="#065f46" />
         <ActionCard href="/registrar/financials/audit-pack" icon="📑" title="Executive Financial Audit Pack" description="Printable multi-page financial statement and audit reconciliation pack with formal officer and trustee sign-off blocks." buttonText="View Audit Pack →" buttonBg="#10233F" textColor="#D4AF37" borderColor="#D4AF37" />
         <ActionCard href="/registrar/financials/rates" icon="⚙️" title="Set Rates & Generate Bills" description="Configure yearly assessment rates for Regular, Social, and Student members. Generate annual bills with age-based discounts and arrears rollover." buttonText="Manage Rates →" buttonBg="var(--navy)" textColor="var(--gold)" borderColor="var(--gold)" />
