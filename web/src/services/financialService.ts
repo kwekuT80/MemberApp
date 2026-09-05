@@ -1,5 +1,5 @@
 'use server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logFinancialChange, type AuditAction, type EntityType } from './auditService';
 import { fetchAllPaginated } from '@/lib/supabase/pagination';
 import { isSystemMember } from '@/lib/utils/ksji-logic';
@@ -664,5 +664,155 @@ export async function reclassifyDuesToWelfare(
     return { success: true, contributionId: newContrib.id };
   } catch (err: any) {
     return { success: false, error: err.message || 'Unexpected server error' };
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DISMISSED MEMBER ARREARS RECOVERY & REINSTATEMENT SERVICES
+// ══════════════════════════════════════════════════════════════════════════════
+
+export async function getDismissedMembers() {
+  const admin = await createAdminClient();
+  const { data, error } = await admin
+    .from('members')
+    .select('id, first_name, surname, title, membership_type, status')
+    .eq('status', 'Dismissed')
+    .order('surname');
+  if (error) {
+    console.error('Error fetching dismissed members:', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function getDismissedMemberIndebtedness(memberId: string) {
+  const admin = await createAdminClient();
+  const [{ data: assessments }, { data: payments }] = await Promise.all([
+    admin.from('financial_assessments').select('*').eq('member_id', memberId).order('year', { ascending: false }),
+    admin.from('financial_payments').select('*').eq('member_id', memberId)
+  ]);
+
+  const isVoluntaryPayment = (p: any) => {
+    const m = (p.month || '').toLowerCase();
+    const type = (p.payment_type || '').toLowerCase();
+    return (
+      m.includes('voluntary') ||
+      m.includes('appeal') ||
+      m.includes('relief') ||
+      m.includes('donation') ||
+      type.includes('voluntary') ||
+      type.includes('appeal') ||
+      type.includes('relief') ||
+      type.includes('donation')
+    );
+  };
+
+  const duesPayments = (payments || []).filter(p => !isVoluntaryPayment(p));
+  const totalRecovered = duesPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+
+  // Configured debt is sum of annual_assessment + arrears_brought_forward across assessment records
+  const configuredDebt = (assessments || []).reduce((s, a) => {
+    return s + Number(a.annual_assessment || 0) + Number(a.arrears_brought_forward || 0);
+  }, 0);
+
+  const isConfigured = configuredDebt > 0;
+  const remainingDebt = isConfigured ? Math.max(0, configuredDebt - totalRecovered) : 0;
+  const isReinstatementReady = isConfigured && totalRecovered >= configuredDebt;
+
+  return {
+    memberId,
+    configuredDebt,
+    isConfigured,
+    totalRecovered,
+    remainingDebt,
+    isReinstatementReady,
+    paymentCount: duesPayments.length,
+    payments: duesPayments,
+    assessments: assessments || []
+  };
+}
+
+export async function saveDismissedIndebtedness(memberId: string, amount: number) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Unauthorized. Please sign in.' };
+
+    const admin = await createAdminClient();
+
+    // Check if an assessment record exists
+    const { data: existing } = await admin
+      .from('financial_assessments')
+      .select('*')
+      .eq('member_id', memberId)
+      .order('year', { ascending: false })
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      const target = existing[0];
+      const { error } = await admin
+        .from('financial_assessments')
+        .update({
+          arrears_brought_forward: amount,
+          annual_assessment: 0
+        })
+        .eq('id', target.id);
+      if (error) return { success: false, error: error.message };
+    } else {
+      const { error } = await admin
+        .from('financial_assessments')
+        .insert({
+          member_id: memberId,
+          year: 2025,
+          annual_assessment: 0,
+          arrears_brought_forward: amount
+        });
+      if (error) return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Error saving indebtedness' };
+  }
+}
+
+export async function reinstateDismissedMember(memberId: string, reinstatementDate: string, notes?: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Unauthorized. Please sign in.' };
+
+    const admin = await createAdminClient();
+
+    const { data: member, error: memErr } = await admin
+      .from('members')
+      .update({
+        status: 'Active',
+        date_of_reinstatement: reinstatementDate
+      })
+      .eq('id', memberId)
+      .select()
+      .single();
+
+    if (memErr) return { success: false, error: memErr.message };
+
+    try {
+      await admin.from('financial_audit_log').insert({
+        action: 'assessment_edit',
+        entity_type: 'assessment',
+        entity_id: memberId,
+        member_id: memberId,
+        old_values: { status: 'Dismissed' },
+        new_values: { status: 'Active', date_of_reinstatement: reinstatementDate, notes: notes || null },
+        changed_by: user.id,
+        changed_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Audit log write error:', e);
+    }
+
+    return { success: true, member };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Error reinstating member' };
   }
 }

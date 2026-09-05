@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { requireFinancialRegistrar } from '@/lib/auth/requireFinancialRegistrar';
-import { getActiveMembers, getPaymentsForYear } from '@/services/financialService';
+import { getActiveMembers, getPaymentsForYear, getDismissedMembers } from '@/services/financialService';
 import PaymentsClient from './PaymentsClient';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 
@@ -9,9 +9,10 @@ export default async function PaymentsPage() {
   const { user } = await requireFinancialRegistrar();
   const currentYear = new Date().getFullYear();
 
-  const [members, payments] = await Promise.all([
+  const [members, payments, dismissedMembers] = await Promise.all([
     getActiveMembers(),
     getPaymentsForYear(currentYear),
+    getDismissedMembers(),
   ]);
 
   return (
@@ -19,6 +20,7 @@ export default async function PaymentsPage() {
       <PaymentsClient
         initialYear={currentYear}
         initialMembers={members as any}
+        initialDismissedMembers={dismissedMembers as any}
         initialPayments={payments as any}
         currentUserId={user!.id}
       />

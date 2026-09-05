@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import MemberSummaryCard from '@/components/members/MemberSummaryCard';
+import DismissedArrearsCard from '@/components/members/DismissedArrearsCard';
 import RegistrarMemberActions from '@/components/members/RegistrarMemberActions';
 import { requireRegistrar } from '@/lib/auth/requireRegistrar';
 import { getMemberById, getMemberPersonalReport } from '@/services/memberService';
@@ -46,6 +47,14 @@ export default async function RegistrarMemberDetailPage({ params }: { params: Pr
         {member ? (
           <>
             <MemberSummaryCard member={{ ...member, title: displayTitle }} editHref={`/registrar/members/${id}/edit`} showOwner />
+
+            {/* DISMISSED MEMBER ARREARS RECOVERY & REINSTATEMENT REVIEW CARD */}
+            {member.status === 'Dismissed' && (
+              <DismissedArrearsCard
+                memberId={member.id}
+                memberName={`${displayTitle || 'Bro.'} ${member.first_name} ${member.surname}`}
+              />
+            )}
             
             {/* SUPER ADMIN GOOD STANDING & ISSUES SUMMARY CARD */}
             {isSuperAdmin && reportData && (
