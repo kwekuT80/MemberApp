@@ -169,6 +169,7 @@ export async function saveMember(form: any): Promise<Member> {
     if (error) throw error;
     return data;
   } else {
+    if (!payload.commandery_id) payload.commandery_id = 'b31c4884-9518-4fdf-bc55-98e3425189cc';
     const { data, error } = await supabase.from('members').insert(payload).select().single();
     if (error) throw error;
     return data;

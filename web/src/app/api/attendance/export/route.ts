@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireRegistrar } from '@/lib/auth/requireRegistrar';
 import { fetchAllPaginated } from '@/lib/supabase/pagination';
+import { isSystemMember } from '@/lib/utils/ksji-logic';
 
 // CSV-safe value - escape quotes and wrap in quotes if contains commas
 function csvEscape(value: string | number | null): string {
@@ -61,12 +62,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all members (optionally filtered by commandery, paginated)
-    const members = await fetchAllPaginated((from, to) => {
-      let memberQuery = supabase.from('members').select('*');
+    // Get all living active members (optionally filtered by commandery, paginated)
+    const rawMembers = await fetchAllPaginated((from, to) => {
+      let memberQuery = supabase
+        .from('members')
+        .select('*')
+        .not('status', 'in', '("Dismissed","Transfer-Out","Deceased","System")')
+        .neq('id', 'f0000000-0000-0000-0000-000000000000');
       if (commanderyId) memberQuery = memberQuery.eq('commandery_id', commanderyId);
       return memberQuery.order('surname').range(from, to);
     });
+    const members = (rawMembers || []).filter((m: any) => !isSystemMember(m) && !m.is_deceased);
 
     // Build member lookup map for quick access
     const memberMap = new Map();

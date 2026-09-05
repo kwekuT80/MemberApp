@@ -131,7 +131,31 @@ export default function FinancialsPage() {
   const totalDuesPaidThisYear = currentYearDuesPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
   const outstanding = totalAssessment - totalDuesPaidThisYear;
 
-  // Lifetime totals (separated)
+  // Dynamic range of recorded years for this member
+  const earliestYear = availableYears.length > 0 ? Math.min(...availableYears) : currentYear;
+  const latestYear = availableYears.length > 0 ? Math.max(...availableYears) : currentYear;
+  const totalDuesLabel = earliestYear === latestYear
+    ? `TOTAL DUES (${latestYear})`
+    : `TOTAL DUES (${earliestYear}–${latestYear})`;
+
+  // Item 3: Dynamic Arrears / Advance B/F
+  const isCreditBf = arrears < 0;
+  const arrearsLabel = isCreditBf ? 'ADVANCE B/F' : 'ARREARS B/F';
+  const arrearsDisplay = currencyFormat(Math.abs(arrears));
+  const arrearsColor = isCreditBf ? '#34D399' : (arrears > 0 ? '#FB923C' : '#94A3B8');
+
+  // Item 4: Outstanding Dues / Credit Balance (Most important metric)
+  const isOverpaid = outstanding < 0;
+  const isFullyPaid = outstanding === 0;
+  const outstandingLabel = isOverpaid ? 'CREDIT BALANCE' : 'OUTSTANDING DUES';
+  const outstandingDisplay = isOverpaid
+    ? `+${currencyFormat(Math.abs(outstanding))}`
+    : isFullyPaid
+    ? 'GH¢ 0.00 (PAID IN FULL)'
+    : currencyFormat(outstanding);
+  const outstandingColor = isOverpaid ? '#38BDF8' : (isFullyPaid ? '#34D399' : '#F87171');
+
+  // Lifetime / Cumulative totals (separated)
   const lifetimeDuesPaid = duesPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
   const totalVoluntaryContributed = voluntaryPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
@@ -191,49 +215,58 @@ export default function FinancialsPage() {
           <div style={{ fontSize: 12, fontWeight: 900, color: '#F59E0B', letterSpacing: 1.5, textTransform: 'uppercase' }}>
             {currentYear} Commandery Annual Dues Summary
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, marginTop: 20 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, marginTop: 20, alignItems: 'flex-start' }}>
             <div>
-              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800 }}>ARREARS B/F</div>
-              <div style={{ fontSize: 22, fontWeight: 900, fontFamily: 'monospace', color: '#FB923C' }}>
-                {currencyFormat(arrears)}
+              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>{arrearsLabel}</div>
+              <div style={{ fontSize: 22, fontWeight: 900, fontFamily: 'monospace', color: arrearsColor }}>
+                {arrearsDisplay}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800 }}>{currentYear} ASSESSMENT</div>
+              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>CURRENT ASSESSMENT</div>
               <div style={{ fontSize: 22, fontWeight: 900, fontFamily: 'monospace', color: '#60A5FA' }}>
                 {currencyFormat(annual)}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800 }}>DUES PAID THIS YEAR</div>
+              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>ASSESSMENT PAID THIS YEAR</div>
               <div style={{ fontSize: 22, fontWeight: 900, fontFamily: 'monospace', color: '#34D399' }}>
                 {currencyFormat(totalDuesPaidThisYear)}
               </div>
             </div>
-            <div>
-              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800 }}>OUTSTANDING DUES</div>
-              <div style={{ fontSize: 22, fontWeight: 900, fontFamily: 'monospace', color: outstanding > 0 ? '#F87171' : '#34D399' }}>
-                {currencyFormat(Math.max(0, outstanding))}
+            {/* Primary Status Metric - Bold & Prominent */}
+            <div style={{
+              background: isOverpaid ? 'rgba(56, 189, 248, 0.12)' : isFullyPaid ? 'rgba(52, 211, 153, 0.12)' : 'rgba(248, 113, 113, 0.12)',
+              border: `1px solid ${isOverpaid ? 'rgba(56, 189, 248, 0.35)' : isFullyPaid ? 'rgba(52, 211, 153, 0.35)' : 'rgba(248, 113, 113, 0.35)'}`,
+              borderRadius: 12,
+              padding: '6px 14px',
+              marginTop: -6
+            }}>
+              <div style={{ fontSize: 11, color: outstandingColor, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                ★ {outstandingLabel}
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 900, fontFamily: 'monospace', color: outstandingColor }}>
+                {outstandingDisplay}
               </div>
             </div>
           </div>
 
-          {/* Lifetime totals */}
+          {/* Cumulative / Multi-Year Totals */}
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', marginTop: 20, paddingTop: 16, display: 'flex', flexWrap: 'wrap', gap: 32 }}>
             <div>
-              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800 }}>LIFETIME DUES PAID</div>
+              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>{totalDuesLabel}</div>
               <div style={{ fontSize: 20, fontWeight: 900, fontFamily: 'monospace', color: '#10B981' }}>
                 {currencyFormat(lifetimeDuesPaid)}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800 }}>VOLUNTARY RELIEF CONTRIB.</div>
+              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>VOLUNTARY RELIEF CONTRIBUTIONS</div>
               <div style={{ fontSize: 20, fontWeight: 900, fontFamily: 'monospace', color: '#C084FC' }}>
                 {currencyFormat(totalVoluntaryContributed)}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800 }}>YEARS ON RECORD</div>
+              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>YEARS ON RECORD</div>
               <div style={{ fontSize: 20, fontWeight: 900, fontFamily: 'monospace', color: '#FDE68A' }}>
                 {availableYears.length} year{availableYears.length !== 1 ? 's' : ''}
               </div>

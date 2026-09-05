@@ -74,7 +74,7 @@ export default function RatesAndBillingClient({
       const { data: members } = await supabase
         .from('members')
         .select('id, first_name, surname, date_of_birth, membership_type, status')
-        .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")');
+        .not('status', 'in', '("Dismissed","Transfer-Out","Deceased","System")');
 
       // Fetch prior year balances
       const priorYear = year - 1;

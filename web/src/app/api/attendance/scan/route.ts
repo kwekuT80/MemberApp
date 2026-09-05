@@ -203,7 +203,7 @@ export async function GET(request: Request) {
       .from('members')
       .select('*')
       .eq('commandery_id', commanderyId)
-      .not('status', 'in', `("Dismissed","Transfer-Out","Deceased")`);
+      .not('status', 'in', '("Dismissed","Transfer-Out","Deceased","System")');
 
     return NextResponse.json({
       meeting: meetings?.[0] || null,

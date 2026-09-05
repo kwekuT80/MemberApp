@@ -42,7 +42,7 @@ export default function AuditLogClient() {
       const { data: memberList } = await supabase
         .from('members')
         .select('id, first_name, surname')
-        .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")');
+        .not('status', 'in', '("Dismissed","Transfer-Out","Deceased","System")');
 
       if (memberList) setMembers(memberList);
 

@@ -33,7 +33,7 @@ export default function AuditPackPage() {
       const { count } = await supabase
         .from('members')
         .select('*', { count: 'exact', head: true })
-        .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+        .not('status', 'in', '("Dismissed","Transfer-Out","Deceased","System")')
         .eq('is_deceased', false);
 
       setMembersCount(count || 0);

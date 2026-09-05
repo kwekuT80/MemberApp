@@ -25,7 +25,7 @@ export default async function CommanderyHealthPage() {
   const { count: totalMembers } = await supabase
     .from('members')
     .select('*', { count: 'exact', head: true })
-    .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")');
+    .not('status', 'in', '("Dismissed","Transfer-Out","Deceased","System")');
 
   // Members with financial summaries (those who have been assessed)
   const { count: assessedCount } = await supabase

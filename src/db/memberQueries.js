@@ -347,6 +347,7 @@ export async function saveMember(form) {
     date_of_suspension:  toPgDate(form.date_of_suspension),
     date_of_dismissal:   toPgDate(form.date_of_dismissal),
     date_of_reinstatement: toPgDate(form.date_of_reinstatement),
+    commandery_id: form.commandery_id || 'b31c4884-9518-4fdf-bc55-98e3425189cc',
   };
 
   if (form.id) {

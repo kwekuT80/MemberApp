@@ -115,7 +115,7 @@ export async function generateAnnualAssessments(year: number) {
     supabase
       .from('members')
       .select('id, first_name, surname, title, date_of_birth, membership_type, status, is_deceased')
-      .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+      .not('status', 'in', '("Dismissed","Transfer-Out","Deceased","System")')
       .range(from, to)
   );
 

@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { Html5Qrcode } from 'html5-qrcode';
-import { formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { formatDisplayDate, isSystemMember } from '@/lib/utils/ksji-logic';
 import { deleteMeeting } from '@/services/attendanceService';
 
 interface ScannedMember {
@@ -78,12 +78,15 @@ export default function MeetingScanPage() {
           if (meeting.commandery_id) {
             const { data: members } = await supabase
               .from('members')
-              .select('id, first_name, surname, title, status')
-              .eq('commandery_id', meeting.commandery_id)
-              .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+              .select('id, first_name, surname, title, status, is_deceased')
+              .or(`commandery_id.eq.${meeting.commandery_id},commandery_id.is.null`)
+              .not('status', 'in', '("Dismissed","Transfer-Out","Deceased","System")')
+              .neq('id', 'f0000000-0000-0000-0000-000000000000')
               .order('surname', { ascending: true });
 
-            if (members) setCommanderyMembers(members);
+            if (members) {
+              setCommanderyMembers(members.filter((m: any) => !isSystemMember(m) && !m.is_deceased));
+            }
           }
         }
 

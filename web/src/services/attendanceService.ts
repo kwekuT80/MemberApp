@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { isSystemMember } from '@/lib/utils/ksji-logic';
 import { fetchAllPaginated } from '@/lib/supabase/pagination';
 
 export async function getCommanderies() {
@@ -19,7 +20,7 @@ export async function getMeetings(commanderyId: string) {
     supabase
       .from('meetings')
       .select('*')
-      .eq('commandery_id', commanderyId)
+      .or(`commandery_id.eq.${commanderyId},commandery_id.is.null`)
       .order('date', { ascending: false })
       .range(from, to)
   );
@@ -241,7 +242,7 @@ export async function getAttendanceReport(meetingId: string, commanderyId: strin
       .from('members')
       .select('*')
       .eq('commandery_id', commanderyId)
-      .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+      .not('status', 'in', '("Dismissed","Transfer-Out","Deceased","System")')
       .neq('id', 'f0000000-0000-0000-0000-000000000000')
       .not('surname', 'ilike', '%Operational Outflows%')
       .range(from, to)
@@ -266,12 +267,7 @@ export async function getAttendanceReport(meetingId: string, commanderyId: strin
   );
 
   // 4. Filter out any remaining phantom system accounts and map everything together
-  const realMembers = (members || []).filter(m => {
-    if (m.id === 'f0000000-0000-0000-0000-000000000000') return false;
-    const name = `${m.first_name || ''} ${m.surname || ''}`.toLowerCase();
-    if (name.includes('welfare account') || name.includes('operational outflow')) return false;
-    return true;
-  });
+  const realMembers = (members || []).filter(m => !isSystemMember(m) && !m.is_deceased);
 
   return realMembers.map(m => {
     const checkIn = (attendance || []).find(a => a.member_id === m.id);
