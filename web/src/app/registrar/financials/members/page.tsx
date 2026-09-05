@@ -44,6 +44,30 @@ export default async function MemberSummaryPage({
     <RegistrarShell title="Member Financial Overview" subtitle="Consolidated real-time billing and payment summary for all members">
       <div className={view === 'infographic' ? 'max-width-container-wide' : 'max-width-container'}>
         
+                {/* ── Top Navigation & Back Link ── */}
+        <div style={{ marginBottom: 20 }}>
+          <Link
+            href="/registrar/financials"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              textDecoration: 'none',
+              color: '#10233F',
+              fontWeight: 700,
+              fontSize: 14,
+              padding: '8px 16px',
+              background: '#FFFFFF',
+              border: '1px solid #CBD5E1',
+              borderRadius: 8,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            ← Back to Financial Hub
+          </Link>
+        </div>
+
         {/* ── VIEW SWITCHER TABS ── */}
         <div className="tab-container">
           <Link href={getLinkHref('table')} className={`tab-btn ${view === 'table' ? 'active' : ''}`}>

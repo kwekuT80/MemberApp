@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { reclassifyDuesToWelfare, getPaymentsForYear } from '@/services/financialService';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -350,6 +351,47 @@ export default function PaymentsClient({
 
   return (
     <div style={{ width: '100%' }}>
+      {/* ── Top Navigation & Back Link ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <Link
+          href="/registrar/financials"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            textDecoration: 'none',
+            color: '#10233F',
+            fontWeight: 700,
+            fontSize: 14,
+            padding: '8px 16px',
+            background: '#FFFFFF',
+            border: '1px solid #CBD5E1',
+            borderRadius: 8,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          ← Back to Financial Hub
+        </Link>
+        <Link
+          href="/registrar/financials/breakdown"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            textDecoration: 'none',
+            color: '#0369A1',
+            fontWeight: 600,
+            fontSize: 13,
+            padding: '8px 14px',
+            background: '#F0F9FF',
+            border: '1px solid #BAE6FD',
+            borderRadius: 8
+          }}
+        >
+          📊 Periodic Subtotals & Breakdown →
+        </Link>
+      </div>
       {/* Toast */}
       {toast && (
         <div style={{
