@@ -1,44 +1,74 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { isSystemMember, formatMemberTitle } from '@/lib/utils/ksji-logic';
 
-type TabMode = 'dues' | 'welfare';
+type TabMode = 'dues' | 'welfare' | 'donations';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-function normalizeMonth(mStr?: string | null, dateStr?: string | null): number {
-  if (mStr) {
-    const s = mStr.toLowerCase().trim();
-    if (s.startsWith('jan')) return 1;
-    if (s.startsWith('feb')) return 2;
-    if (s.startsWith('mar')) return 3;
-    if (s.startsWith('apr')) return 4;
-    if (s.startsWith('may')) return 5;
-    if (s.startsWith('jun')) return 6;
-    if (s.startsWith('jul')) return 7;
-    if (s.startsWith('aug')) return 8;
-    if (s.startsWith('sep')) return 9;
-    if (s.startsWith('oct')) return 10;
-    if (s.startsWith('nov')) return 11;
-    if (s.startsWith('dec')) return 12;
-  }
-  if (dateStr) {
-    const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) {
-      return d.getMonth() + 1;
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// Helper to identify voluntary donations / relief appeals
+const isVoluntaryPayment = (p: any): boolean => {
+  const m = (p.month || '').toLowerCase();
+  const type = (p.payment_type || '').toLowerCase();
+  return (
+    m.includes('voluntary') ||
+    m.includes('appeal') ||
+    m.includes('relief') ||
+    m.includes('donation') ||
+    type.includes('voluntary') ||
+    type.includes('appeal') ||
+    type.includes('relief') ||
+    type.includes('donation')
+  );
+};
+
+// Helper to normalize month string or payment_date to integer 1-12
+const normalizeMonth = (monthStr?: string | null, dateStr?: string | null): number => {
+  if (monthStr) {
+    const clean = monthStr.trim().toLowerCase();
+    for (let i = 0; i < SHORT_MONTHS.length; i++) {
+      if (clean.startsWith(SHORT_MONTHS[i].toLowerCase()) || clean.startsWith(MONTH_NAMES[i].toLowerCase())) {
+        return i + 1;
+      }
+    }
+    const parsedNum = parseInt(clean, 10);
+    if (!isNaN(parsedNum) && parsedNum >= 1 && parsedNum <= 12) {
+      return parsedNum;
     }
   }
-  return 0;
-}
+
+  if (dateStr) {
+    const dt = new Date(dateStr);
+    if (!isNaN(dt.getTime())) {
+      return dt.getMonth() + 1;
+    }
+  }
+
+  return 1;
+};
+
+// Clean appeal description from month text
+const cleanAppealName = (monthStr?: string | null): string => {
+  if (!monthStr) return 'General Voluntary Relief';
+  let cleaned = monthStr.trim();
+  if (cleaned.toLowerCase().startsWith('voluntary relief:')) {
+    cleaned = cleaned.substring('voluntary relief:'.length).trim();
+  } else if (cleaned.toLowerCase().startsWith('voluntary relief')) {
+    cleaned = cleaned.substring('voluntary relief'.length).trim();
+  }
+  return cleaned || 'General Voluntary Relief';
+};
 
 export default function BreakdownClient() {
   const supabase = createClient();
+
   const [activeTab, setActiveTab] = useState<TabMode>('dues');
   const [loading, setLoading] = useState(true);
 
@@ -72,71 +102,97 @@ export default function BreakdownClient() {
         ]);
 
         const map = new Map<string, any>();
-        (rawMembers || []).forEach(m => {
-          if (!isSystemMember(m)) {
-            map.set(m.id, m);
-          }
-        });
+        (rawMembers || []).forEach(m => map.set(m.id, m));
         setMembersMap(map);
 
         setAssessments(rawAssessments || []);
         setPayments(rawPayments || []);
         setWelfareContributions(rawWelfare || []);
         setWelfareDisbursements(rawDisbursements || []);
-
-        // Pick highest recorded year as default
-        if (rawAssessments && rawAssessments.length > 0) {
-          const maxAssYear = Math.max(...rawAssessments.map((a: any) => a.year));
-          setSelectedYear(maxAssYear);
-        }
       } catch (err) {
-        console.error('Failed to load breakdown data:', err);
+        console.error('Failed loading breakdown data:', err);
       } finally {
         setLoading(false);
       }
     }
-    loadData();
-  }, [supabase]);
 
-  // Available recorded years
+    loadData();
+  }, []);
+
+  // Filter separated payment streams
+  const duesPaymentsList = useMemo(() => {
+    return payments.filter(p => !isVoluntaryPayment(p));
+  }, [payments]);
+
+  const voluntaryPaymentsList = useMemo(() => {
+    return payments.filter(p => isVoluntaryPayment(p));
+  }, [payments]);
+
+  // ── Available Years ──
   const availableDuesYears = useMemo(() => {
     const set = new Set<number>();
-    assessments.forEach(a => set.add(a.year));
-    payments.forEach(p => set.add(p.assessment_year));
+    assessments.forEach(a => { if (a.year) set.add(a.year); });
+    duesPaymentsList.forEach(p => { if (p.assessment_year) set.add(p.assessment_year); });
+    if (set.size === 0) set.add(new Date().getFullYear());
     return Array.from(set).sort((a, b) => b - a);
-  }, [assessments, payments]);
+  }, [assessments, duesPaymentsList]);
 
   const availableWelfareYears = useMemo(() => {
     const set = new Set<number>();
-    welfareContributions.forEach(w => set.add(w.period_year));
+    welfareContributions.forEach(w => { if (w.period_year) set.add(w.period_year); });
     welfareDisbursements.forEach(d => {
-      const dt = new Date(d.disbursement_date);
-      if (!isNaN(dt.getTime())) set.add(dt.getFullYear());
+      if (d.disbursement_date) {
+        const yr = new Date(d.disbursement_date).getFullYear();
+        if (!isNaN(yr)) set.add(yr);
+      }
     });
+    if (set.size === 0) set.add(new Date().getFullYear());
     return Array.from(set).sort((a, b) => b - a);
   }, [welfareContributions, welfareDisbursements]);
 
-  // ── Dues Yearly Aggregates ──
+  const availableDonationYears = useMemo(() => {
+    const set = new Set<number>();
+    voluntaryPaymentsList.forEach(p => {
+      const yr = p.assessment_year || (p.payment_date ? new Date(p.payment_date).getFullYear() : null);
+      if (yr) set.add(yr);
+    });
+    if (set.size === 0) set.add(new Date().getFullYear());
+    return Array.from(set).sort((a, b) => b - a);
+  }, [voluntaryPaymentsList]);
+
+  // Sync selectedYear if tab switches and year not in list
+  useEffect(() => {
+    if (activeTab === 'dues' && !availableDuesYears.includes(selectedYear)) {
+      setSelectedYear(availableDuesYears[0] || new Date().getFullYear());
+    } else if (activeTab === 'welfare' && !availableWelfareYears.includes(selectedYear)) {
+      setSelectedYear(availableWelfareYears[0] || new Date().getFullYear());
+    } else if (activeTab === 'donations' && !availableDonationYears.includes(selectedYear)) {
+      setSelectedYear(availableDonationYears[0] || new Date().getFullYear());
+    }
+  }, [activeTab, availableDuesYears, availableWelfareYears, availableDonationYears]);
+
+  // ════════════════════════════════════════════════════════════
+  // 1. DUES ASSESSMENTS & COLLECTIONS (STRICTLY NON-VOLUNTARY)
+  // ════════════════════════════════════════════════════════════
   const duesYearlyStats = useMemo(() => {
     return availableDuesYears.map(yr => {
       const yrAssessments = assessments.filter(a => a.year === yr);
-      const yrPayments = payments.filter(p => p.assessment_year === yr);
+      const yrPayments = duesPaymentsList.filter(p => p.assessment_year === yr);
 
-      const totalAnnual = yrAssessments.reduce((sum, a) => sum + Number(a.annual_assessment || 0), 0);
-      const totalArrearsBf = yrAssessments.reduce((sum, a) => sum + Number(a.arrears_brought_forward || 0), 0);
-      const totalObligation = totalAnnual + totalArrearsBf;
+      const totalBilled = yrAssessments.reduce((sum, a) => {
+        const annual = Number(a.annual_assessment || 0);
+        const arrears = Number(a.arrears_brought_forward || 0);
+        return sum + annual + arrears;
+      }, 0);
+
       const totalCollected = yrPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-      const balance = totalObligation - totalCollected;
-      const collectionRate = totalObligation > 0 ? (totalCollected / totalObligation) * 100 : 0;
-
+      const balance = totalBilled - totalCollected;
+      const collectionRate = totalBilled > 0 ? (totalCollected / totalBilled) * 100 : 0;
       const contributingBrothers = new Set(yrPayments.map(p => p.member_id)).size;
 
       return {
         year: yr,
-        assessedCount: yrAssessments.length,
-        totalAnnual,
-        totalArrearsBf,
-        totalObligation,
+        totalBilled,
         totalCollected,
         balance,
         collectionRate,
@@ -144,11 +200,10 @@ export default function BreakdownClient() {
         contributingBrothers
       };
     });
-  }, [availableDuesYears, assessments, payments]);
+  }, [availableDuesYears, assessments, duesPaymentsList]);
 
-  // ── Selected Year Dues Monthly Breakdown ──
   const duesMonthlyBreakdown = useMemo(() => {
-    const yrPayments = payments.filter(p => p.assessment_year === selectedYear);
+    const yrPayments = duesPaymentsList.filter(p => p.assessment_year === selectedYear);
     const yrTotal = yrPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
     const monthsData = MONTH_NAMES.map((name, idx) => {
@@ -170,9 +225,11 @@ export default function BreakdownClient() {
     });
 
     return { total: yrTotal, months: monthsData };
-  }, [payments, selectedYear]);
+  }, [duesPaymentsList, selectedYear]);
 
-  // ── Welfare Yearly Aggregates ──
+  // ════════════════════════════════════════════════════════════
+  // 2. WELFARE FUND PERFORMANCE
+  // ════════════════════════════════════════════════════════════
   const welfareYearlyStats = useMemo(() => {
     return availableWelfareYears.map(yr => {
       const yrContributions = welfareContributions.filter(w => w.period_year === yr);
@@ -197,7 +254,6 @@ export default function BreakdownClient() {
     });
   }, [availableWelfareYears, welfareContributions, welfareDisbursements]);
 
-  // ── Selected Year Welfare Monthly Breakdown ──
   const welfareMonthlyBreakdown = useMemo(() => {
     const yrContributions = welfareContributions.filter(w => w.period_year === selectedYear);
     const yrDisbursements = welfareDisbursements.filter(d => {
@@ -228,27 +284,112 @@ export default function BreakdownClient() {
         disbursed,
         net,
         contributors,
-        contributionsCount: mContributions.length,
-        disbursementsCount: mDisbursements.length
+        contributions: mContributions,
+        disbursements: mDisbursements
       };
     });
 
-    return {
-      totalCollected: yrCollected,
-      totalDisbursed: yrDisbursed,
-      netTotal: yrCollected - yrDisbursed,
-      months: monthsData
-    };
+    return { totalCollected: yrCollected, totalDisbursed: yrDisbursed, months: monthsData };
   }, [welfareContributions, welfareDisbursements, selectedYear]);
 
-  const currency = (val: number) =>
-    `GH¢ ${Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // ════════════════════════════════════════════════════════════
+  // 3. VOLUNTARY DONATIONS & SPECIAL RELIEF APPEALS
+  // ════════════════════════════════════════════════════════════
+  const donationsYearlyStats = useMemo(() => {
+    return availableDonationYears.map(yr => {
+      const yrDonations = voluntaryPaymentsList.filter(p => {
+        const y = p.assessment_year || (p.payment_date ? new Date(p.payment_date).getFullYear() : null);
+        return y === yr;
+      });
+
+      const totalRaised = yrDonations.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      const contributingBrothers = new Set(yrDonations.map(p => p.member_id)).size;
+      const avgDonation = contributingBrothers > 0 ? totalRaised / contributingBrothers : 0;
+
+      // Group by distinct appeal causes
+      const causesMap = new Map<string, { count: number; total: number }>();
+      yrDonations.forEach(p => {
+        const cause = cleanAppealName(p.month);
+        const curr = causesMap.get(cause) || { count: 0, total: 0 };
+        curr.count += 1;
+        curr.total += Number(p.amount || 0);
+        causesMap.set(cause, curr);
+      });
+
+      return {
+        year: yr,
+        totalRaised,
+        contributingBrothers,
+        donationCount: yrDonations.length,
+        avgDonation,
+        causes: Array.from(causesMap.entries()).map(([name, data]) => ({ name, ...data }))
+      };
+    });
+  }, [availableDonationYears, voluntaryPaymentsList]);
+
+  const donationsMonthlyBreakdown = useMemo(() => {
+    const yrDonations = voluntaryPaymentsList.filter(p => {
+      const y = p.assessment_year || (p.payment_date ? new Date(p.payment_date).getFullYear() : null);
+      return y === selectedYear;
+    });
+    const yrTotal = yrDonations.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+    const monthsData = MONTH_NAMES.map((name, idx) => {
+      const monthNum = idx + 1;
+      const mDonations = yrDonations.filter(p => normalizeMonth(p.month, p.payment_date) === monthNum);
+      const total = mDonations.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      const percent = yrTotal > 0 ? (total / yrTotal) * 100 : 0;
+      const contributors = new Set(mDonations.map(p => p.member_id)).size;
+
+      return {
+        monthNum,
+        monthName: name,
+        total,
+        count: mDonations.length,
+        contributors,
+        percent,
+        donations: mDonations
+      };
+    });
+
+    // Extract all campaigns for the selected year
+    const campaignsMap = new Map<string, { count: number; total: number; donors: Set<string> }>();
+    yrDonations.forEach(p => {
+      const cause = cleanAppealName(p.month);
+      const curr = campaignsMap.get(cause) || { count: 0, total: 0, donors: new Set<string>() };
+      curr.count += 1;
+      curr.total += Number(p.amount || 0);
+      if (p.member_id) curr.donors.add(p.member_id);
+      campaignsMap.set(cause, curr);
+    });
+
+    const campaigns = Array.from(campaignsMap.entries()).map(([name, c]) => ({
+      name,
+      count: c.count,
+      total: c.total,
+      donorsCount: c.donors.size
+    }));
+
+    return { total: yrTotal, count: yrDonations.length, months: monthsData, campaigns };
+  }, [voluntaryPaymentsList, selectedYear]);
+
+  // Format currency helper
+  const fmt = (num: number) => {
+    return 'GH₵ ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748B' }}>
+      <div style={{ padding: 48, textAlign: 'center', color: '#64748B', fontFamily: 'Inter, sans-serif' }}>
         <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-        <div style={{ fontWeight: 700, fontSize: 16 }}>Calculating monthly and yearly financial subtotals...</div>
+        <div style={{ fontSize: 16, fontWeight: 600 }}>Compiling financial ledgers and periodic subtotals...</div>
       </div>
     );
   }
@@ -279,139 +420,157 @@ export default function BreakdownClient() {
             gap: 6
           }}
         >
-          🖨️ Print Subtotals Report
+          🖨️ Print Report
         </button>
       </div>
 
-      {/* ── Main Tab Switcher ── */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 28 }}>
+      {/* ── Tab Switcher ── */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24, borderBottom: '2px solid #E2E8F0', paddingBottom: 12, flexWrap: 'wrap' }}>
         <button
           onClick={() => { setActiveTab('dues'); setExpandedMonth(null); }}
           style={{
-            flex: 1,
-            padding: '16px 20px',
-            borderRadius: 14,
-            border: activeTab === 'dues' ? '2px solid var(--gold, #C9A84C)' : '1px solid #E2E8F0',
-            background: activeTab === 'dues' ? '#0F172A' : '#FFFFFF',
-            color: activeTab === 'dues' ? '#FFFFFF' : '#1E293B',
-            cursor: 'pointer',
-            boxShadow: activeTab === 'dues' ? '0 8px 24px rgba(15, 23, 42, 0.2)' : 'none',
-            textAlign: 'left',
-            transition: 'all 0.2s'
+            ...tabButton,
+            background: activeTab === 'dues' ? '#10233F' : '#F1F5F9',
+            color: activeTab === 'dues' ? '#FFFFFF' : '#475569',
+            borderColor: activeTab === 'dues' ? '#10233F' : '#CBD5E1',
           }}
         >
-          <div style={{ fontSize: 16, fontWeight: 900, color: activeTab === 'dues' ? '#FDE047' : '#0F172A' }}>
-            📑 Annual Dues Assessments & Collections
-          </div>
-          <div style={{ fontSize: 12, marginTop: 4, color: activeTab === 'dues' ? '#94A3B8' : '#64748B' }}>
-            Yearly obligations, monthly collection velocity & recovery rates
-          </div>
+          📜 Annual Dues Assessments
         </button>
-
         <button
           onClick={() => { setActiveTab('welfare'); setExpandedMonth(null); }}
           style={{
-            flex: 1,
-            padding: '16px 20px',
-            borderRadius: 14,
-            border: activeTab === 'welfare' ? '2px solid #8B5CF6' : '1px solid #E2E8F0',
-            background: activeTab === 'welfare' ? '#1E1B4B' : '#FFFFFF',
-            color: activeTab === 'welfare' ? '#FFFFFF' : '#1E293B',
-            cursor: 'pointer',
-            boxShadow: activeTab === 'welfare' ? '0 8px 24px rgba(30, 27, 75, 0.2)' : 'none',
-            textAlign: 'left',
-            transition: 'all 0.2s'
+            ...tabButton,
+            background: activeTab === 'welfare' ? '#10233F' : '#F1F5F9',
+            color: activeTab === 'welfare' ? '#FFFFFF' : '#475569',
+            borderColor: activeTab === 'welfare' ? '#10233F' : '#CBD5E1',
           }}
         >
-          <div style={{ fontSize: 16, fontWeight: 900, color: activeTab === 'welfare' ? '#C084FC' : '#0F172A' }}>
-            🤝 Welfare Fund Monthly & Yearly Subtotals
-          </div>
-          <div style={{ fontSize: 12, marginTop: 4, color: activeTab === 'welfare' ? '#C7D2FE' : '#64748B' }}>
-            Monthly subscriber contributions, benefit disbursements & net growth
-          </div>
+          🤝 Welfare Fund
+        </button>
+        <button
+          onClick={() => { setActiveTab('donations'); setExpandedMonth(null); }}
+          style={{
+            ...tabButton,
+            background: activeTab === 'donations' ? '#6D28D9' : '#F1F5F9',
+            color: activeTab === 'donations' ? '#FFFFFF' : '#475569',
+            borderColor: activeTab === 'donations' ? '#6D28D9' : '#CBD5E1',
+          }}
+        >
+          ❤️ Voluntary Donations & Relief Appeals ({voluntaryPaymentsList.length})
         </button>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* ── TAB 1: ANNUAL DUES ASSESSMENTS & MONTHLY COLLECTIONS ───────── */}
-      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* ════════════════════════════════════════════════════════════ */}
+      {/* TAB 1: ANNUAL DUES ASSESSMENTS & COLLECTIONS                 */}
+      {/* ════════════════════════════════════════════════════════════ */}
       {activeTab === 'dues' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-          
-          {/* Yearly Subtotals Table */}
-          <div style={{
-            background: '#FFFFFF',
-            border: '1px solid #E2E8F0',
-            borderRadius: 16,
-            padding: 24,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.03)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          {/* Executive Overview Banner */}
+          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: '18px 24px', marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: 18, color: '#0F172A', fontWeight: 800 }}>
-                  Annual Dues Yearly Subtotals ({availableDuesYears.length} Years on Record)
+                <h3 style={{ margin: 0, fontSize: 17, color: '#10233F', fontWeight: 800 }}>
+                  Annual Dues Assessments & Collections Matrix
                 </h3>
                 <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748B' }}>
-                  Macro multi-year comparison of assessments billed, arrears brought forward, and total receipts.
+                  Audited comparison of billed assessment obligations against actual member cash recoveries. <em>(Voluntary relief donations excluded)</em>
                 </p>
               </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>Selected Year:</span>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => { setSelectedYear(Number(e.target.value)); setExpandedMonth(null); }}
+                  style={selectStyle}
+                >
+                  {availableDuesYears.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 1: Yearly Comparison Table */}
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h4 style={{ margin: 0, fontSize: 15, color: '#10233F', fontWeight: 700 }}>
+                📊 Annual Assessment Recovery Comparison
+              </h4>
+              <span style={{ fontSize: 12, color: '#64748B' }}>Multi-year performance summary</span>
             </div>
 
-            <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid #E2E8F0' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={tableStyle}>
                 <thead>
-                  <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>
-                    <th style={{ padding: '12px 16px', fontWeight: 800, color: '#0F172A' }}>Year</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center', color: '#64748B' }}>Brothers Billed</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right', color: '#64748B' }}>Annual Billed</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right', color: '#64748B' }}>Arrears B/F</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, color: '#0F172A' }}>Total Obligation</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, color: '#166534' }}>Dues Collected</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center', color: '#64748B' }}>Recovery Rate</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, color: '#991B1B' }}>Outstanding</th>
+                  <tr style={{ background: '#F1F5F9', textAlign: 'left' }}>
+                    <th style={thStyle}>Fiscal Year</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Total Billed</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Actual Collected</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Outstanding Dues</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Recovery Rate</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Contributing Brothers</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {duesYearlyStats.map(stat => (
+                  {duesYearlyStats.map(s => (
                     <tr
-                      key={stat.year}
-                      onClick={() => setSelectedYear(stat.year)}
+                      key={s.year}
                       style={{
-                        borderBottom: '1px solid #F1F5F9',
-                        cursor: 'pointer',
-                        background: selectedYear === stat.year ? 'rgba(201, 168, 76, 0.08)' : '#FFFFFF',
-                        transition: 'background 0.15s'
+                        background: s.year === selectedYear ? '#EFF6FF' : '#FFFFFF',
+                        borderBottom: '1px solid #E2E8F0',
+                        fontWeight: s.year === selectedYear ? 700 : 500
                       }}
                     >
-                      <td style={{ padding: '12px 16px', fontWeight: 900, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {stat.year === selectedYear && <span style={{ color: 'var(--gold, #C9A84C)' }}>▶</span>}
-                        {stat.year}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600 }}>{stat.assessedCount}</td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace' }}>{currency(stat.totalAnnual)}</td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', color: stat.totalArrearsBf < 0 ? '#10B981' : stat.totalArrearsBf > 0 ? '#F59E0B' : '#64748B' }}>
-                        {currency(stat.totalArrearsBf)}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800 }}>
-                        {currency(stat.totalObligation)}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, color: '#166534' }}>
-                        {currency(stat.totalCollected)}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <span style={{
-                          background: stat.collectionRate >= 75 ? '#DCFCE7' : stat.collectionRate >= 50 ? '#FEF3C7' : '#FEE2E2',
-                          color: stat.collectionRate >= 75 ? '#166534' : stat.collectionRate >= 50 ? '#854D0E' : '#991B1B',
-                          padding: '3px 10px',
-                          borderRadius: 20,
-                          fontWeight: 800,
-                          fontSize: 12
-                        }}>
-                          {stat.collectionRate.toFixed(1)}%
+                      <td style={tdStyle}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          {s.year}
+                          {s.year === selectedYear && (
+                            <span style={{ fontSize: 10, background: '#10233F', color: '#FFF', padding: '2px 6px', borderRadius: 4 }}>
+                              ACTIVE
+                            </span>
+                          )}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, color: stat.balance > 0 ? '#991B1B' : '#166534' }}>
-                        {currency(Math.max(0, stat.balance))}
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#1E293B' }}>{fmt(s.totalBilled)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#166534', fontWeight: 700 }}>{fmt(s.totalCollected)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: s.balance > 0 ? '#991B1B' : '#166534' }}>
+                        {fmt(s.balance)}
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '4px 10px',
+                          borderRadius: 12,
+                          fontSize: 12,
+                          fontWeight: 800,
+                          background: s.collectionRate >= 75 ? '#DCFCE7' : (s.collectionRate >= 50 ? '#FEF3C7' : '#FEE2E2'),
+                          color: s.collectionRate >= 75 ? '#166534' : (s.collectionRate >= 50 ? '#92400E' : '#991B1B')
+                        }}>
+                          {s.collectionRate.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>
+                        {s.contributingBrothers} brothers
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>
+                        <button
+                          onClick={() => { setSelectedYear(s.year); setExpandedMonth(null); }}
+                          style={{
+                            background: s.year === selectedYear ? '#10233F' : '#F1F5F9',
+                            color: s.year === selectedYear ? '#FFF' : '#334155',
+                            border: '1px solid #CBD5E1',
+                            borderRadius: 6,
+                            padding: '4px 10px',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          View Months
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -420,57 +579,32 @@ export default function BreakdownClient() {
             </div>
           </div>
 
-          {/* Monthly Subtotals Table for Selected Year */}
-          <div style={{
-            background: '#FFFFFF',
-            border: '1px solid #E2E8F0',
-            borderRadius: 16,
-            padding: 24,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.03)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+          {/* Section 2: Selected Year Monthly Breakdown Table */}
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: 18, color: '#0F172A', fontWeight: 800 }}>
-                  📅 {selectedYear} Monthly Collections Subtotals
-                </h3>
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748B' }}>
-                  Total Dues Collected in {selectedYear}: <strong style={{ color: '#166534' }}>{currency(duesMonthlyBreakdown.total)}</strong>
-                </p>
+                <h4 style={{ margin: 0, fontSize: 16, color: '#10233F', fontWeight: 800 }}>
+                  📅 {selectedYear} Monthly Dues Subtotals & Collections
+                </h4>
+                <span style={{ fontSize: 13, color: '#64748B' }}>
+                  Total Dues Collected in {selectedYear}: <strong style={{ color: '#166534' }}>{fmt(duesMonthlyBreakdown.total)}</strong>
+                </span>
               </div>
-
-              {/* Year Selector Pills */}
-              <div style={{ display: 'flex', gap: 8 }}>
-                {availableDuesYears.map(yr => (
-                  <button
-                    key={yr}
-                    onClick={() => { setSelectedYear(yr); setExpandedMonth(null); }}
-                    style={{
-                      background: selectedYear === yr ? '#0F172A' : '#F1F5F9',
-                      color: selectedYear === yr ? '#FFFFFF' : '#475569',
-                      border: 'none',
-                      padding: '6px 14px',
-                      borderRadius: 20,
-                      fontWeight: 700,
-                      fontSize: 13,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {yr}
-                  </button>
-                ))}
-              </div>
+              <span style={{ fontSize: 12, color: '#64748B', fontStyle: 'italic' }}>
+                Click any row to expand itemized ledger
+              </span>
             </div>
 
-            <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid #E2E8F0' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={tableStyle}>
                 <thead>
-                  <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>
-                    <th style={{ padding: '12px 16px', width: 140 }}>Month</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>Collected Subtotal</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>Payments Count</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>Contributing Brothers</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>Share of Year</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>Drilldown</th>
+                  <tr style={{ background: '#F1F5F9', textAlign: 'left' }}>
+                    <th style={thStyle}>Month</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Dues Subtotal</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Transactions</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Contributing Brothers</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>% of Annual Total</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Itemized Ledger</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -481,90 +615,97 @@ export default function BreakdownClient() {
                         <tr
                           onClick={() => setExpandedMonth(isExpanded ? null : m.monthNum)}
                           style={{
-                            borderBottom: '1px solid #F1F5F9',
-                            cursor: m.count > 0 ? 'pointer' : 'default',
-                            background: isExpanded ? '#F8FAFC' : '#FFFFFF'
+                            borderBottom: '1px solid #E2E8F0',
+                            background: isExpanded ? '#EFF6FF' : (m.total > 0 ? '#FFFFFF' : '#FAFAFA'),
+                            cursor: 'pointer',
+                            transition: 'background 0.15s ease'
                           }}
                         >
-                          <td style={{ padding: '12px 16px', fontWeight: 800, color: '#0F172A' }}>
+                          <td style={{ ...tdStyle, fontWeight: 700, color: m.total > 0 ? '#0F172A' : '#94A3B8' }}>
                             {m.monthName}
                           </td>
-                          <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, color: m.total > 0 ? '#166534' : '#94A3B8' }}>
-                            {currency(m.total)}
+                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: m.total > 0 ? '#166534' : '#94A3B8' }}>
+                            {fmt(m.total)}
                           </td>
-                          <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                            {m.count > 0 ? <span style={{ fontWeight: 700 }}>{m.count}</span> : '—'}
+                          <td style={{ ...tdStyle, textAlign: 'center', color: m.count > 0 ? '#334155' : '#94A3B8' }}>
+                            {m.count}
                           </td>
-                          <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                            {m.contributors > 0 ? <span style={{ fontWeight: 700 }}>{m.contributors}</span> : '—'}
+                          <td style={{ ...tdStyle, textAlign: 'center', color: m.contributors > 0 ? '#334155' : '#94A3B8' }}>
+                            {m.contributors > 0 ? `${m.contributors} Brothers` : '—'}
                           </td>
-                          <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                          <td style={{ ...tdStyle, textAlign: 'center' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                               <div style={{ width: 60, height: 6, background: '#E2E8F0', borderRadius: 3, overflow: 'hidden' }}>
-                                <div style={{ width: `${m.percent}%`, height: '100%', background: '#166534', borderRadius: 3 }} />
+                                <div style={{ width: `${Math.min(100, m.percent)}%`, height: '100%', background: '#166534' }} />
                               </div>
-                              <span style={{ fontSize: 11, color: '#64748B', width: 35, textAlign: 'right' }}>{m.percent.toFixed(1)}%</span>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#475569', minWidth: 35 }}>
+                                {m.percent.toFixed(1)}%
+                              </span>
                             </div>
                           </td>
-                          <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                            {m.count > 0 ? (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setExpandedMonth(isExpanded ? null : m.monthNum); }}
-                                style={{
-                                  background: isExpanded ? '#0F172A' : '#F1F5F9',
-                                  color: isExpanded ? '#FFFFFF' : '#0F172A',
-                                  border: 'none',
-                                  borderRadius: 6,
-                                  padding: '4px 10px',
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                {isExpanded ? 'Hide ▲' : 'View ▼'}
-                              </button>
-                            ) : (
-                              <span style={{ color: '#CBD5E1' }}>—</span>
-                            )}
+                          <td style={{ ...tdStyle, textAlign: 'center' }}>
+                            <span style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: isExpanded ? '#1E40AF' : '#64748B',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}>
+                              {isExpanded ? '▲ Hide Details' : (m.count > 0 ? `▼ View (${m.count})` : '—')}
+                            </span>
                           </td>
                         </tr>
 
-                        {/* Drilldown Itemized List */}
+                        {/* Expanded Drilldown Ledger */}
                         {isExpanded && (
                           <tr style={{ background: '#F8FAFC' }}>
-                            <td colSpan={6} style={{ padding: '16px 20px' }}>
-                              <div style={{ fontWeight: 800, color: '#0F172A', marginBottom: 10 }}>
-                                📋 Itemized Collections for {m.monthName} {selectedYear} ({m.payments.length} Payments):
+                            <td colSpan={6} style={{ padding: '16px 24px', borderBottom: '2px solid #CBD5E1' }}>
+                              <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: 13, fontWeight: 800, color: '#10233F' }}>
+                                  Itemized Dues Ledger for {m.monthName} {selectedYear}
+                                </span>
+                                <span style={{ fontSize: 12, color: '#64748B' }}>
+                                  {m.payments.length} payments logged • Subtotal: <strong>{fmt(m.total)}</strong>
+                                </span>
                               </div>
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-                                {m.payments.map((p: any) => {
-                                  const member = membersMap.get(p.member_id);
-                                  const name = member ? `${formatMemberTitle(member.title)} ${member.first_name} ${member.surname}` : 'Brother on File';
-                                  const dateStr = p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '';
-                                  return (
-                                    <div
-                                      key={p.id}
-                                      style={{
-                                        background: '#FFFFFF',
-                                        border: '1px solid #E2E8F0',
-                                        borderRadius: 8,
-                                        padding: '10px 14px',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center'
-                                      }}
-                                    >
-                                      <div>
-                                        <div style={{ fontWeight: 700, color: '#0F172A', fontSize: 13 }}>{name}</div>
-                                        <div style={{ fontSize: 11, color: '#64748B' }}>{dateStr} {p.month ? `• ${p.month}` : ''}</div>
-                                      </div>
-                                      <div style={{ fontWeight: 800, fontFamily: 'monospace', color: '#166534', fontSize: 14 }}>
-                                        {currency(p.amount)}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
+
+                              {m.payments.length === 0 ? (
+                                <div style={{ padding: 12, color: '#94A3B8', fontSize: 13, textAlign: 'center' }}>
+                                  No dues payment transactions logged in this calendar month.
+                                </div>
+                              ) : (
+                                <table style={{ ...tableStyle, background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 8 }}>
+                                  <thead>
+                                    <tr style={{ background: '#F1F5F9' }}>
+                                      <th style={{ ...thStyle, fontSize: 11 }}>Date Paid</th>
+                                      <th style={{ ...thStyle, fontSize: 11 }}>Brother Name</th>
+                                      <th style={{ ...thStyle, fontSize: 11 }}>Receipt / Month Tag</th>
+                                      <th style={{ ...thStyle, fontSize: 11, textAlign: 'right' }}>Amount Paid</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {m.payments.map((p, pIdx) => {
+                                      const member = membersMap.get(p.member_id);
+                                      const memberName = member ? `${member.title || 'Bro.'} ${member.first_name} ${member.surname}` : 'Unknown Brother';
+                                      return (
+                                        <tr key={p.id || pIdx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                          <td style={{ ...tdStyle, fontSize: 12 }}>{formatDate(p.payment_date)}</td>
+                                          <td style={{ ...tdStyle, fontSize: 12, fontWeight: 700, color: '#10233F' }}>
+                                            {memberName}
+                                          </td>
+                                          <td style={{ ...tdStyle, fontSize: 12, color: '#64748B' }}>
+                                            {p.month || 'Dues Assessment'}
+                                          </td>
+                                          <td style={{ ...tdStyle, fontSize: 12, textAlign: 'right', fontWeight: 700, color: '#166534' }}>
+                                            {fmt(Number(p.amount || 0))}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              )}
                             </td>
                           </tr>
                         )}
@@ -575,73 +716,105 @@ export default function BreakdownClient() {
               </table>
             </div>
           </div>
-
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* ── TAB 2: WELFARE FUND MONTHLY & YEARLY SUB-TOTALS ────────────── */}
-      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* ════════════════════════════════════════════════════════════ */}
+      {/* TAB 2: WELFARE FUND MONTHLY & YEARLY SUB-TOTALS              */}
+      {/* ════════════════════════════════════════════════════════════ */}
       {activeTab === 'welfare' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-          
-          {/* Yearly Welfare Performance Table */}
-          <div style={{
-            background: '#FFFFFF',
-            border: '1px solid #E2E8F0',
-            borderRadius: 16,
-            padding: 24,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.03)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          {/* Executive Overview Banner */}
+          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: '18px 24px', marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: 18, color: '#1E1B4B', fontWeight: 800 }}>
-                  Welfare Fund Yearly Subtotals ({availableWelfareYears.length} Years on Record)
+                <h3 style={{ margin: 0, fontSize: 17, color: '#10233F', fontWeight: 800 }}>
+                  Welfare Fund Cashflow & Performance Matrix
                 </h3>
                 <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748B' }}>
-                  Annual collections vs constitutional benefit disbursements & operational expenses.
+                  Audited breakdown of fraternal welfare dues inflows against fraternal claim disbursements and aid paid out.
                 </p>
               </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>Selected Year:</span>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => { setSelectedYear(Number(e.target.value)); setExpandedMonth(null); }}
+                  style={selectStyle}
+                >
+                  {availableWelfareYears.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 1: Welfare Yearly Summary Table */}
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h4 style={{ margin: 0, fontSize: 15, color: '#10233F', fontWeight: 700 }}>
+                📊 Annual Welfare Fund Performance
+              </h4>
+              <span style={{ fontSize: 12, color: '#64748B' }}>Multi-year balance growth</span>
             </div>
 
-            <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid #E2E8F0' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={tableStyle}>
                 <thead>
-                  <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>
-                    <th style={{ padding: '12px 16px', fontWeight: 800, color: '#0F172A' }}>Year</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center', color: '#64748B' }}>Active Contributors</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center', color: '#64748B' }}>Transactions</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, color: '#8B5CF6' }}>Total Collected</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, color: '#EF4444' }}>Total Disbursed</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800 }}>Net Fund Growth</th>
+                  <tr style={{ background: '#F1F5F9', textAlign: 'left' }}>
+                    <th style={thStyle}>Fiscal Year</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Total Contributions</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Total Disbursements</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Net Fund Growth</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Contributing Brothers</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {welfareYearlyStats.map(stat => (
+                  {welfareYearlyStats.map(s => (
                     <tr
-                      key={stat.year}
-                      onClick={() => setSelectedYear(stat.year)}
+                      key={s.year}
                       style={{
-                        borderBottom: '1px solid #F1F5F9',
-                        cursor: 'pointer',
-                        background: selectedYear === stat.year ? 'rgba(139, 92, 246, 0.08)' : '#FFFFFF',
-                        transition: 'background 0.15s'
+                        background: s.year === selectedYear ? '#EFF6FF' : '#FFFFFF',
+                        borderBottom: '1px solid #E2E8F0',
+                        fontWeight: s.year === selectedYear ? 700 : 500
                       }}
                     >
-                      <td style={{ padding: '12px 16px', fontWeight: 900, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {stat.year === selectedYear && <span style={{ color: '#8B5CF6' }}>▶</span>}
-                        {stat.year}
+                      <td style={tdStyle}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          {s.year}
+                          {s.year === selectedYear && (
+                            <span style={{ fontSize: 10, background: '#10233F', color: '#FFF', padding: '2px 6px', borderRadius: 4 }}>
+                              ACTIVE
+                            </span>
+                          )}
+                        </span>
                       </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 700 }}>{stat.contributors} brothers</td>
-                      <td style={{ padding: '12px 16px', textAlign: 'center', color: '#64748B' }}>{stat.transactionCount}</td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, color: '#8B5CF6' }}>
-                        {currency(stat.totalCollected)}
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#166534', fontWeight: 700 }}>{fmt(s.totalCollected)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#991B1B', fontWeight: 700 }}>{fmt(s.totalDisbursed)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 800, color: s.netGrowth >= 0 ? '#166534' : '#991B1B' }}>
+                        {fmt(s.netGrowth)}
                       </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, color: '#EF4444' }}>
-                        {currency(stat.totalDisbursed)}
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>
+                        {s.contributors} brothers
                       </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 900, color: stat.netGrowth >= 0 ? '#10B981' : '#EF4444' }}>
-                        {stat.netGrowth >= 0 ? `+${currency(stat.netGrowth)}` : currency(stat.netGrowth)}
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>
+                        <button
+                          onClick={() => { setSelectedYear(s.year); setExpandedMonth(null); }}
+                          style={{
+                            background: s.year === selectedYear ? '#10233F' : '#F1F5F9',
+                            color: s.year === selectedYear ? '#FFF' : '#334155',
+                            border: '1px solid #CBD5E1',
+                            borderRadius: 6,
+                            padding: '4px 10px',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          View Months
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -650,79 +823,343 @@ export default function BreakdownClient() {
             </div>
           </div>
 
-          {/* Monthly Welfare Subtotals for Selected Year */}
-          <div style={{
-            background: '#FFFFFF',
-            border: '1px solid #E2E8F0',
-            borderRadius: 16,
-            padding: 24,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.03)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+          {/* Section 2: Selected Year Welfare Monthly Breakdown */}
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: 18, color: '#1E1B4B', fontWeight: 800 }}>
-                  📅 {selectedYear} Welfare Monthly Subtotals
+                <h4 style={{ margin: 0, fontSize: 16, color: '#10233F', fontWeight: 800 }}>
+                  📅 {selectedYear} Monthly Welfare Cashflow Matrix
+                </h4>
+                <span style={{ fontSize: 13, color: '#64748B' }}>
+                  Total Collected: <strong style={{ color: '#166534' }}>{fmt(welfareMonthlyBreakdown.totalCollected)}</strong> • Total Disbursed: <strong style={{ color: '#991B1B' }}>{fmt(welfareMonthlyBreakdown.totalDisbursed)}</strong>
+                </span>
+              </div>
+              <span style={{ fontSize: 12, color: '#64748B', fontStyle: 'italic' }}>
+                Click row to view member contributions
+              </span>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={tableStyle}>
+                <thead>
+                  <tr style={{ background: '#F1F5F9', textAlign: 'left' }}>
+                    <th style={thStyle}>Month</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Inflows (Collected)</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Outflows (Disbursed)</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Net Balance</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Active Subscribers</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Itemized Ledger</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {welfareMonthlyBreakdown.months.map(m => {
+                    const isExpanded = expandedMonth === m.monthNum;
+                    const hasActivity = m.collected > 0 || m.disbursed > 0;
+                    return (
+                      <React.Fragment key={m.monthNum}>
+                        <tr
+                          onClick={() => setExpandedMonth(isExpanded ? null : m.monthNum)}
+                          style={{
+                            borderBottom: '1px solid #E2E8F0',
+                            background: isExpanded ? '#EFF6FF' : (hasActivity ? '#FFFFFF' : '#FAFAFA'),
+                            cursor: 'pointer',
+                            transition: 'background 0.15s ease'
+                          }}
+                        >
+                          <td style={{ ...tdStyle, fontWeight: 700, color: hasActivity ? '#0F172A' : '#94A3B8' }}>
+                            {m.monthName}
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: m.collected > 0 ? '#166534' : '#94A3B8' }}>
+                            {fmt(m.collected)}
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: m.disbursed > 0 ? '#991B1B' : '#94A3B8' }}>
+                            {fmt(m.disbursed)}
+                          </td>
+                          <td style={{
+                            ...tdStyle,
+                            textAlign: 'right',
+                            fontWeight: 800,
+                            color: m.net > 0 ? '#166534' : (m.net < 0 ? '#991B1B' : '#64748B')
+                          }}>
+                            {fmt(m.net)}
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: 'center', color: m.contributors > 0 ? '#334155' : '#94A3B8' }}>
+                            {m.contributors > 0 ? `${m.contributors} Brothers` : '—'}
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: 'center' }}>
+                            <span style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: isExpanded ? '#1E40AF' : '#64748B',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}>
+                              {isExpanded ? '▲ Hide Details' : (m.contributions.length > 0 ? `▼ View (${m.contributions.length})` : '—')}
+                            </span>
+                          </td>
+                        </tr>
+
+                        {/* Expanded Welfare Ledger */}
+                        {isExpanded && (
+                          <tr style={{ background: '#F8FAFC' }}>
+                            <td colSpan={6} style={{ padding: '16px 24px', borderBottom: '2px solid #CBD5E1' }}>
+                              <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: 13, fontWeight: 800, color: '#10233F' }}>
+                                  Welfare Contributions & Disbursements for {m.monthName} {selectedYear}
+                                </span>
+                                <span style={{ fontSize: 12, color: '#64748B' }}>
+                                  Net Inflow: <strong style={{ color: m.net >= 0 ? '#166534' : '#991B1B' }}>{fmt(m.net)}</strong>
+                                </span>
+                              </div>
+
+                              {m.contributions.length === 0 && m.disbursements.length === 0 ? (
+                                <div style={{ padding: 12, color: '#94A3B8', fontSize: 13, textAlign: 'center' }}>
+                                  No welfare transactions recorded in this month.
+                                </div>
+                              ) : (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
+                                  {/* Contributions */}
+                                  {m.contributions.length > 0 && (
+                                    <div>
+                                      <div style={{ fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 6 }}>
+                                        Member Dues Inflows ({m.contributions.length})
+                                      </div>
+                                      <table style={{ ...tableStyle, background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 8 }}>
+                                        <thead>
+                                          <tr style={{ background: '#F1F5F9' }}>
+                                            <th style={{ ...thStyle, fontSize: 11 }}>Date</th>
+                                            <th style={{ ...thStyle, fontSize: 11 }}>Brother Name</th>
+                                            <th style={{ ...thStyle, fontSize: 11 }}>Method / Ref</th>
+                                            <th style={{ ...thStyle, fontSize: 11, textAlign: 'right' }}>Amount</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {m.contributions.map((c, cIdx) => {
+                                            const member = membersMap.get(c.member_id);
+                                            const memberName = member ? `${member.title || 'Bro.'} ${member.first_name} ${member.surname}` : 'Unknown Brother';
+                                            return (
+                                              <tr key={c.id || cIdx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                <td style={{ ...tdStyle, fontSize: 12 }}>{formatDate(c.payment_date)}</td>
+                                                <td style={{ ...tdStyle, fontSize: 12, fontWeight: 700, color: '#10233F' }}>
+                                                  {memberName}
+                                                </td>
+                                                <td style={{ ...tdStyle, fontSize: 12, color: '#64748B' }}>
+                                                  {c.payment_method?.toUpperCase()} • {c.reference_no || '—'}
+                                                </td>
+                                                <td style={{ ...tdStyle, fontSize: 12, textAlign: 'right', fontWeight: 700, color: '#166534' }}>
+                                                  {fmt(Number(c.amount || 0))}
+                                                </td>
+                                              </tr>
+                                            );
+                                          })}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+
+                                  {/* Disbursements */}
+                                  {m.disbursements.length > 0 && (
+                                    <div>
+                                      <div style={{ fontSize: 12, fontWeight: 700, color: '#991B1B', marginBottom: 6 }}>
+                                        Benefit Payouts ({m.disbursements.length})
+                                      </div>
+                                      <table style={{ ...tableStyle, background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 8 }}>
+                                        <thead>
+                                          <tr style={{ background: '#F1F5F9' }}>
+                                            <th style={{ ...thStyle, fontSize: 11 }}>Date</th>
+                                            <th style={{ ...thStyle, fontSize: 11 }}>Benefit Category</th>
+                                            <th style={{ ...thStyle, fontSize: 11 }}>Beneficiary / Notes</th>
+                                            <th style={{ ...thStyle, fontSize: 11, textAlign: 'right' }}>Payout</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {m.disbursements.map((d, dIdx) => (
+                                            <tr key={d.id || dIdx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                              <td style={{ ...tdStyle, fontSize: 12 }}>{formatDate(d.disbursement_date)}</td>
+                                              <td style={{ ...tdStyle, fontSize: 12, fontWeight: 700, color: '#991B1B' }}>
+                                                {d.welfare_categories?.name || 'Aid Disbursement'}
+                                              </td>
+                                              <td style={{ ...tdStyle, fontSize: 12, color: '#64748B' }}>
+                                                {d.notes || 'Disbursed aid'}
+                                              </td>
+                                              <td style={{ ...tdStyle, fontSize: 12, textAlign: 'right', fontWeight: 700, color: '#991B1B' }}>
+                                                {fmt(Number(d.amount || 0))}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════ */}
+      {/* TAB 3: VOLUNTARY DONATIONS & RELIEF APPEALS (NEW)            */}
+      {/* ════════════════════════════════════════════════════════════ */}
+      {activeTab === 'donations' && (
+        <div>
+          {/* Executive Overview Banner */}
+          <div style={{ background: '#FAF5FF', border: '1px solid #E9D5FF', borderRadius: 12, padding: '18px 24px', marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 17, color: '#581C87', fontWeight: 800 }}>
+                  ❤️ Voluntary Relief & Special Appeals Subtotals
                 </h3>
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748B' }}>
-                  Collected: <strong style={{ color: '#8B5CF6' }}>{currency(welfareMonthlyBreakdown.totalCollected)}</strong> • Disbursed: <strong style={{ color: '#EF4444' }}>{currency(welfareMonthlyBreakdown.totalDisbursed)}</strong> • Net: <strong style={{ color: welfareMonthlyBreakdown.netTotal >= 0 ? '#10B981' : '#EF4444' }}>{currency(welfareMonthlyBreakdown.netTotal)}</strong>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6B21A8' }}>
+                  Audited breakdown of fraternal goodwill donations, special disaster relief drives, and emergency benevolence appeals.
                 </p>
               </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#581C87' }}>Selected Year:</span>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => { setSelectedYear(Number(e.target.value)); setExpandedMonth(null); }}
+                  style={{ ...selectStyle, borderColor: '#C084FC', color: '#581C87' }}
+                >
+                  {availableDonationYears.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
 
-              {/* Year Selector Pills */}
-              <div style={{ display: 'flex', gap: 8 }}>
-                {availableWelfareYears.map(yr => (
-                  <button
-                    key={yr}
-                    onClick={() => setSelectedYear(yr)}
-                    style={{
-                      background: selectedYear === yr ? '#1E1B4B' : '#F1F5F9',
-                      color: selectedYear === yr ? '#FFFFFF' : '#475569',
-                      border: 'none',
-                      padding: '6px 14px',
-                      borderRadius: 20,
-                      fontWeight: 700,
-                      fontSize: 13,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {yr}
-                  </button>
+          {/* KPI Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
+            <div style={{ ...cardStyle, borderLeft: '4px solid #7C3AED', margin: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#6B21A8', textTransform: 'uppercase' }}>
+                Total Relief Raised ({selectedYear})
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: '#581C87', marginTop: 4 }}>
+                {fmt(donationsMonthlyBreakdown.total)}
+              </div>
+              <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
+                Across {donationsMonthlyBreakdown.count} individual donations
+              </div>
+            </div>
+
+            <div style={{ ...cardStyle, borderLeft: '4px solid #059669', margin: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#047857', textTransform: 'uppercase' }}>
+                Contributing Brothers
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: '#065F46', marginTop: 4 }}>
+                {new Set(voluntaryPaymentsList.filter(p => (p.assessment_year || new Date(p.payment_date).getFullYear()) === selectedYear).map(p => p.member_id)).size} Brothers
+              </div>
+              <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
+                Active charitable donors in {selectedYear}
+              </div>
+            </div>
+
+            <div style={{ ...cardStyle, borderLeft: '4px solid #2563EB', margin: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#1D4ED8', textTransform: 'uppercase' }}>
+                Active Relief Appeals
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: '#1E40AF', marginTop: 4 }}>
+                {donationsMonthlyBreakdown.campaigns.length} Campaign{donationsMonthlyBreakdown.campaigns.length === 1 ? '' : 's'}
+              </div>
+              <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
+                Initiatives mobilized this fiscal year
+              </div>
+            </div>
+          </div>
+
+          {/* Campaign Summary Breakdown Card */}
+          {donationsMonthlyBreakdown.campaigns.length > 0 && (
+            <div style={{ ...cardStyle, marginBottom: 24, background: '#FAF5FF', border: '1px solid #E9D5FF' }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: 15, color: '#581C87', fontWeight: 800 }}>
+                🎯 Mobilized Campaigns & Appeal Causes ({selectedYear})
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+                {donationsMonthlyBreakdown.campaigns.map((c, cIdx) => (
+                  <div key={cIdx} style={{ background: '#FFFFFF', border: '1px solid #DDD6FE', borderRadius: 8, padding: '12px 16px' }}>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: '#4C1D95' }}>{c.name}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                      <span style={{ fontSize: 16, fontWeight: 900, color: '#6D28D9' }}>{fmt(c.total)}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#6B7280' }}>
+                        {c.donorsCount} Donors ({c.count} gifts)
+                      </span>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
+          )}
 
-            <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid #E2E8F0' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          {/* Section 1: Yearly Voluntary Summary Table */}
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h4 style={{ margin: 0, fontSize: 15, color: '#10233F', fontWeight: 700 }}>
+                📊 Multi-Year Voluntary Relief Performance
+              </h4>
+              <span style={{ fontSize: 12, color: '#64748B' }}>Charitable goodwill comparison</span>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={tableStyle}>
                 <thead>
-                  <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>
-                    <th style={{ padding: '12px 16px', width: 140 }}>Month</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>Active Contributors</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, color: '#8B5CF6' }}>Collections</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, color: '#EF4444' }}>Disbursements</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 900 }}>Net Balance</th>
+                  <tr style={{ background: '#F1F5F9', textAlign: 'left' }}>
+                    <th style={thStyle}>Fiscal Year</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Total Raised</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Contributing Brothers</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Total Gifts</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Average Gift / Brother</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {welfareMonthlyBreakdown.months.map(m => (
-                    <tr key={m.monthNum} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 800, color: '#0F172A' }}>
-                        {m.monthName}
+                  {donationsYearlyStats.map(s => (
+                    <tr
+                      key={s.year}
+                      style={{
+                        background: s.year === selectedYear ? '#FAF5FF' : '#FFFFFF',
+                        borderBottom: '1px solid #E2E8F0',
+                        fontWeight: s.year === selectedYear ? 700 : 500
+                      }}
+                    >
+                      <td style={tdStyle}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          {s.year}
+                          {s.year === selectedYear && (
+                            <span style={{ fontSize: 10, background: '#6D28D9', color: '#FFF', padding: '2px 6px', borderRadius: 4 }}>
+                              ACTIVE
+                            </span>
+                          )}
+                        </span>
                       </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        {m.contributors > 0 ? (
-                          <span style={{ background: '#EDE9FE', color: '#6D28D9', padding: '2px 8px', borderRadius: 12, fontWeight: 700, fontSize: 11 }}>
-                            {m.contributors} members
-                          </span>
-                        ) : '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, color: m.collected > 0 ? '#8B5CF6' : '#94A3B8' }}>
-                        {currency(m.collected)}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, color: m.disbursed > 0 ? '#EF4444' : '#94A3B8' }}>
-                        {m.disbursed > 0 ? currency(m.disbursed) : 'GH¢ 0.00'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 900, color: m.net >= 0 ? '#10B981' : '#EF4444' }}>
-                        {m.net >= 0 ? `+${currency(m.net)}` : currency(m.net)}
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#6D28D9', fontWeight: 800 }}>{fmt(s.totalRaised)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>{s.contributingBrothers} brothers</td>
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>{s.donationCount}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#1E293B' }}>{fmt(s.avgDonation)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>
+                        <button
+                          onClick={() => { setSelectedYear(s.year); setExpandedMonth(null); }}
+                          style={{
+                            background: s.year === selectedYear ? '#6D28D9' : '#F1F5F9',
+                            color: s.year === selectedYear ? '#FFF' : '#334155',
+                            border: '1px solid #CBD5E1',
+                            borderRadius: 6,
+                            padding: '4px 10px',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          View Months
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -731,9 +1168,195 @@ export default function BreakdownClient() {
             </div>
           </div>
 
+          {/* Section 2: Selected Year Monthly Breakdown Table */}
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div>
+                <h4 style={{ margin: 0, fontSize: 16, color: '#10233F', fontWeight: 800 }}>
+                  📅 {selectedYear} Monthly Voluntary Donation Subtotals
+                </h4>
+                <span style={{ fontSize: 13, color: '#64748B' }}>
+                  Total Relief Inflows: <strong style={{ color: '#6D28D9' }}>{fmt(donationsMonthlyBreakdown.total)}</strong>
+                </span>
+              </div>
+              <span style={{ fontSize: 12, color: '#64748B', fontStyle: 'italic' }}>
+                Click row to view itemized donor roll
+              </span>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={tableStyle}>
+                <thead>
+                  <tr style={{ background: '#F1F5F9', textAlign: 'left' }}>
+                    <th style={thStyle}>Month</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Voluntary Subtotal</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Donations</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Contributing Brothers</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>% of Annual Total</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Itemized Donor Roll</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {donationsMonthlyBreakdown.months.map(m => {
+                    const isExpanded = expandedMonth === m.monthNum;
+                    return (
+                      <React.Fragment key={m.monthNum}>
+                        <tr
+                          onClick={() => setExpandedMonth(isExpanded ? null : m.monthNum)}
+                          style={{
+                            borderBottom: '1px solid #E2E8F0',
+                            background: isExpanded ? '#FAF5FF' : (m.total > 0 ? '#FFFFFF' : '#FAFAFA'),
+                            cursor: 'pointer',
+                            transition: 'background 0.15s ease'
+                          }}
+                        >
+                          <td style={{ ...tdStyle, fontWeight: 700, color: m.total > 0 ? '#0F172A' : '#94A3B8' }}>
+                            {m.monthName}
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: m.total > 0 ? '#6D28D9' : '#94A3B8' }}>
+                            {fmt(m.total)}
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: 'center', color: m.count > 0 ? '#334155' : '#94A3B8' }}>
+                            {m.count}
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: 'center', color: m.contributors > 0 ? '#334155' : '#94A3B8' }}>
+                            {m.contributors > 0 ? `${m.contributors} Brothers` : '—'}
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: 'center' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 60, height: 6, background: '#E2E8F0', borderRadius: 3, overflow: 'hidden' }}>
+                                <div style={{ width: `${Math.min(100, m.percent)}%`, height: '100%', background: '#7C3AED' }} />
+                              </div>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#475569', minWidth: 35 }}>
+                                {m.percent.toFixed(1)}%
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: 'center' }}>
+                            <span style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: isExpanded ? '#6D28D9' : '#64748B',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}>
+                              {isExpanded ? '▲ Hide Details' : (m.count > 0 ? `▼ View (${m.count})` : '—')}
+                            </span>
+                          </td>
+                        </tr>
+
+                        {/* Expanded Donor Roll */}
+                        {isExpanded && (
+                          <tr style={{ background: '#FAF5FF' }}>
+                            <td colSpan={6} style={{ padding: '16px 24px', borderBottom: '2px solid #DDD6FE' }}>
+                              <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: 13, fontWeight: 800, color: '#581C87' }}>
+                                  Itemized Donor Roll for {m.monthName} {selectedYear}
+                                </span>
+                                <span style={{ fontSize: 12, color: '#6B21A8' }}>
+                                  {m.donations.length} gifts logged • Subtotal: <strong>{fmt(m.total)}</strong>
+                                </span>
+                              </div>
+
+                              {m.donations.length === 0 ? (
+                                <div style={{ padding: 12, color: '#94A3B8', fontSize: 13, textAlign: 'center' }}>
+                                  No voluntary donations recorded in this calendar month.
+                                </div>
+                              ) : (
+                                <table style={{ ...tableStyle, background: '#FFFFFF', border: '1px solid #DDD6FE', borderRadius: 8 }}>
+                                  <thead>
+                                    <tr style={{ background: '#F5F3FF' }}>
+                                      <th style={{ ...thStyle, fontSize: 11 }}>Date Paid</th>
+                                      <th style={{ ...thStyle, fontSize: 11 }}>Brother Name</th>
+                                      <th style={{ ...thStyle, fontSize: 11 }}>Appeal / Campaign Cause</th>
+                                      <th style={{ ...thStyle, fontSize: 11, textAlign: 'right' }}>Amount Donated</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {m.donations.map((p, pIdx) => {
+                                      const member = membersMap.get(p.member_id);
+                                      const memberName = member ? `${member.title || 'Bro.'} ${member.first_name} ${member.surname}` : 'Unknown Brother';
+                                      return (
+                                        <tr key={p.id || pIdx} style={{ borderBottom: '1px solid #F3E8FF' }}>
+                                          <td style={{ ...tdStyle, fontSize: 12 }}>{formatDate(p.payment_date)}</td>
+                                          <td style={{ ...tdStyle, fontSize: 12, fontWeight: 700, color: '#10233F' }}>
+                                            {memberName}
+                                          </td>
+                                          <td style={{ ...tdStyle, fontSize: 12, color: '#6D28D9', fontWeight: 600 }}>
+                                            {cleanAppealName(p.month)}
+                                          </td>
+                                          <td style={{ ...tdStyle, fontSize: 12, textAlign: 'right', fontWeight: 700, color: '#6D28D9' }}>
+                                            {fmt(Number(p.amount || 0))}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
     </div>
   );
 }
+
+// ── Styles ──
+const cardStyle: React.CSSProperties = {
+  background: '#FFFFFF',
+  border: '1px solid #E2E8F0',
+  borderRadius: 12,
+  padding: '24px',
+  marginBottom: 24,
+  boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+};
+
+const tableStyle: React.CSSProperties = {
+  width: '100%',
+  borderCollapse: 'collapse',
+  fontSize: 13
+};
+
+const thStyle: React.CSSProperties = {
+  padding: '12px 16px',
+  fontWeight: 700,
+  color: '#334155',
+  borderBottom: '1px solid #CBD5E1'
+};
+
+const tdStyle: React.CSSProperties = {
+  padding: '12px 16px',
+  color: '#0F172A'
+};
+
+const tabButton: React.CSSProperties = {
+  padding: '10px 18px',
+  borderRadius: 8,
+  fontSize: 14,
+  fontWeight: 700,
+  cursor: 'pointer',
+  border: '1px solid transparent',
+  transition: 'all 0.15s ease'
+};
+
+const selectStyle: React.CSSProperties = {
+  background: '#FFFFFF',
+  border: '1px solid #CBD5E1',
+  borderRadius: 6,
+  padding: '6px 12px',
+  fontSize: 13,
+  fontWeight: 700,
+  color: '#1E293B',
+  cursor: 'pointer'
+};
