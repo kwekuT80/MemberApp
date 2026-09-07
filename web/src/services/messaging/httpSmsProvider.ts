@@ -119,6 +119,7 @@ export class HttpSmsProvider extends MessagingProvider {
           content,
           from: sender,
           to: recipient,
+          ...(payload.sendAt ? { send_at: new Date(payload.sendAt).toISOString() } : {}),
         }),
       });
 

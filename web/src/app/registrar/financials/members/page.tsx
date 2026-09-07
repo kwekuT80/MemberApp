@@ -6,6 +6,7 @@ import { getAllMemberSummaries } from '@/services/financialService';
 import Link from 'next/link';
 import FinancialSummaryExportButtons from '@/components/financials/FinancialSummaryExportButtons';
 import InfographicDashboard from '@/components/financials/InfographicDashboard';
+import MemberStatementActionButton from '@/components/financials/MemberStatementActionButton';
 
 interface SummaryFilters {
   status?: string;

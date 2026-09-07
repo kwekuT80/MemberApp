@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createMeeting, checkInMember, getAbsenceRequests, reviewAbsenceRequest, getAttendanceReport, registrarGrantExcuse, deleteMeeting, rejectCheckIn } from '@/services/attendanceService';
 import { formatDisplayDate } from '@/lib/utils/ksji-logic';
+import MeetingNoticeModal from '@/components/meetings/MeetingNoticeModal';
 
 interface Props {
   profile: any;
@@ -20,6 +21,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const [absenceRequests, setAbsenceRequests] = useState<any[]>([]);
   const [loadingReport, setLoadingReport] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
   const [rosterSortOrder, setRosterSortOrder] = useState<'status_priority' | 'name' | 'checkin_time'>('status_priority');
 
   // Search Query & Status Filter for sign-in auditing

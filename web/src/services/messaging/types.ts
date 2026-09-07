@@ -11,6 +11,7 @@ export interface MessagePayload {
   html?: string;
   text?: string;
   body?: string; // for SMS
+  sendAt?: string | Date; // ISO string or Date for rate-limited / scheduled dispatch
 }
 
 export interface DeliveryResult {
