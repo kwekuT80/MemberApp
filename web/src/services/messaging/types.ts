@@ -2,7 +2,7 @@
 
 export type MessageType = 'email' | 'sms';
 export type DeliveryStatus = 'queued' | 'sent' | 'delivered' | 'failed' | 'bounced';
-export type ProviderName = 'brevo' | 'twilio' | 'resend';
+export type ProviderName = 'brevo' | 'twilio' | 'resend' | 'httpsms';
 
 export interface MessagePayload {
   to: string;

@@ -1,3 +1,4 @@
+import { HttpSmsProvider } from './httpSmsProvider';
 import { MessagingProvider, ProviderName } from './types';
 import { ResendProvider } from './resendProvider';
 
@@ -78,4 +79,10 @@ export function createMessagingProvider(): MessagingProvider {
  */
 export function getActiveProvider(): ProviderName {
   return MESSAGING_PROVIDER;
+}
+/**
+ * Factory function returning the configured SMS provider (HttpSMS Android gateway).
+ */
+export function createSMSProvider(): MessagingProvider {
+  return new HttpSmsProvider();
 }

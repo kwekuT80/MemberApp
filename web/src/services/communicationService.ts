@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import {
   createMessagingProvider,
+  createSMSProvider,
   MessagePayload,
   DeliveryResult,
 } from '@/services/messaging';
@@ -205,24 +206,14 @@ export async function sendCommunication(
     }
 
     // Send via provider
-    const provider =
-      createMessagingProvider();
-
     let result: DeliveryResult;
 
-    if (
-      payload.type ===
-      'email'
-    ) {
-      result =
-        await provider.sendEmail(
-          payloadData
-        );
+    if (payload.type === 'email') {
+      const emailProvider = createMessagingProvider();
+      result = await emailProvider.sendEmail(payloadData);
     } else {
-      result =
-        await provider.sendSMS(
-          payloadData
-        );
+      const smsProvider = createSMSProvider();
+      result = await smsProvider.sendSMS(payloadData);
     }
 
     // Record in database for audit trail
