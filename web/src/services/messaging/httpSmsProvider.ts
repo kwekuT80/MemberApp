@@ -30,6 +30,38 @@ export class HttpSmsProvider extends MessagingProvider {
     return `+233${clean}`;
   }
 
+  /**
+   * Auto-detects the active phone number linked to the account if not explicitly set in env.
+   */
+  private async resolveSenderPhone(): Promise<string> {
+    if (this.fromPhone) return this.formatE164(this.fromPhone);
+
+    try {
+      const res = await fetch(`${this.apiUrl}/phones`, {
+        headers: {
+          'x-api-key': this.apiKey,
+          'Accept': 'application/json',
+        },
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const phones = json.data || [];
+        if (phones.length > 0) {
+          const firstPhone = phones[0].phone_number || phones[0].phone || phones[0].number;
+          if (firstPhone) {
+            this.fromPhone = firstPhone;
+            return this.formatE164(firstPhone);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[HttpSMS] Could not auto-detect phone from account:', err);
+    }
+
+    return '';
+  }
+
   async sendEmail(payload: MessagePayload): Promise<DeliveryResult> {
     return {
       providerId: 'httpsms',
@@ -39,13 +71,21 @@ export class HttpSmsProvider extends MessagingProvider {
   }
 
   async sendSMS(payload: MessagePayload): Promise<DeliveryResult> {
-    // Graceful check: if credentials not yet configured, return clean status without crashing
-    if (!this.apiKey || !this.fromPhone) {
-      console.warn('[HttpSMS] Gateway not configured. Set HTTPSMS_API_KEY and HTTPSMS_FROM_PHONE in .env.local.');
+    if (!this.apiKey) {
+      console.warn('[HttpSMS] Gateway not configured. Set HTTPSMS_API_KEY in .env.local.');
       return {
         providerId: 'httpsms',
         status: 'failed',
-        error: 'HttpSMS not configured. Please set HTTPSMS_API_KEY and HTTPSMS_FROM_PHONE in environment variables.',
+        error: 'HttpSMS not configured. Please set HTTPSMS_API_KEY in environment variables.',
+      };
+    }
+
+    const sender = await this.resolveSenderPhone();
+    if (!sender) {
+      return {
+        providerId: 'httpsms',
+        status: 'failed',
+        error: 'No active phone linked to HttpSMS account. Please link your Android phone in the HttpSMS app, or set HTTPSMS_FROM_PHONE in .env.local.',
       };
     }
 
@@ -58,9 +98,7 @@ export class HttpSmsProvider extends MessagingProvider {
       };
     }
 
-    const sender = this.formatE164(this.fromPhone);
     const content = payload.body || payload.text || '';
-
     if (!content.trim()) {
       return {
         providerId: 'httpsms',
