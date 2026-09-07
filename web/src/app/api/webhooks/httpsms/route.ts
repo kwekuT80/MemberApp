@@ -3,11 +3,8 @@ import { createAdminClient } from '@/lib/supabase/server';
 
 /**
  * HttpSMS Webhook Endpoint
- * Receives real-time delivery notifications and incoming SMS messages forwarded
- * from the linked Android phone.
- *
- * Configure this URL in your HttpSMS dashboard:
- * https://your-domain.com/api/webhooks/httpsms
+ * Strictly handles outbound SMS delivery status updates (sent, delivered, failed).
+ * Inbound SMS reception is explicitly disabled for privacy.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -19,46 +16,16 @@ export async function POST(req: NextRequest) {
 
     const eventType = body.type || body.event || 'unknown';
     const msgData = body.data || body;
-    const admin = await createAdminClient();
 
-    // 1. Inbound SMS received on Android phone
+    // 1. Explicitly ignore any inbound SMS received (Privacy Protected)
     if (eventType === 'message.phone.received' || eventType === 'message.received') {
-      const senderPhone = msgData.from || msgData.contact || '';
-      const textContent = msgData.content || '';
-
-      console.log(`[HttpSMS Webhook] Inbound SMS from ${senderPhone}: "${textContent}"`);
-
-      // Attempt to match sender to an existing member by phone
-      const cleanPhone = senderPhone.replace(/\D/g, '').slice(-9); // last 9 digits match local/intl
-      let matchedMemberId: string | null = null;
-
-      if (cleanPhone) {
-        const { data: member } = await admin
-          .from('members')
-          .select('id, first_name, surname')
-          .or(`phone.ilike.%${cleanPhone}%,mobile.ilike.%${cleanPhone}%`)
-          .limit(1)
-          .maybeSingle();
-
-        if (member) {
-          matchedMemberId = member.id;
-        }
-      }
-
-      // Record inbound SMS communication in member_communications
-      await admin.from('member_communications').insert({
-        member_id: matchedMemberId,
-        type: 'sms_inbound',
-        subject: `SMS from ${senderPhone}`,
-        content_preview: textContent.substring(0, 255),
-        status: 'delivered',
-        provider_message_id: msgData.id || `in_${Date.now()}`,
+      return NextResponse.json({
+        success: true,
+        message: 'Inbound message processing disabled per privacy policy',
       });
-
-      return NextResponse.json({ success: true, event: eventType, matchedMemberId });
     }
 
-    // 2. Outbound SMS Delivery Status Update (sent, delivered, failed)
+    // 2. Outbound SMS Delivery Status Updates (sent, delivered, failed)
     if (eventType.startsWith('message.') && msgData.id) {
       const statusMap: Record<string, string> = {
         'message.sent': 'sent',
@@ -67,6 +34,7 @@ export async function POST(req: NextRequest) {
       };
 
       const mappedStatus = statusMap[eventType] || 'sent';
+      const admin = await createAdminClient();
 
       await admin
         .from('member_communications')
@@ -89,6 +57,7 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: 'active',
-    description: 'HttpSMS Webhook Listener for KSJI MemberApp',
+    mode: 'outbound-status-only',
+    description: 'HttpSMS Outbound Delivery Status Listener for KSJI MemberApp',
   });
 }
