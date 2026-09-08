@@ -401,24 +401,46 @@ export default function ReportsPage() {
             Generate and print pre-formatted ID cards for all active members. Optimized at 6 cards per A4 page for fast event check-in and QR verification.
           </p>
         </div>
-        <Link
-          href="/registrar/members/id-cards"
-          style={{
-            background: '#D4AF37',
-            color: '#0F172A',
-            textDecoration: 'none',
-            padding: '12px 24px',
-            borderRadius: 10,
-            fontWeight: 900,
-            fontSize: 14,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            boxShadow: '0 4px 12px rgba(212,175,55,0.3)'
-          }}
-        >
-          <span>🖨️ Open Batch Card Studio</span>
-        </Link>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <Link
+            href="/registrar/meetings/metrics"
+            style={{
+              background: '#1E293B',
+              color: '#FCD34D',
+              border: '1px solid rgba(252, 211, 77, 0.4)',
+              textDecoration: 'none',
+              padding: '12px 20px',
+              borderRadius: 10,
+              fontWeight: 800,
+              fontSize: 14,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+            }}
+          >
+            <span>📊 Meeting Attendance Metrics</span>
+          </Link>
+
+          <Link
+            href="/registrar/members/id-cards"
+            style={{
+              background: '#D4AF37',
+              color: '#0F172A',
+              textDecoration: 'none',
+              padding: '12px 20px',
+              borderRadius: 10,
+              fontWeight: 900,
+              fontSize: 14,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              boxShadow: '0 4px 12px rgba(212,175,55,0.3)'
+            }}
+          >
+            <span>🖨️ Batch Card Studio</span>
+          </Link>
+        </div>
       </div>
 
       {/* ── Main Reporting Hub Structure ── */}

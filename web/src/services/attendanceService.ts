@@ -319,3 +319,317 @@ export async function getMemberAbsences(memberId: string) {
       .range(from, to)
   );
 }
+
+
+export interface MeetingAttendeeDetail {
+  id: string;
+  memberId: string;
+  name: string;
+  phone: string | null;
+  method: string;
+  checkInTime: string;
+}
+
+export interface MeetingExcuseDetail {
+  id: string;
+  memberId: string;
+  name: string;
+  reason: string;
+  status: string;
+}
+
+export interface MeetingMetricItem {
+  id: string;
+  commanderyId: string;
+  title: string;
+  date: string;
+  year: number;
+  latitude: number | null;
+  longitude: number | null;
+  radiusMeters: number | null;
+  totalRoll: number;
+  presentCount: number;
+  excusedCount: number;
+  absentCount: number;
+  turnoutRate: number;
+  methods: {
+    manual: number;
+    qr: number;
+    gps: number;
+  };
+  excusesSummary: {
+    approved: number;
+    pending: number;
+    declined: number;
+  };
+  firstCheckInTime: string | null;
+  lastCheckInTime: string | null;
+  attendees: MeetingAttendeeDetail[];
+  excusedMembers: MeetingExcuseDetail[];
+}
+
+export interface OverallMeetingMetrics {
+  totalMeetings: number;
+  totalCheckIns: number;
+  averageTurnoutRate: number;
+  averagePresentPerMeeting: number;
+  activeRollCount: number;
+  highestTurnoutMeeting: {
+    id: string;
+    title: string;
+    date: string;
+    rate: number;
+    present: number;
+  } | null;
+  lowestTurnoutMeeting: {
+    id: string;
+    title: string;
+    date: string;
+    rate: number;
+    present: number;
+  } | null;
+  availableYears: number[];
+  meetings: MeetingMetricItem[];
+}
+
+/**
+ * Fetch comprehensive key metrics across all recorded meetings.
+ * Computes individual attendance rates, check-in method breakdowns, excuse tallies,
+ * and roster drill-downs in a single optimized pass.
+ */
+export async function getAllMeetingsMetrics(commanderyId?: string): Promise<OverallMeetingMetrics> {
+  const supabase = await createAdminClient();
+
+  // 1. Fetch meetings (optionally filtered by commandery)
+  const meetings = await fetchAllPaginated((from, to) => {
+    let query = supabase
+      .from('meetings')
+      .select('*')
+      .order('date', { ascending: false });
+    if (commanderyId) {
+      query = query.eq('commandery_id', commanderyId);
+    }
+    return query.range(from, to);
+  });
+
+  if (!meetings || meetings.length === 0) {
+    return {
+      totalMeetings: 0,
+      totalCheckIns: 0,
+      averageTurnoutRate: 0,
+      averagePresentPerMeeting: 0,
+      activeRollCount: 0,
+      highestTurnoutMeeting: null,
+      lowestTurnoutMeeting: null,
+      availableYears: [],
+      meetings: [],
+    };
+  }
+
+  // 2. Fetch living active members on the roll (excluding deceased, dismissed, system accounts)
+  const rawMembers = await fetchAllPaginated((from, to) => {
+    let query = supabase
+      .from('members')
+      .select('id, first_name, surname, phone, mobile, status, commandery_id, is_deceased')
+      .not('status', 'in', '("Dismissed","Transfer-Out","Deceased","System")')
+      .neq('id', 'f0000000-0000-0000-0000-000000000000');
+    if (commanderyId) {
+      query = query.eq('commandery_id', commanderyId);
+    }
+    return query.range(from, to);
+  });
+
+  const activeMembers = (rawMembers || []).filter(m => !isSystemMember(m) && !m.is_deceased);
+  const activeRollCount = activeMembers.length;
+
+  const memberMap = new Map<string, { fullName: string; phone: string | null }>();
+  activeMembers.forEach(m => {
+    const fullName = `${m.first_name || ''} ${m.surname || ''}`.trim();
+    memberMap.set(m.id, {
+      fullName: fullName || 'Brother',
+      phone: m.phone || m.mobile || null,
+    });
+  });
+
+  // 3. Fetch all attendance check-ins (paginated)
+  const allAttendance = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('attendance')
+      .select('id, meeting_id, member_id, check_in_time, method')
+      .range(from, to)
+  );
+
+  // 4. Fetch all absence excuse requests (paginated)
+  const allAbsences = await fetchAllPaginated((from, to) =>
+    supabase
+      .from('absence_requests')
+      .select('id, meeting_id, member_id, reason, status')
+      .range(from, to)
+  );
+
+  // Group attendance and absences by meeting_id
+  const attendanceByMeeting = new Map<string, any[]>();
+  allAttendance.forEach(a => {
+    if (!attendanceByMeeting.has(a.meeting_id)) {
+      attendanceByMeeting.set(a.meeting_id, []);
+    }
+    attendanceByMeeting.get(a.meeting_id)!.push(a);
+  });
+
+  const absencesByMeeting = new Map<string, any[]>();
+  allAbsences.forEach(a => {
+    if (!absencesByMeeting.has(a.meeting_id)) {
+      absencesByMeeting.set(a.meeting_id, []);
+    }
+    absencesByMeeting.get(a.meeting_id)!.push(a);
+  });
+
+  const yearsSet = new Set<number>();
+  let totalCumulativeCheckIns = 0;
+
+  const meetingItems: MeetingMetricItem[] = meetings.map(m => {
+    const mDate = new Date(m.date);
+    const year = mDate.getFullYear();
+    yearsSet.add(year);
+
+    const attList = attendanceByMeeting.get(m.id) || [];
+    const absList = absencesByMeeting.get(m.id) || [];
+
+    totalCumulativeCheckIns += attList.length;
+
+    const methods = { manual: 0, qr: 0, gps: 0 };
+    let firstCheckIn: string | null = null;
+    let lastCheckIn: string | null = null;
+
+    const attendees: MeetingAttendeeDetail[] = [];
+
+    attList.forEach(a => {
+      const isQr = a.method === 'qr' || a.method === 'qr_scan';
+      const isGps = a.method === 'gps';
+      if (isQr) methods.qr++;
+      else if (isGps) methods.gps++;
+      else methods.manual++;
+
+      if (a.check_in_time) {
+        if (!firstCheckIn || a.check_in_time < firstCheckIn) firstCheckIn = a.check_in_time;
+        if (!lastCheckIn || a.check_in_time > lastCheckIn) lastCheckIn = a.check_in_time;
+      }
+
+      const mem = memberMap.get(a.member_id);
+      attendees.push({
+        id: a.id,
+        memberId: a.member_id,
+        name: mem?.fullName || 'Brother',
+        phone: mem?.phone || null,
+        method: isQr ? 'QR Scan' : isGps ? 'GPS Geofenced' : 'Manual Sign-In',
+        checkInTime: a.check_in_time,
+      });
+    });
+
+    // Sort attendees by surname / name
+    attendees.sort((a, b) => a.name.localeCompare(b.name));
+
+    const excusesSummary = { approved: 0, pending: 0, declined: 0 };
+    const excusedMembers: MeetingExcuseDetail[] = [];
+
+    absList.forEach(abs => {
+      if (abs.status === 'approved') excusesSummary.approved++;
+      else if (abs.status === 'pending') excusesSummary.pending++;
+      else if (abs.status === 'declined') excusesSummary.declined++;
+
+      if (abs.status === 'approved' || abs.status === 'pending') {
+        const mem = memberMap.get(abs.member_id);
+        excusedMembers.push({
+          id: abs.id,
+          memberId: abs.member_id,
+          name: mem?.fullName || 'Brother',
+          reason: abs.reason || 'Excuse submitted',
+          status: abs.status,
+        });
+      }
+    });
+
+    excusedMembers.sort((a, b) => a.name.localeCompare(b.name));
+
+    const presentCount = attList.length;
+    const excusedCount = excusesSummary.approved;
+    const absentCount = Math.max(0, activeRollCount - presentCount - excusedCount);
+    const turnoutRate = activeRollCount > 0 ? Number(((presentCount / activeRollCount) * 100).toFixed(1)) : 0;
+
+    return {
+      id: m.id,
+      commanderyId: m.commandery_id,
+      title: m.title,
+      date: m.date,
+      year,
+      latitude: m.latitude,
+      longitude: m.longitude,
+      radiusMeters: m.radius_meters,
+      totalRoll: activeRollCount,
+      presentCount,
+      excusedCount,
+      absentCount,
+      turnoutRate,
+      methods,
+      excusesSummary,
+      firstCheckInTime: firstCheckIn,
+      lastCheckInTime: lastCheckIn,
+      attendees,
+      excusedMembers,
+    };
+  });
+
+  const availableYears = Array.from(yearsSet).sort((a, b) => b - a);
+
+  // Highest and lowest turnout sessions
+  let highestMeeting: OverallMeetingMetrics['highestTurnoutMeeting'] = null;
+  let lowestMeeting: OverallMeetingMetrics['lowestTurnoutMeeting'] = null;
+
+  meetingItems.forEach(item => {
+    if (!highestMeeting || item.turnoutRate > highestMeeting.rate) {
+      highestMeeting = {
+        id: item.id,
+        title: item.title,
+        date: item.date,
+        rate: item.turnoutRate,
+        present: item.presentCount,
+      };
+    }
+    if (!lowestMeeting || item.turnoutRate < lowestMeeting.rate) {
+      lowestMeeting = {
+        id: item.id,
+        title: item.title,
+        date: item.date,
+        rate: item.turnoutRate,
+        present: item.presentCount,
+      };
+    }
+  });
+
+  const averageTurnoutRate =
+    meetingItems.length > 0
+      ? Number(
+          (
+            meetingItems.reduce((acc, m) => acc + m.turnoutRate, 0) /
+            meetingItems.length
+          ).toFixed(1)
+        )
+      : 0;
+
+  const averagePresentPerMeeting =
+    meetingItems.length > 0
+      ? Math.round(totalCumulativeCheckIns / meetingItems.length)
+      : 0;
+
+  return {
+    totalMeetings: meetingItems.length,
+    totalCheckIns: totalCumulativeCheckIns,
+    averageTurnoutRate,
+    averagePresentPerMeeting,
+    activeRollCount,
+    highestTurnoutMeeting: highestMeeting,
+    lowestTurnoutMeeting: lowestMeeting,
+    availableYears,
+    meetings: meetingItems,
+  };
+}

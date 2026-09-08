@@ -400,6 +400,53 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 340px) 1fr', gap: 24, flexWrap: 'wrap' }}>
+      {/* Top Banner: Meeting Metrics & Turnout Analytics */}
+      <div
+        style={{
+          gridColumn: '1 / -1',
+          padding: '16px 22px',
+          borderRadius: 14,
+          background: 'linear-gradient(135deg, #0A1628 0%, #1e293b 100%)',
+          color: '#ffffff',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.15)',
+          border: '1px solid rgba(201, 168, 76, 0.3)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 28 }}>📊</span>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: '#C9A84C' }}>
+              Meeting Metrics & Turnout Analytics Hub
+            </div>
+            <div style={{ fontSize: 13, color: '#94a3b8' }}>
+              Explore key attendance metrics, turnout compliance, and check-in logs across all recorded sessions.
+            </div>
+          </div>
+        </div>
+        <Link
+          href="/registrar/meetings/metrics"
+          style={{
+            padding: '10px 20px',
+            borderRadius: 10,
+            background: 'linear-gradient(135deg, #C9A84C 0%, #b3923b 100%)',
+            color: '#0A1628',
+            fontWeight: 800,
+            fontSize: 13,
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          }}
+        >
+          <span>View All Meeting Metrics ({meetings.length}) →</span>
+        </Link>
+      </div>
       {/* Left Column: Create Form & List */}
       <div style={{ display: 'grid', gap: 24, alignContent: 'start' }}>
         
