@@ -175,14 +175,18 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
     }
   }
 
-  async function handleDeleteMeeting(meetingId: string, meetingTitle: string) {
-    const isTestTitle = /test|sample|trial|demo|fictitious|practice/i.test(meetingTitle);
+  async function handleDeleteMeeting(meetingId: string, meetingTitle: string, checkinCount: number = 0) {
+    const isTestTitle = /test|sample|trial|demo|fictitious|practice|sandbox|dry run|training/i.test(meetingTitle);
+
+    const checkinNotice = checkinCount > 0
+      ? `\n\n⚠️ Notice: This meeting has ${checkinCount} test check-in(s). Deleting will cleanly purge these test records without affecting official Commandery standing.`
+      : '';
 
     const confirmation = prompt(
-      `⚠️ MEETING DELETION:\n\n` +
-      `• Official meetings with active check-ins are protected to preserve audit logs.\n` +
-      `• Test/fictitious meetings (e.g. testing GPS, geofencing, QR code) can be cleaned up anytime.\n\n` +
-      `To delete meeting "${meetingTitle}", type DELETE below:`
+      `⚠️ MEETING DELETION CONFIRMATION:\n\n` +
+      `Meeting: "${meetingTitle}"` +
+      checkinNotice +
+      `\n\nTo confirm deletion, type DELETE below:`
     );
 
     if (!confirmation || confirmation.trim().toUpperCase() !== 'DELETE') {
@@ -1009,52 +1013,96 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                   ⚙️ Advanced Meeting Administration & Danger Zone
                 </summary>
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #e2e8f0' }}>
-                  {presentCount > 0 ? (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        padding: 12,
-                        borderRadius: 8,
-                        background: '#eff6ff',
-                        border: '1px solid #bfdbfe',
-                      }}
-                    >
-                      <span style={{ fontSize: 20 }}>🔒</span>
-                      <div style={{ fontSize: 12, color: '#1e40af', lineHeight: 1.4 }}>
-                        <strong>Permanent Historical Record Protected:</strong> This session has <strong>{presentCount} confirmed check-ins</strong>.
-                        Official Commandery attendance logs are permanently locked and cannot be deleted to preserve audit and dues compliance.
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#991b1b' }}>Delete Empty Draft / Test Session</div>
-                        <div style={{ fontSize: 12, color: '#64748b' }}>
-                          This session has 0 check-ins. If this was created by accident or for testing, it can be safely removed.
+                  {(() => {
+                    const isTestOrDraft =
+                      selectedMeeting?.status === 'draft' ||
+                      /test|sample|trial|demo|practice|sandbox|dry run|training|fictitious/i.test(selectedMeeting?.title || '');
+                    const isMinuteCheckins = presentCount <= 5;
+                    const isDeletable = isTestOrDraft || isMinuteCheckins;
+
+                    if (!isDeletable) {
+                      return (
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            padding: 12,
+                            borderRadius: 8,
+                            background: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                          }}
+                        >
+                          <span style={{ fontSize: 20 }}>🔒</span>
+                          <div style={{ fontSize: 12, color: '#1e40af', lineHeight: 1.4 }}>
+                            <strong>Permanent Historical Record Protected:</strong> This official Commandery meeting has <strong>{presentCount} confirmed check-ins</strong>.
+                            Official attendance logs are permanently locked against deletion to safeguard audit and dues compliance.
+                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                              <em>Note: Only draft meetings, test sessions, or sessions with a minute number of check-ins (≤ 5) can be deleted.</em>
+                            </div>
+                          </div>
                         </div>
+                      );
+                    }
+
+                    if (presentCount === 0) {
+                      return (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#991b1b' }}>Delete Empty Draft / Test Session</div>
+                            <div style={{ fontSize: 12, color: '#64748b' }}>
+                              This session has 0 check-ins. If this was created by accident or for testing, it can be safely removed.
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteMeeting(selectedMeeting.id, selectedMeeting.title, 0)}
+                            disabled={deletingId === selectedMeeting.id}
+                            style={{
+                              padding: '8px 16px',
+                              background: '#fee2e2',
+                              color: '#991b1b',
+                              border: '1px solid #fca5a5',
+                              borderRadius: 8,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: deletingId === selectedMeeting.id ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            {deletingId === selectedMeeting.id ? '⏳ Deleting...' : '🗑️ Delete Empty Session'}
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#991b1b' }}>
+                            Delete Test / Draft Session ({presentCount} test check-in{presentCount > 1 ? 's' : ''})
+                          </div>
+                          <div style={{ fontSize: 12, color: '#64748b', maxWidth: 480 }}>
+                            A minute number of test check-ins ({presentCount}) were recorded. Deleting will cleanly purge these test records without jeopardizing official Commandery data.
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteMeeting(selectedMeeting.id, selectedMeeting.title, presentCount)}
+                          disabled={deletingId === selectedMeeting.id}
+                          style={{
+                            padding: '8px 16px',
+                            background: '#fee2e2',
+                            color: '#991b1b',
+                            border: '1px solid #fca5a5',
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: deletingId === selectedMeeting.id ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {deletingId === selectedMeeting.id ? '⏳ Purging & Deleting...' : `🗑️ Delete Session & Purge ${presentCount} Test Log${presentCount > 1 ? 's' : ''}`}
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          setDeleteTarget(selectedMeeting);
-                          setDeleteConfirmText('');
-                        }}
-                        style={{
-                          padding: '8px 16px',
-                          background: '#fee2e2',
-                          color: '#991b1b',
-                          border: '1px solid #fca5a5',
-                          borderRadius: 8,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        🗑️ Delete Empty Session
-                      </button>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               </details>
             </div>

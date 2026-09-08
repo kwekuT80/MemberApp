@@ -47,26 +47,44 @@ export async function createMeeting(payload: {
 export async function deleteMeeting(meetingId: string, isTestMeeting: boolean = false) {
   const supabase = await createClient();
 
-  // Fetch meeting details to verify if it is a test meeting or official record
+  // Fetch meeting details to verify if it is a test meeting, draft, or official record
   const { data: meeting } = await supabase
     .from('meetings')
-    .select('title')
+    .select('title, status')
     .eq('id', meetingId)
     .single();
 
   const title = (meeting?.title || '').toLowerCase();
-  const isRecognizedTest = isTestMeeting || title.includes('test') || title.includes('sample') || title.includes('trial') || title.includes('demo') || title.includes('fictitious') || title.includes('practice');
+  const status = (meeting?.status || '').toLowerCase();
+  const isRecognizedTest = 
+    isTestMeeting || 
+    status === 'draft' ||
+    title.includes('test') || 
+    title.includes('sample') || 
+    title.includes('trial') || 
+    title.includes('demo') || 
+    title.includes('fictitious') || 
+    title.includes('practice') ||
+    title.includes('sandbox') ||
+    title.includes('training') ||
+    title.includes('dry run');
 
-  if (!isRecognizedTest) {
-    // Protect official meetings with active data
-    const [{ count: attendanceCount }, { count: absenceCount }] = await Promise.all([
-      supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('meeting_id', meetingId),
-      supabase.from('absence_requests').select('*', { count: 'exact', head: true }).eq('meeting_id', meetingId)
-    ]);
+  // Count existing check-ins and absence requests
+  const [{ count: attendanceCount }, { count: absenceCount }] = await Promise.all([
+    supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('meeting_id', meetingId),
+    supabase.from('absence_requests').select('*', { count: 'exact', head: true }).eq('meeting_id', meetingId)
+  ]);
 
-    if ((attendanceCount || 0) > 0 || (absenceCount || 0) > 0) {
-      throw new Error(`Protected Official Record: "${meeting?.title}" is an official record containing ${attendanceCount || 0} check-ins. If this was a test, include "Test" or "Sample" in the meeting title to delete it.`);
-    }
+  const totalCheckins = attendanceCount || 0;
+
+  // Protect official meetings with more than a minute number of check-ins (> 5)
+  // Allows deleting drafts, test sessions, or sessions where a minute number of members (<= 5) checked in to test functionality.
+  if (!isRecognizedTest && totalCheckins > 5) {
+    throw new Error(
+      `Protected Official Record: "${meeting?.title}" is an official Commandery session containing ${totalCheckins} check-ins. ` +
+      `Official sessions with established attendance cannot be deleted to preserve audit and constitutional standing integrity. ` +
+      `If this was a test, mark its status as Draft or include "Test" in the meeting title to delete it.`
+    );
   }
 
   // Purge associated test check-ins and absence requests
