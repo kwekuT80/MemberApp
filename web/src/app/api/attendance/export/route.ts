@@ -157,14 +157,10 @@ export async function GET(request: NextRequest) {
         let checkInTime = '';
 
         if (attRecord) {
-          status =
-            getDisplayStatus(
-              attRecord.method
-            );
-
-          method =
-            attRecord.method;
-
+          const isQr = attRecord.method === 'qr' || attRecord.method === 'qr_scan' || (attRecord.override_note && /qr/i.test(String(attRecord.override_note)));
+          const isGps = attRecord.method === 'gps' || attRecord.method === 'gps_auto';
+          status = isGps ? 'Present (GPS)' : isQr ? 'Present (QR Scan)' : 'Present (Manual)';
+          method = isGps ? 'GPS Geofenced' : isQr ? 'QR Scan' : 'Manual Sign-In';
           checkInTime = new Date(
             attRecord.check_in_time
           ).toLocaleString('en-US');

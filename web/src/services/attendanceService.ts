@@ -473,7 +473,7 @@ export async function getAllMeetingsMetrics(commanderyId?: string): Promise<Over
   const allAttendance = await fetchAllPaginated((from, to) =>
     supabase
       .from('attendance')
-      .select('id, meeting_id, member_id, check_in_time, method')
+      .select('id, meeting_id, member_id, check_in_time, method, override_note')
       .range(from, to)
   );
 
@@ -522,8 +522,8 @@ export async function getAllMeetingsMetrics(commanderyId?: string): Promise<Over
     const attendees: MeetingAttendeeDetail[] = [];
 
     attList.forEach(a => {
-      const isQr = a.method === 'qr' || a.method === 'qr_scan';
-      const isGps = a.method === 'gps';
+      const isQr = a.method === 'qr' || a.method === 'qr_scan' || (a.override_note && /qr/i.test(String(a.override_note)));
+      const isGps = a.method === 'gps' || a.method === 'gps_auto';
       if (isQr) methods.qr++;
       else if (isGps) methods.gps++;
       else methods.manual++;
