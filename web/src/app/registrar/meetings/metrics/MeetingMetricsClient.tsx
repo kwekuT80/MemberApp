@@ -7,9 +7,19 @@ import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
 interface Props {
   metrics: OverallMeetingMetrics;
+  isMemberView?: boolean;
+  backHref?: string;
+  backLabel?: string;
+  hideTopBar?: boolean;
 }
 
-export default function MeetingMetricsClient({ metrics }: Props) {
+export default function MeetingMetricsClient({
+  metrics,
+  isMemberView = false,
+  backHref,
+  backLabel,
+  hideTopBar = false,
+}: Props) {
   // Navigation & Filter States
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,6 +30,9 @@ export default function MeetingMetricsClient({ metrics }: Props) {
   // Expanded Meeting Drawer / Modal for Drill-down
   const [drillDownMeeting, setDrillDownMeeting] = useState<MeetingMetricItem | null>(null);
   const [rosterTab, setRosterTab] = useState<'present' | 'excused'>('present');
+
+  const resolvedBackHref = backHref || (isMemberView ? '/me/attendance' : '/registrar/meetings');
+  const resolvedBackLabel = backLabel || (isMemberView ? '← Back to My Attendance' : '← Back to Meetings Hub');
 
   // Filter & Sort meetings
   const filteredMeetings = useMemo(() => {
@@ -104,7 +117,7 @@ export default function MeetingMetricsClient({ metrics }: Props) {
 
   // Export single meeting roster CSV
   const exportMeetingRosterCSV = (meeting: MeetingMetricItem) => {
-    const headers = ['Member Name', 'Phone', 'Status', 'Check-In Method', 'Check-In Timestamp', 'Excuse Reason'];
+    const headers = ['Member Name', 'Phone', 'Status', 'Check-In Method', 'Check-In Timestamp'];
     const rows: string[][] = [];
 
     // Attendees
@@ -115,7 +128,6 @@ export default function MeetingMetricsClient({ metrics }: Props) {
         'Present',
         a.method,
         a.checkInTime ? new Date(a.checkInTime).toLocaleString('en-US') : '',
-        '',
       ]);
     });
 
@@ -125,9 +137,8 @@ export default function MeetingMetricsClient({ metrics }: Props) {
         `"${e.name.replace(/"/g, '""')}"`,
         '',
         'Excused',
-        'Official Excuse',
+        'Official Permission',
         '',
-        `"${(e.reason || '').replace(/"/g, '""')}"`,
       ]);
     });
 
@@ -173,52 +184,54 @@ export default function MeetingMetricsClient({ metrics }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* ── TOP ACTION BAR: BACK & GLOBAL EXPORT ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link
-            href="/registrar/meetings"
+      {!hideTopBar && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Link
+              href={resolvedBackHref}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 14px',
+                borderRadius: 8,
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                color: '#1e293b',
+                fontSize: 13,
+                fontWeight: 700,
+                textDecoration: 'none',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              }}
+            >
+              {resolvedBackLabel}
+            </Link>
+            <span style={{ fontSize: 13, color: '#64748b' }}>
+              Showing <strong>{filteredMeetings.length}</strong> of <strong>{metrics.totalMeetings}</strong> recorded sessions
+            </span>
+          </div>
+
+          <button
+            onClick={exportMetricsCSV}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 6,
-              padding: '8px 14px',
+              gap: 8,
+              padding: '9px 18px',
               borderRadius: 8,
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
-              color: '#1e293b',
+              background: 'linear-gradient(135deg, #0A1628 0%, #1e293b 100%)',
+              color: '#C9A84C',
+              border: '1px solid #C9A84C',
               fontSize: 13,
-              fontWeight: 700,
-              textDecoration: 'none',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              fontWeight: 800,
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(10, 22, 40, 0.2)',
             }}
           >
-            ← Back to Meetings Hub
-          </Link>
-          <span style={{ fontSize: 13, color: '#64748b' }}>
-            Showing <strong>{filteredMeetings.length}</strong> of <strong>{metrics.totalMeetings}</strong> recorded sessions
-          </span>
+            📥 Export Metrics Summary (CSV)
+          </button>
         </div>
-
-        <button
-          onClick={exportMetricsCSV}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '9px 18px',
-            borderRadius: 8,
-            background: 'linear-gradient(135deg, #0A1628 0%, #1e293b 100%)',
-            color: '#C9A84C',
-            border: '1px solid #C9A84C',
-            fontSize: 13,
-            fontWeight: 800,
-            cursor: 'pointer',
-            boxShadow: '0 2px 4px rgba(10, 22, 40, 0.2)',
-          }}
-        >
-          📥 Export Metrics Summary (CSV)
-        </button>
-      </div>
+      )}
 
       {/* ── KEY METRICS KPI BOARD (4 HIGH-LEVEL CARDS) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
@@ -559,7 +572,7 @@ export default function MeetingMetricsClient({ metrics }: Props) {
 
                     {/* Method breakdown chips */}
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', fontSize: 11, color: '#475569', marginBottom: 12 }}>
-                      <span title="Manual Registrar Check-ins" style={{ padding: '2px 6px', background: '#f1f5f9', borderRadius: 4 }}>
+                      <span title="Manual Check-ins" style={{ padding: '2px 6px', background: '#f1f5f9', borderRadius: 4 }}>
                         ✍️ Manual: {m.methods.manual}
                       </span>
                       <span title="QR Code Scan Check-ins" style={{ padding: '2px 6px', background: '#f1f5f9', borderRadius: 4 }}>
@@ -848,7 +861,7 @@ export default function MeetingMetricsClient({ metrics }: Props) {
                       >
                         <div>
                           <strong style={{ color: '#0A1628', fontSize: 13 }}>{attendee.name}</strong>
-                          {attendee.phone && (
+                          {attendee.phone && !isMemberView && (
                             <span style={{ fontSize: 11, color: '#64748b', marginLeft: 8 }}>
                               ({attendee.phone})
                             </span>
@@ -898,7 +911,7 @@ export default function MeetingMetricsClient({ metrics }: Props) {
                           </span>
                         </div>
                         <p style={{ margin: 0, fontSize: 12, color: '#78350f', fontStyle: 'italic' }}>
-                          &ldquo;{excused.reason}&rdquo;
+                          &ldquo;{isMemberView ? 'Official Excuse (Permission Granted)' : excused.reason}&rdquo;
                         </p>
                       </div>
                     ))}

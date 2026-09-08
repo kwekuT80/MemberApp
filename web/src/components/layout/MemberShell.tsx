@@ -19,6 +19,7 @@ const memberNav = [
       { href: '/me/positions', label: '🎖️ Positions' },
       { href: '/me/military', label: '⚔️ Uniform & Ranks' },
       { href: '/me/attendance', label: '📅 Attendance' },
+      { href: '/me/meetings', label: '📊 Meeting Metrics' },
     ]
   },
   {

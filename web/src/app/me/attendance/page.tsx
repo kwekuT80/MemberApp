@@ -36,9 +36,30 @@ export default async function MemberAttendancePage() {
   return (
     <MemberShell title="Meeting Attendance" subtitle="Live geofenced check-in and excuse management.">
       <div style={{ display: 'grid', gap: 18 }}>
-        <Link href='/me' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>
-          ← Back to Overview
-        </Link>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <Link href='/me' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>
+            ← Back to Overview
+          </Link>
+          <Link
+            href='/me/meetings'
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '7px 14px',
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 700,
+              textDecoration: 'none',
+              background: '#0f172a',
+              color: '#f8fafc',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+          >
+            <span>📊</span>
+            <span>View Commandery Meeting Metrics & Attendance Roll →</span>
+          </Link>
+        </div>
         <MemberAttendanceClient 
           member={member} 
           initialMeetings={meetings} 
