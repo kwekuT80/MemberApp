@@ -22,6 +22,8 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const [loadingReport, setLoadingReport] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [rosterSortOrder, setRosterSortOrder] = useState<'status_priority' | 'name' | 'checkin_time'>('status_priority');
 
   // Search Query & Status Filter for sign-in auditing
@@ -538,27 +540,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                     </Link>
                   </div>
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteMeeting(m.id, m.title);
-                    }}
-                    disabled={deletingId === m.id}
-                    title="Delete meeting"
-                    style={{
-                      background: '#fee2e2',
-                      color: '#991b1b',
-                      border: '1px solid #fca5a5',
-                      padding: '6px 10px',
-                      borderRadius: 6,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      cursor: deletingId === m.id ? 'not-allowed' : 'pointer',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {deletingId === m.id ? 'Deleting…' : '🗑️ Delete'}
-                  </button>
+                  
                 </div>
               ))}
             </div>
@@ -597,24 +579,25 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                 </Link>
 
                 <button
-                  onClick={() => handleDeleteMeeting(selectedMeeting.id, selectedMeeting.title)}
-                  disabled={deletingId === selectedMeeting.id}
+                  onClick={() => setIsNoticeModalOpen(true)}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 8,
                     padding: '12px 20px',
-                    background: '#fee2e2',
-                    color: '#991b1b',
-                    border: '1px solid #fca5a5',
+                    background: '#0A1628',
+                    color: '#C9A84C',
+                    border: '1px solid #1e293b',
                     borderRadius: 12,
                     fontWeight: 700,
                     fontSize: 14,
-                    cursor: deletingId === selectedMeeting.id ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                   }}
                 >
-                  {deletingId === selectedMeeting.id ? 'Deleting…' : '🗑️ Delete Meeting'}
+                  📢 Send Notice (SMS / Email)
                 </button>
+
+                
               </div>
             </div>
 
@@ -1009,6 +992,71 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                   })}
                 </div>
               )}
+            </div>
+
+            {/* ── DANGER ZONE / MEETING ADMINISTRATION ── */}
+            <div
+              style={{
+                marginTop: 12,
+                padding: '14px 18px',
+                borderRadius: 12,
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <details style={{ cursor: 'pointer' }}>
+                <summary style={{ fontSize: 12, fontWeight: 700, color: '#64748b', userSelect: 'none' }}>
+                  ⚙️ Advanced Meeting Administration & Danger Zone
+                </summary>
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #e2e8f0' }}>
+                  {presentCount > 0 ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: 12,
+                        borderRadius: 8,
+                        background: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                      }}
+                    >
+                      <span style={{ fontSize: 20 }}>🔒</span>
+                      <div style={{ fontSize: 12, color: '#1e40af', lineHeight: 1.4 }}>
+                        <strong>Permanent Historical Record Protected:</strong> This session has <strong>{presentCount} confirmed check-ins</strong>.
+                        Official Commandery attendance logs are permanently locked and cannot be deleted to preserve audit and dues compliance.
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#991b1b' }}>Delete Empty Draft / Test Session</div>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>
+                          This session has 0 check-ins. If this was created by accident or for testing, it can be safely removed.
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setDeleteTarget(selectedMeeting);
+                          setDeleteConfirmText('');
+                        }}
+                        style={{
+                          padding: '8px 16px',
+                          background: '#fee2e2',
+                          color: '#991b1b',
+                          border: '1px solid #fca5a5',
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        🗑️ Delete Empty Session
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </details>
             </div>
           </>
         ) : (
