@@ -53,6 +53,8 @@ export async function initDb() {
       transfer_to TEXT,
       transfer_date TEXT,
       photo_url TEXT,
+      birth_month INTEGER,
+      birth_day INTEGER,
       last_synced TEXT
     );
     CREATE TABLE IF NOT EXISTS tblChildren (
@@ -119,6 +121,14 @@ export async function initDb() {
       db.runSync(`INSERT OR IGNORE INTO tblDegreeTypes (DegreeTypeName) VALUES (?);`, [d]);
     });
   }
+
+  // Safe schema migrations for existing local databases
+  try {
+    db.execSync('ALTER TABLE tblMembers ADD COLUMN birth_month INTEGER;');
+  } catch (_) {}
+  try {
+    db.execSync('ALTER TABLE tblMembers ADD COLUMN birth_day INTEGER;');
+  } catch (_) {}
 }
 
 export function dbQuery(sql, params = []) {

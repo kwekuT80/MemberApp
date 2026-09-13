@@ -20,8 +20,9 @@ async function cacheMemberLocally(m) {
       degree1_place, degree23_place, degree4_place, degree_noble_place,
       date_joined, status, is_deceased, date_of_death, burial_date,
       burial_place, transfer_from, transfer_to, transfer_date, photo_url,
+      birth_month, birth_day,
       last_synced
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);
   `;
   const params = [
     m.id, m.user_id, m.title, m.surname, m.first_name, m.other_names, m.date_of_birth,
@@ -32,6 +33,7 @@ async function cacheMemberLocally(m) {
     m.degree1_place, m.degree23_place, m.degree4_place, m.degree_noble_place,
     m.date_joined, m.status, m.is_deceased ? 1 : 0, m.date_of_death, m.burial_date,
     m.burial_place, m.transfer_from, m.transfer_to, m.transfer_date, m.photo_url,
+    m.birth_month || null, m.birth_day || null,
     new Date().toISOString()
   ];
   try {
@@ -304,13 +306,29 @@ export async function saveMember(form) {
     }
   }
 
+  const pgDob = toPgDate(form.date_of_birth);
+  let birthMonth = null;
+  let birthDay = null;
+  if (pgDob) {
+    const parts = pgDob.split('-');
+    if (parts.length === 3) {
+      birthMonth = parseInt(parts[1], 10);
+      birthDay = parseInt(parts[2], 10);
+    }
+  } else if (form.birth_month && form.birth_day) {
+    birthMonth = parseInt(form.birth_month, 10);
+    birthDay = parseInt(form.birth_day, 10);
+  }
+
   const payload = {
     user_id:             finalUserId,
     title:               form.title               || null,
     surname:             form.surname             || null,
     first_name:          form.first_name          || null,
     other_names:         form.other_names         || null,
-    date_of_birth:       toPgDate(form.date_of_birth),
+    date_of_birth:       pgDob,
+    birth_month:         birthMonth,
+    birth_day:           birthDay,
     birth_town:          form.birth_town          || null,
     birth_region:        form.birth_region        || null,
     nationality:         form.nationality         || null,
@@ -351,20 +369,36 @@ export async function saveMember(form) {
   };
 
   if (form.id) {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('members')
       .update(payload)
       .eq('id', form.id)
       .select()
       .single();
+    if (error && (error.message?.includes('birth_month') || error.message?.includes('birth_day'))) {
+      const fallbackPayload = { ...payload };
+      delete fallbackPayload.birth_month;
+      delete fallbackPayload.birth_day;
+      const res = await supabase.from('members').update(fallbackPayload).eq('id', form.id).select().single();
+      data = res.data;
+      error = res.error;
+    }
     if (error) throw error;
     return cleanMemberDates(data);
   } else {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('members')
       .insert(payload)
       .select()
       .single();
+    if (error && (error.message?.includes('birth_month') || error.message?.includes('birth_day'))) {
+      const fallbackPayload = { ...payload };
+      delete fallbackPayload.birth_month;
+      delete fallbackPayload.birth_day;
+      const res = await supabase.from('members').insert(fallbackPayload).select().single();
+      data = res.data;
+      error = res.error;
+    }
     if (error) throw error;
     return cleanMemberDates(data);
   }
@@ -852,28 +886,60 @@ export async function getDashboardInsights() {
  */
 export async function getBirthdayReminders() {
   const now = new Date();
-  const todayMonth = String(now.getMonth() + 1).padStart(2, '0');
-  const todayDay = String(now.getDate()).padStart(2, '0');
-  const matchString = `-${todayMonth}-${todayDay}`; // Matches YYYY-MM-DD
+  const currentMonthNum = now.getMonth() + 1;
+  const currentDayNum = now.getDate();
+  const todayMonth = String(currentMonthNum).padStart(2, '0');
+  const todayDay = String(currentDayNum).padStart(2, '0');
 
-  // Note: For better scalability, you'd use a Postgres function, 
-  // but this is efficient for reasonable member lists.
-  const { data, error } = await supabase
+  let data = [];
+  const res = await supabase
     .from('members')
-    .select('first_name, surname, title, date_of_birth')
-    .not('date_of_birth', 'is', null);
+    .select('id, first_name, surname, title, date_of_birth, birth_month, birth_day')
+    .or('date_of_birth.not.is.null,birth_month.not.is.null');
 
-  if (error) throw error;
+  if (res.error && (res.error.message?.includes('birth_month') || res.error.message?.includes('birth_day'))) {
+    const fallback = await supabase
+      .from('members')
+      .select('id, first_name, surname, title, date_of_birth')
+      .not('date_of_birth', 'is', null);
+    if (fallback.error) throw fallback.error;
+    data = fallback.data || [];
+  } else if (res.error) {
+    throw res.error;
+  } else {
+    data = res.data || [];
+  }
 
-  return data.filter(m => {
-    const dob = m.date_of_birth;
-    // Handle DD/MM/YYYY or YYYY-MM-DD (ISO)
-    if (dob.includes('-')) {
-      const parts = dob.split('-');
-      // ISO is YYYY-MM-DD, so M is index 1, D is index 2
-      return parts[1] === todayMonth && parts[2] === todayDay;
+  // Strictly deduplicate by id to prevent any double-counting
+  const seenIds = new Set();
+  return (data || []).filter(m => {
+    if (!m.id || seenIds.has(m.id)) return false;
+
+    // 1. If full date_of_birth is present, evaluate it
+    if (m.date_of_birth) {
+      const dob = m.date_of_birth;
+      let matched = false;
+      if (dob.includes('-')) {
+        const parts = dob.split('-');
+        matched = parts[1] === todayMonth && parts[2] === todayDay;
+      } else if (dob.includes('/')) {
+        const parts = dob.split('/');
+        matched = parts[0] === todayDay && parts[1] === todayMonth;
+      }
+      if (matched) {
+        seenIds.add(m.id);
+        return true;
+      }
+      return false;
     }
-    const parts = dob.split('/');
-    return parts[0] === todayDay && parts[1] === todayMonth;
+
+    // 2. Otherwise, check celebration month & day
+    if (m.birth_month && m.birth_day) {
+      if (Number(m.birth_month) === currentMonthNum && Number(m.birth_day) === currentDayNum) {
+        seenIds.add(m.id);
+        return true;
+      }
+    }
+    return false;
   });
 }

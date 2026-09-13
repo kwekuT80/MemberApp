@@ -68,7 +68,16 @@ export default function MemberSummaryCard({ member, editHref='/me/edit', showOwn
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:16, marginTop:20 }}>
-        <Field label='Date of birth' value={formatDisplayDate(member.date_of_birth)} />
+        <Field 
+          label='Date of birth' 
+          value={
+            member.date_of_birth 
+              ? formatDisplayDate(member.date_of_birth) 
+              : (member.birth_month && member.birth_day 
+                  ? `${member.birth_day} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][member.birth_month - 1]} (Year Unknown)` 
+                  : '—')
+          } 
+        />
         <Field label='Nationality' value={value(member.nationality)} />
         <Field label='Home region' value={value(member.home_region)} />
         <Field label='Marital status' value={value(member.marital_status)} />

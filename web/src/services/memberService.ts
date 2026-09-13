@@ -84,29 +84,61 @@ export async function getMemberCount(): Promise<number> {
 export async function getUpcomingBirthdayMembers(): Promise<Member[]> {
   const supabase = await createClient();
 
-  // Fetch active members who have a date_of_birth
-  const { data, error } = await supabase
+  // Fetch active members who have a date_of_birth or birth_month/birth_day
+  let membersData: any[] = [];
+  const res = await supabase
     .from('members')
     .select(`
-      id, title, first_name, surname, date_of_birth, status
+      id, title, first_name, surname, date_of_birth, birth_month, birth_day, status
     `)
-    .not('date_of_birth', 'is', null)
     .eq('status', 'Active')
     .neq('status', 'Deceased')
     .order('surname');
 
-  if (error) throw error;
+  if (res.error && (res.error.message?.includes('birth_month') || res.error.message?.includes('birth_day'))) {
+    // Fallback if schema migration hasn't been applied yet in Supabase
+    const fallback = await supabase
+      .from('members')
+      .select(`
+        id, title, first_name, surname, date_of_birth, status
+      `)
+      .not('date_of_birth', 'is', null)
+      .eq('status', 'Active')
+      .neq('status', 'Deceased')
+      .order('surname');
+    if (fallback.error) throw fallback.error;
+    membersData = fallback.data || [];
+  } else if (res.error) {
+    throw res.error;
+  } else {
+    membersData = res.data || [];
+  }
 
-  const members = (data || []).filter(m => !isSystemMember(m));
+  const members = (membersData || []).filter(m => !isSystemMember(m));
   const today = new Date();
   today.setHours(0, 0, 0, 0); // Crucial: remove time component so 'today' comparisons work correctly
 
+  // Helper: extract month & day, strictly prioritizing date_of_birth to prevent any double-counting
+  const getBirthdayParts = (m: Member): { month: number; day: number } | null => {
+    if (m.date_of_birth) {
+      const parts = String(m.date_of_birth).split('-');
+      if (parts.length >= 3) {
+        const mm = parseInt(parts[1], 10);
+        const dd = parseInt(parts[2], 10);
+        if (!isNaN(mm) && !isNaN(dd)) return { month: mm, day: dd };
+      }
+    }
+    if (m.birth_month && m.birth_day) {
+      return { month: Number(m.birth_month), day: Number(m.birth_day) };
+    }
+    return null;
+  };
+
   // Helper: days until birthday from today (handles year wrap)
-  const daysUntilBirthday = (d: string | null): number => {
-    if (!d) return -1;
-    const [yearStr, monthStr, dayStr] = d.split('-');
-    const bMonth = parseInt(monthStr, 10);
-    const bDay = parseInt(dayStr, 10);
+  const daysUntilBirthday = (m: Member): number => {
+    const parts = getBirthdayParts(m);
+    if (!parts) return -1;
+    const { month: bMonth, day: bDay } = parts;
 
     // Calculate days until this birthday
     let birthdayThisYear = new Date(today.getFullYear(), bMonth - 1, bDay);
@@ -122,16 +154,20 @@ export async function getUpcomingBirthdayMembers(): Promise<Member[]> {
     return Math.floor(diffMs / (1000 * 60 * 60 * 24));
   };
 
-  // Filter: birthday is today OR within next 7 days
+  // Filter: birthday is today OR within next 7 days (deduplicated by member.id)
+  const seenIds = new Set<string>();
   const upcoming = members.filter(m => {
-    const daysUntil = daysUntilBirthday(m.date_of_birth);
-    return daysUntil >= 0 && daysUntil <= 7;
+    if (!m.id || seenIds.has(m.id)) return false;
+    const daysUntil = daysUntilBirthday(m);
+    if (daysUntil >= 0 && daysUntil <= 7) {
+      seenIds.add(m.id);
+      return true;
+    }
+    return false;
   });
 
   // Sort by proximity (soonest first)
-  upcoming.sort((a, b) => {
-    return daysUntilBirthday(a.date_of_birth!) - daysUntilBirthday(b.date_of_birth!);
-  });
+  upcoming.sort((a, b) => daysUntilBirthday(a) - daysUntilBirthday(b));
 
   return upcoming as Member[];
 }
@@ -145,7 +181,7 @@ export async function saveMember(form: any): Promise<Member> {
   // Explicitly define the columns to extract from the form object
   const validColumns = [
     'user_id', 'photo_url', 'title', 'surname', 'first_name', 'other_names', 
-    'date_of_birth', 'birth_town', 'birth_region', 'nationality', 
+    'date_of_birth', 'birth_month', 'birth_day', 'birth_town', 'birth_region', 'nationality', 
     'home_town', 'home_region', 'residential_address', 'postal_address', 
     'phone', 'mobile', 'email', 'fathers_name', 'mothers_name', 
     'marital_status', 'emp_status', 'occupation', 'workplace', 
@@ -159,19 +195,59 @@ export async function saveMember(form: any): Promise<Member> {
   const payload: any = {};
   validColumns.forEach(col => {
     if (form[col] !== undefined) {
-      // Correctly handle false values for booleans
       payload[col] = (form[col] === '' || form[col] === undefined) ? null : form[col];
     }
   });
 
+  // Guard against double-counting and data drift:
+  // If a full date_of_birth is present, automatically sync birth_month and birth_day to match it.
+  if (payload.date_of_birth) {
+    const parts = String(payload.date_of_birth).split('-');
+    if (parts.length === 3) {
+      const mm = parseInt(parts[1], 10);
+      const dd = parseInt(parts[2], 10);
+      if (!isNaN(mm) && !isNaN(dd)) {
+        payload.birth_month = mm;
+        payload.birth_day = dd;
+      }
+    }
+  } else if (form.birth_month && form.birth_day) {
+    payload.birth_month = parseInt(form.birth_month, 10);
+    payload.birth_day = parseInt(form.birth_day, 10);
+  } else if (form.birth_month === null || form.birth_month === '' || form.birth_day === null || form.birth_day === '') {
+    payload.birth_month = null;
+    payload.birth_day = null;
+  }
+
   if (form.id) {
     const { data, error } = await supabase.from('members').update(payload).eq('id', form.id).select().single();
-    if (error) throw error;
+    if (error) {
+      // Fallback if birth_month/birth_day columns are not yet applied to the remote schema
+      if (error.message?.includes('birth_month') || error.message?.includes('birth_day')) {
+        const fallbackPayload = { ...payload };
+        delete fallbackPayload.birth_month;
+        delete fallbackPayload.birth_day;
+        const { data: retryData, error: retryError } = await supabase.from('members').update(fallbackPayload).eq('id', form.id).select().single();
+        if (retryError) throw retryError;
+        return retryData;
+      }
+      throw error;
+    }
     return data;
   } else {
     if (!payload.commandery_id) payload.commandery_id = 'b31c4884-9518-4fdf-bc55-98e3425189cc';
     const { data, error } = await supabase.from('members').insert(payload).select().single();
-    if (error) throw error;
+    if (error) {
+      if (error.message?.includes('birth_month') || error.message?.includes('birth_day')) {
+        const fallbackPayload = { ...payload };
+        delete fallbackPayload.birth_month;
+        delete fallbackPayload.birth_day;
+        const { data: retryData, error: retryError } = await supabase.from('members').insert(fallbackPayload).select().single();
+        if (retryError) throw retryError;
+        return retryData;
+      }
+      throw error;
+    }
     return data;
   }
 }

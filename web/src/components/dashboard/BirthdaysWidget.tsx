@@ -14,19 +14,35 @@ export default async function BirthdaysWidget({ isRegistrar = false }: { isRegis
       </h3>
       <div style={{ display: 'grid', gap: 12 }}>
         {upcomingBirthdays.map((member) => {
-          const dob = new Date(member.date_of_birth!);
-          const bMonth = dob.toLocaleString('en-US', { month: 'short' });
-          const bDay = dob.getDate();
+          let bMonthNum: number | null = null;
+          let bDayNum: number | null = null;
+
+          if (member.date_of_birth) {
+            const parts = String(member.date_of_birth).split('-');
+            if (parts.length >= 3) {
+              bMonthNum = parseInt(parts[1], 10);
+              bDayNum = parseInt(parts[2], 10);
+            }
+          }
+          if (!bMonthNum && member.birth_month && member.birth_day) {
+            bMonthNum = Number(member.birth_month);
+            bDayNum = Number(member.birth_day);
+          }
+
+          if (!bMonthNum || !bDayNum) return null;
+
+          const bMonth = new Date(2000, bMonthNum - 1, 1).toLocaleString('en-US', { month: 'short' });
+          const bDay = bDayNum;
 
           // Calculate days until birthday
           const today = new Date();
           today.setHours(0, 0, 0, 0);
 
-          let birthdayThisYear = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+          let birthdayThisYear = new Date(today.getFullYear(), bMonthNum - 1, bDay);
           birthdayThisYear.setHours(0, 0, 0, 0);
 
           if (birthdayThisYear < today) {
-            birthdayThisYear = new Date(today.getFullYear() + 1, dob.getMonth(), dob.getDate());
+            birthdayThisYear = new Date(today.getFullYear() + 1, bMonthNum - 1, bDay);
             birthdayThisYear.setHours(0, 0, 0, 0);
           }
 

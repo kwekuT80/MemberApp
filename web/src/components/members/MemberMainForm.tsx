@@ -151,7 +151,23 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
   }, [supabase]);
 
   function updateField(key: string, value: any) {
-    setForm((current: any) => ({ ...current, [key]: value }));
+    setForm((current: any) => {
+      const updated = { ...current, [key]: value };
+      if (key === 'date_of_birth') {
+        if (value) {
+          const parts = String(value).split('-');
+          if (parts.length === 3) {
+            const mm = parseInt(parts[1], 10);
+            const dd = parseInt(parts[2], 10);
+            if (!isNaN(mm) && !isNaN(dd)) {
+              updated.birth_month = mm;
+              updated.birth_day = dd;
+            }
+          }
+        }
+      }
+      return updated;
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -236,7 +252,58 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
             <InputField label="Surname" value={form.surname} onChange={(v: string) => updateField('surname', v)} />
             <InputField label="First Name" value={form.first_name} onChange={(v: string) => updateField('first_name', v)} />
             <InputField label="Other Names" value={form.other_names} onChange={(v: string) => updateField('other_names', v)} />
-            <InputField label="Date of Birth" type="date" value={form.date_of_birth} onChange={(v: string) => updateField('date_of_birth', v)} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <InputField 
+                label="Date of Birth" 
+                type="date" 
+                value={form.date_of_birth || ''} 
+                onChange={(v: string) => updateField('date_of_birth', v)} 
+              />
+              {form.date_of_birth ? (
+                <div style={{ fontSize: 12, color: '#16A34A', fontWeight: 600, marginTop: -4 }}>
+                  ✓ Birthday celebration auto-synced with birth year ({formatDisplayDate(form.date_of_birth)})
+                </div>
+              ) : (
+                <div style={{ marginTop: 2, padding: 12, background: '#F8FAFC', borderRadius: 8, border: '1px solid #E2E8F0' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>🎂</span> Birth Year Unknown? Enter Celebration Month & Day
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <div style={{ flex: 2 }}>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: '#64748B', display: 'block', marginBottom: 4 }}>Month</label>
+                      <select 
+                        className="select" 
+                        value={form.birth_month || ''} 
+                        onChange={e => updateField('birth_month', e.target.value ? Number(e.target.value) : null)}
+                        style={{ width: '100%', padding: '6px 10px', fontSize: 13 }}
+                      >
+                        <option value="">-- Select Month --</option>
+                        {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((m, idx) => (
+                          <option key={m} value={idx + 1}>{m}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: '#64748B', display: 'block', marginBottom: 4 }}>Day</label>
+                      <select 
+                        className="select" 
+                        value={form.birth_day || ''} 
+                        onChange={e => updateField('birth_day', e.target.value ? Number(e.target.value) : null)}
+                        style={{ width: '100%', padding: '6px 10px', fontSize: 13 }}
+                      >
+                        <option value="">-- Day --</option>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 6 }}>
+                    This populates the birthday lists & monthly celebrants roll while keeping dues calculations safe.
+                  </div>
+                </div>
+              )}
+            </div>
             <InputField label="Place of Birth" value={form.birth_town} onChange={(v: string) => updateField('birth_town', v)} />
             <SelectField label="Birth Region" value={form.birth_region} options={regions} onChange={(v: string) => updateField('birth_region', v)} />
             <InputField label="Nationality" value={form.nationality} onChange={(v: string) => updateField('nationality', v)} />

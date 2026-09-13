@@ -7,6 +7,8 @@ export interface Member {
   first_name?: string | null;
   other_names?: string | null;
   date_of_birth?: string | null;
+  birth_month?: number | null;
+  birth_day?: number | null;
   birth_town?: string | null;
   birth_region?: string | null;
   nationality?: string | null;

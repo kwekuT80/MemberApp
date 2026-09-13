@@ -65,13 +65,19 @@ export default function ReportsPage() {
     let missingCount = 0;
 
     activeMembers.forEach(m => {
-      if (!m.date_of_birth) {
-        missingCount++;
-        return;
+      let bMonth: number | null = null;
+      if (m.date_of_birth) {
+        const parts = String(m.date_of_birth).split('-');
+        if (parts.length >= 3) {
+          bMonth = parseInt(parts[1], 10) - 1; // 0-11
+        }
       }
-      const dob = new Date(m.date_of_birth);
-      if (!isNaN(dob.getTime())) {
-        counts[dob.getMonth()]++;
+      if (bMonth === null && m.birth_month) {
+        bMonth = Number(m.birth_month) - 1; // 0-11
+      }
+
+      if (bMonth !== null && !isNaN(bMonth) && bMonth >= 0 && bMonth < 12) {
+        counts[bMonth]++;
       } else {
         missingCount++;
       }
@@ -80,21 +86,32 @@ export default function ReportsPage() {
     return { counts, missingCount, totalRecorded: activeMembers.length - missingCount };
   }, [activeMembers]);
 
-  // Birthday list filtered by selected month or missing
+  // Birthday list filtered by selected month or missing (strictly deduplicated)
   const birthdayMembers = useMemo(() => {
     if (selectedBirthMonth === 'missing') {
-      return activeMembers.filter(m => !m.date_of_birth);
+      return activeMembers.filter(m => !m.date_of_birth && (!m.birth_month || !m.birth_day));
     }
     return activeMembers
       .filter(m => {
-        if (!m.date_of_birth) return false;
-        const dob = new Date(m.date_of_birth);
-        return !isNaN(dob.getTime()) && dob.getMonth() === selectedBirthMonth;
+        let bMonth: number | null = null;
+        if (m.date_of_birth) {
+          const parts = String(m.date_of_birth).split('-');
+          if (parts.length >= 3) bMonth = parseInt(parts[1], 10) - 1;
+        }
+        if (bMonth === null && m.birth_month) {
+          bMonth = Number(m.birth_month) - 1;
+        }
+        return bMonth === selectedBirthMonth;
       })
       .sort((a, b) => {
-        const da = new Date(a.date_of_birth).getDate();
-        const db = new Date(b.date_of_birth).getDate();
-        return da - db;
+        const getDay = (member: any) => {
+          if (member.date_of_birth) {
+            const parts = String(member.date_of_birth).split('-');
+            if (parts.length >= 3) return parseInt(parts[2], 10) || 0;
+          }
+          return Number(member.birth_day) || 0;
+        };
+        return getDay(a) - getDay(b);
       });
   }, [activeMembers, selectedBirthMonth]);
 
@@ -264,9 +281,22 @@ export default function ReportsPage() {
 
     const rows = currentView.list.map((m: any) => {
       if (currentView.type === 'birthdays') {
-        const dob = m.date_of_birth ? new Date(m.date_of_birth) : null;
-        const dayStr = dob ? dob.getDate() : '';
-        return [m.title, m.first_name, m.surname, m.date_of_birth, dayStr, m.phone, m.mobile, m.email];
+        let bMonthNum: number | null = null;
+        let bDayNum: number | null = null;
+        if (m.date_of_birth) {
+          const parts = String(m.date_of_birth).split('-');
+          if (parts.length >= 3) {
+            bMonthNum = parseInt(parts[1], 10) - 1;
+            bDayNum = parseInt(parts[2], 10);
+          }
+        }
+        if (bMonthNum === null && m.birth_month && m.birth_day) {
+          bMonthNum = Number(m.birth_month) - 1;
+          bDayNum = Number(m.birth_day);
+        }
+        const dayStr = bDayNum ? String(bDayNum) : '';
+        const dobStr = m.date_of_birth || (bMonthNum !== null && bDayNum ? `${bDayNum} ${MONTH_SHORT[bMonthNum]} (Year Unknown)` : '');
+        return [m.title, m.first_name, m.surname, dobStr, dayStr, m.phone, m.mobile, m.email];
       }
       if (currentView.type === 'final') {
         return [m.title, m.first_name, m.surname, m.date_of_death, m.burial_date, m.burial_place];
@@ -903,8 +933,22 @@ export default function ReportsPage() {
                 </thead>
                 <tbody>
                   {currentView.list.map((m: any) => {
-                    const dob = m.date_of_birth ? new Date(m.date_of_birth) : null;
-                    const isToday = dob && dob.getMonth() === new Date().getMonth() && dob.getDate() === new Date().getDate();
+                    let bMonthNum: number | null = null;
+                    let bDayNum: number | null = null;
+                    if (m.date_of_birth) {
+                      const parts = String(m.date_of_birth).split('-');
+                      if (parts.length >= 3) {
+                        bMonthNum = parseInt(parts[1], 10) - 1;
+                        bDayNum = parseInt(parts[2], 10);
+                      }
+                    }
+                    if (bMonthNum === null && m.birth_month && m.birth_day) {
+                      bMonthNum = Number(m.birth_month) - 1;
+                      bDayNum = Number(m.birth_day);
+                    }
+
+                    const isToday = bMonthNum !== null && bDayNum !== null &&
+                      bMonthNum === new Date().getMonth() && bDayNum === new Date().getDate();
                     const phoneClean = (m.phone || m.mobile || '').replace(/\D/g, '');
 
                     return (
@@ -928,13 +972,26 @@ export default function ReportsPage() {
                           <>
                             <td style={{ padding: '12px 10px', color: '#1E293B' }}>
                               {m.date_of_birth ? formatDisplayDate(m.date_of_birth) : (
-                                <span style={{ color: '#DC2626', fontWeight: 600 }}>Missing DOB</span>
+                                (m.birth_month && m.birth_day) ? (
+                                  <span style={{
+                                    color: '#0284C7',
+                                    fontWeight: 700,
+                                    background: '#E0F2FE',
+                                    padding: '3px 8px',
+                                    borderRadius: 6,
+                                    fontSize: 11
+                                  }}>
+                                    Year Unknown
+                                  </span>
+                                ) : (
+                                  <span style={{ color: '#DC2626', fontWeight: 600 }}>Missing DOB</span>
+                                )
                               )}
                             </td>
                             <td style={{ padding: '12px 10px' }}>
-                              {dob ? (
+                              {bMonthNum !== null && bDayNum !== null ? (
                                 <span style={{ fontWeight: 800, color: '#0F172A' }}>
-                                  {dob.getDate()} {MONTH_SHORT[dob.getMonth()]}
+                                  {bDayNum} {MONTH_SHORT[bMonthNum]}
                                 </span>
                               ) : (
                                 '---'

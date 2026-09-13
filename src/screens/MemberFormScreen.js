@@ -40,7 +40,7 @@ const EMPTY_MILITARY = {
 
 const INITIAL_FORM_STATE = {
   title: '', surname: '', first_name: '', other_names: '',
-  date_of_birth: '', birth_town: '', birth_region: '', nationality: '',
+  date_of_birth: '', birth_month: null, birth_day: null, birth_town: '', birth_region: '', nationality: '',
   home_town: '', home_region: '', residential_address: '', postal_address: '',
   phone: '', mobile: '', email: '', fathers_name: '', mothers_name: '',
   marital_status: '', emp_status: '', occupation: '', workplace: '',
@@ -139,7 +139,31 @@ export default function MemberFormScreen({ route, navigation }) {
 
   function set(field) {
     return (value) => {
-      setForm(prev => ({ ...prev, [field]: value }));
+      setForm(prev => {
+        const next = { ...prev, [field]: value };
+        if (field === 'date_of_birth' && value) {
+          let mm = null;
+          let dd = null;
+          if (value.includes('/')) {
+            const parts = value.split('/');
+            if (parts.length >= 2) {
+              dd = parseInt(parts[0], 10);
+              mm = parseInt(parts[1], 10);
+            }
+          } else if (value.includes('-')) {
+            const parts = value.split('-');
+            if (parts.length >= 3) {
+              mm = parseInt(parts[1], 10);
+              dd = parseInt(parts[2], 10);
+            }
+          }
+          if (mm && dd && !isNaN(mm) && !isNaN(dd)) {
+            next.birth_month = mm;
+            next.birth_day = dd;
+          }
+        }
+        return next;
+      });
       setDirty(true);
     };
   }
@@ -395,6 +419,35 @@ function BioTab({ form, set, regions, military, setMilitaryField }) {
         </TouchableOpacity>
       ) : null}
       <DateInput label="Date of Birth" value={form.date_of_birth} onChangeText={set('date_of_birth')} />
+      {form.date_of_birth ? (
+        <Text style={{ fontSize: 12, color: '#16A34A', fontWeight: '600', marginTop: -8, marginBottom: 12 }}>
+          ✓ Birthday celebration auto-synced with birth year
+        </Text>
+      ) : (
+        <View style={{ marginTop: -8, marginBottom: 16, padding: 12, backgroundColor: '#F8FAFC', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' }}>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.navy, marginBottom: 8 }}>
+            🎂 Birth Year Unknown? Select Celebration Day
+          </Text>
+          <FormPicker
+            label="Celebration Month"
+            value={form.birth_month ? ['January','February','March','April','May','June','July','August','September','October','November','December'][Number(form.birth_month) - 1] : ''}
+            onValueChange={(mName) => {
+              const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+              const idx = months.indexOf(mName);
+              set('birth_month')(idx >= 0 ? idx + 1 : null);
+            }}
+            items={['January','February','March','April','May','June','July','August','September','October','November','December']}
+          />
+          <FormPicker
+            label="Celebration Day"
+            value={form.birth_day ? String(form.birth_day) : ''}
+            onValueChange={(dStr) => {
+              set('birth_day')(dStr ? parseInt(dStr, 10) : null);
+            }}
+            items={Array.from({ length: 31 }, (_, i) => String(i + 1))}
+          />
+        </View>
+      )}
       <SectionHeader title="Origin" />
       <FormInput label="Place of Birth (Town)" value={form.birth_town} onChangeText={set('birth_town')} />
       <FormPicker label="Place of Birth (Region)" value={form.birth_region} onValueChange={set('birth_region')} items={regions} />
