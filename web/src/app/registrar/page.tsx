@@ -20,12 +20,13 @@ export default async function RegistrarPage() {
     getUpcomingBirthdayMembers()
   ]);
 
-  // Status Breakdown Calculation
+  // Status Breakdown Calculation (Canonical KSJI Membership Statuses)
   const stats = {
     active: members.filter(m => m.status === 'Active' || !m.status).length,
-    retired: members.filter(m => m.status === 'Retired').length,
-    deceased: members.filter(m => m.status === 'Deceased').length,
-    other: members.filter(m => m.status && !['Active', 'Retired', 'Deceased'].includes(m.status)).length,
+    suspended: members.filter(m => m.status === 'Suspended').length,
+    transferred: members.filter(m => m.status === 'Transfer-Out' || m.status === 'Transfer-In').length,
+    dismissed: members.filter(m => m.status === 'Dismissed').length,
+    deceased: members.filter(m => m.status === 'Deceased' || m.is_deceased).length,
   };
 
   const total = members.length || 1;
@@ -132,15 +133,74 @@ export default async function RegistrarPage() {
       <div className="card" style={{ marginBottom: 32 }}>
         <h3 className="label" style={{ marginBottom: 20, color: 'var(--navy)' }}>Registry Health & Distribution</h3>
         <div style={{ display: 'flex', height: 40, borderRadius: 12, overflow: 'hidden', marginBottom: 20, background: '#eee' }}>
-           <div style={{ width: `${getPct(stats.active)}%`, background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--navy)', fontSize: 11, fontWeight: 800 }}>{getPct(stats.active)}% Active</div>
-           <div style={{ width: `${getPct(stats.retired)}%`, background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 800 }}>{getPct(stats.retired)}% Retired</div>
-           <div style={{ width: `${getPct(stats.deceased)}%`, background: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 800 }}>{getPct(stats.deceased)}% RIP</div>
-           <div style={{ width: `${getPct(stats.other)}%`, background: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 800 }}>{getPct(stats.other)}% Other</div>
+           {getPct(stats.active) > 0 && (
+             <div 
+               title={`${stats.active} Active Brothers (${getPct(stats.active)}%)`}
+               style={{ width: `${getPct(stats.active)}%`, background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--navy)', fontSize: 11, fontWeight: 800, minWidth: 24 }}
+             >
+               {getPct(stats.active) >= 8 && `${getPct(stats.active)}% Active`}
+             </div>
+           )}
+           {getPct(stats.suspended) > 0 && (
+             <div 
+               title={`${stats.suspended} Suspended (${getPct(stats.suspended)}%)`}
+               style={{ width: `${getPct(stats.suspended)}%`, background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 800, minWidth: 16 }}
+             >
+               {getPct(stats.suspended) >= 8 && `${getPct(stats.suspended)}% Suspended`}
+             </div>
+           )}
+           {getPct(stats.transferred) > 0 && (
+             <div 
+               title={`${stats.transferred} Transferred (${getPct(stats.transferred)}%)`}
+               style={{ width: `${getPct(stats.transferred)}%`, background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 800, minWidth: 16 }}
+             >
+               {getPct(stats.transferred) >= 8 && `${getPct(stats.transferred)}% Transfer`}
+             </div>
+           )}
+           {getPct(stats.dismissed) > 0 && (
+             <div 
+               title={`${stats.dismissed} Dismissed (${getPct(stats.dismissed)}%)`}
+               style={{ width: `${getPct(stats.dismissed)}%`, background: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 800, minWidth: 16 }}
+             >
+               {getPct(stats.dismissed) >= 8 && `${getPct(stats.dismissed)}% Dismissed`}
+             </div>
+           )}
+           {getPct(stats.deceased) > 0 && (
+             <div 
+               title={`${stats.deceased} Deceased / Final Roll (${getPct(stats.deceased)}%)`}
+               style={{ width: `${getPct(stats.deceased)}%`, background: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 800, minWidth: 24 }}
+             >
+               {getPct(stats.deceased) >= 8 && `${getPct(stats.deceased)}% RIP`}
+             </div>
+           )}
         </div>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}><span style={{ width: 12, height: 12, borderRadius: 3, background: 'var(--gold)' }} /> <strong>{stats.active}</strong> Active Brothers</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}><span style={{ width: 12, height: 12, borderRadius: 3, background: '#3b82f6' }} /> <strong>{stats.retired}</strong> Retired</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}><span style={{ width: 12, height: 12, borderRadius: 3, background: '#111827' }} /> <strong>{stats.deceased}</strong> Deceased (RIP)</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: 'var(--gold)' }} /> 
+            <strong>{stats.active}</strong> Active Brothers
+          </div>
+          {stats.suspended > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+              <span style={{ width: 12, height: 12, borderRadius: 3, background: '#f59e0b' }} /> 
+              <strong>{stats.suspended}</strong> Suspended
+            </div>
+          )}
+          {stats.transferred > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+              <span style={{ width: 12, height: 12, borderRadius: 3, background: '#3b82f6' }} /> 
+              <strong>{stats.transferred}</strong> Transferred
+            </div>
+          )}
+          {stats.dismissed > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+              <span style={{ width: 12, height: 12, borderRadius: 3, background: '#dc2626' }} /> 
+              <strong>{stats.dismissed}</strong> Dismissed
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: '#111827' }} /> 
+            <strong>{stats.deceased}</strong> Deceased (RIP)
+          </div>
         </div>
       </div>
 

@@ -235,7 +235,7 @@ export default function RegistrarDashboard({ navigation }) {
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.filterGroup}>
                 <Text style={styles.filterLabel}>Profession:</Text>
-                {['All', 'Retired', 'Lawyer', 'Engineer', 'Banker'].map(p => (
+                {['All', 'Retired', 'Lawyer', 'Engineer', 'Banker', 'Doctor', 'Accountant'].map(p => (
                   <TouchableOpacity 
                     key={p} 
                     onPress={() => setProfFilter(p)}
