@@ -185,7 +185,7 @@ export async function saveMember(form: any): Promise<Member> {
     'home_town', 'home_region', 'residential_address', 'postal_address', 
     'phone', 'mobile', 'email', 'fathers_name', 'mothers_name', 
     'marital_status', 'emp_status', 'occupation', 'workplace', 
-    'job_status', 'work_address', 'uniform_positions', 'date_joined',
+    'job_status', 'work_address', 'uniform_positions', 'notes', 'date_joined',
     'degree1_place', 'degree23_place', 'degree4_place', 'degree_noble_place',
     'status', 'is_deceased', 'date_of_death', 'burial_date', 'burial_place',
     'transfer_from', 'transfer_to', 'transfer_date',
@@ -622,3 +622,132 @@ export async function getBatchMemberPersonalReports(memberIds: string[]): Promis
   return reports;
 }
 
+
+export async function enrollHistoricalBrother(data: {
+  title?: string;
+  first_name: string;
+  surname: string;
+  other_names?: string;
+  date_joined?: string;
+  status: 'Active' | 'Deceased' | 'Transfer-Out' | 'Dismissed';
+  is_deceased?: boolean;
+  date_of_death?: string;
+  burial_date?: string;
+  burial_place?: string;
+  transfer_to?: string;
+  transfer_date?: string;
+  date_of_dismissal?: string;
+  occupation?: string;
+  residential_address?: string;
+  notes?: string;
+}): Promise<any> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profile?.role !== 'super_admin') {
+    throw new Error('Unauthorized: Only super_admin can enroll historical brothers');
+  }
+
+  const payload: any = {
+    commandery_id: 'b31c4884-9518-4fdf-bc55-98e3425189cc',
+    title: data.title || 'Bro.',
+    first_name: data.first_name.trim(),
+    surname: data.surname.trim(),
+    other_names: data.other_names ? data.other_names.trim() : null,
+    date_joined: data.date_joined || null,
+    status: data.status,
+    is_deceased: data.status === 'Deceased' ? true : (data.is_deceased || false),
+    date_of_death: data.date_of_death || null,
+    burial_date: data.burial_date || null,
+    burial_place: data.burial_place || null,
+    transfer_to: data.transfer_to || null,
+    transfer_date: data.transfer_date || null,
+    date_of_dismissal: data.date_of_dismissal || null,
+    occupation: data.occupation ? data.occupation.trim() : null,
+    residential_address: data.residential_address ? data.residential_address.trim() : null,
+    notes: data.notes ? data.notes.trim() : null
+  };
+
+  const { data: newMember, error } = await supabase
+    .from('members')
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  if (data.date_joined && newMember?.id) {
+    try {
+      await supabase.from('degrees').insert({
+        member_id: newMember.id,
+        degree_type: '1st Degree',
+        degree_date: data.date_joined,
+        degree_place: "St Margaret - Mary - D'Man"
+      });
+    } catch (degErr) {
+      console.error('Non-blocking degree insert note:', degErr);
+    }
+  }
+
+  return newMember;
+}
+
+export async function updateMemberArchivalStatus(
+  id: string,
+  status: 'Active' | 'Deceased' | 'Transfer-Out' | 'Dismissed',
+  extra?: {
+    date_of_death?: string;
+    burial_date?: string;
+    burial_place?: string;
+    transfer_to?: string;
+    transfer_date?: string;
+    date_of_dismissal?: string;
+    notes?: string;
+  }
+): Promise<any> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profile?.role !== 'super_admin') {
+    throw new Error('Unauthorized: Only super_admin can update member archival status');
+  }
+
+  const patch: any = {
+    status,
+    is_deceased: status === 'Deceased'
+  };
+
+  if (extra) {
+    if (extra.date_of_death !== undefined) patch.date_of_death = extra.date_of_death || null;
+    if (extra.burial_date !== undefined) patch.burial_date = extra.burial_date || null;
+    if (extra.burial_place !== undefined) patch.burial_place = extra.burial_place || null;
+    if (extra.transfer_to !== undefined) patch.transfer_to = extra.transfer_to || null;
+    if (extra.transfer_date !== undefined) patch.transfer_date = extra.transfer_date || null;
+    if (extra.date_of_dismissal !== undefined) patch.date_of_dismissal = extra.date_of_dismissal || null;
+    if (extra.notes !== undefined) patch.notes = extra.notes || null;
+  }
+
+  const { data, error } = await supabase
+    .from('members')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}

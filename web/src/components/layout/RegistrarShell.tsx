@@ -84,6 +84,12 @@ export default function RegistrarShell({
         { href: '/registrar/financials/audit', label: '📋 Audit Trail' }
       ]
     }] : []),
+    ...(isSuperAdmin ? [{
+      title: 'SUPER ADMIN ARCHIVES',
+      items: [
+        { href: '/registrar/historical-members', label: '📜 Roll Book & Archives' }
+      ]
+    }] : []),
     {
       title: 'ACCOUNT',
       items: [

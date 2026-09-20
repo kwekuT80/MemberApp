@@ -31,3 +31,12 @@ ledger_excel_sheets/
 
 # Documentation PDFs
 *.pdf
+
+# Local Roll Book Images
+roll_book/
+Commandery500_Initiation_Register_Audit*.html
+
+
+# Private Ledger & Roll Book Data
+web/src/data/
+
