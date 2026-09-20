@@ -304,7 +304,7 @@ export default function HistoricalMembersClient({
   function openEditModal(item: LedgerItem) {
     setSelectedItem(item);
     const candidates = getCandidateMatches(item);
-    const defaultLink = candidates.length > 0 ? candidates[0].id : '';
+    const defaultLink = ''; // Require explicit user choice
 
     setEditForm({
       id: item.id || '',
@@ -423,17 +423,18 @@ export default function HistoricalMembersClient({
   }
 
   // Link Roll Book Entry to Existing Member
-  async function handleLinkMember(memberId: string) {
-    if (!selectedItem?.id) return;
+  async function handleLinkMember(rollBookId: string, memberId: string) {
+    if (!rollBookId || !memberId) return;
     setSubmitting(true);
     try {
-      await linkRollBookToExistingMember(selectedItem.id, memberId, true);
+      await linkRollBookToExistingMember(rollBookId, memberId, true);
       
       // Update local state
-      setLedger(prev => prev.map(l => l.id === selectedItem.id ? { ...l, enrolledMemberId: memberId } : l));
+      setLedger(prev => prev.map(l => l.id === rollBookId ? { ...l, enrolledMemberId: memberId } : l));
       
       const targetMember = dbMembers.find(m => m.id === memberId);
-      showToast(`Linked roll book entry "${selectedItem.rawName}" to registered member: ${targetMember?.first_name} ${targetMember?.surname}!`);
+      const entry = ledger.find(l => l.id === rollBookId);
+      showToast(`Linked roll book entry "${entry?.rawName || ""}" to registered member: ${targetMember?.first_name} ${targetMember?.surname}!`);
       setEditModalOpen(false);
     } catch (err: any) {
       console.error(err);
@@ -823,8 +824,9 @@ export default function HistoricalMembersClient({
                           {candidateMatches.length > 0 && (
                             <button
                               onClick={() => {
-                                setSelectedItem(item);
-                                handleLinkMember(candidateMatches[0].id);
+                                if (confirm(`Link "${item.rawName}" to ${candidateMatches[0].first_name} ${candidateMatches[0].surname}?`)) {
+                                  handleLinkMember(item.id!, candidateMatches[0].id);
+                                }
                               }}
                               title={`Link this entry directly to ${candidateMatches[0].first_name} ${candidateMatches[0].surname}`}
                               style={{
@@ -969,7 +971,7 @@ export default function HistoricalMembersClient({
                           </button>
                           {item.enrolledMemberId && (
                             <button
-                              onClick={() => handleUnlink(item.id!)}
+                              onClick={() => { if (confirm(`Unlink "${item.rawName}" from this member?`)) handleUnlink(item.id!); }}
                               style={{
                                 background: '#fff',
                                 color: '#b91c1c',
@@ -1245,7 +1247,7 @@ export default function HistoricalMembersClient({
                 <button
                   type="button"
                   disabled={!editForm.selectedLinkMemberId || submitting}
-                  onClick={() => handleLinkMember(editForm.selectedLinkMemberId)}
+                  onClick={() => handleLinkMember(editForm.id, editForm.selectedLinkMemberId)}
                   style={{
                     background: '#0284c7',
                     color: '#fff',
