@@ -26,6 +26,7 @@ export default function RegistrarDashboard({ navigation }) {
   const [rankFilter, setRankFilter] = useState('All');
   const [profFilter, setProfFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [cohortFilter, setCohortFilter] = useState('All');
   
   // New State for Upgrades
   const [activeTab, setActiveTab] = useState('list'); // 'list' or 'insights'
@@ -59,6 +60,19 @@ export default function RegistrarDashboard({ navigation }) {
     }
     setLoading(false);
   }
+
+
+  const cohortOptions = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    members.forEach((m: any) => {
+      if (m.date_joined) {
+        counts[m.date_joined] = (counts[m.date_joined] || 0) + 1;
+      }
+    });
+    return Object.keys(counts)
+      .sort((a, b) => b.localeCompare(a))
+      .map(d => ({ date: d, count: counts[d] }));
+  }, [members]);
 
   async function loadUpgrades() {
     try {
@@ -94,7 +108,8 @@ export default function RegistrarDashboard({ navigation }) {
     );
     const rankMatch = rankFilter === 'All' || hasRank;
 
-    return textMatch && statusMatch && profMatch && rankMatch;
+    const cohortMatch = cohortFilter === 'All' || item.date_joined === cohortFilter;
+    return textMatch && statusMatch && profMatch && rankMatch && cohortMatch;
   });
 
   const renderItem = ({ item }) => {
@@ -592,6 +607,19 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
     borderWidth: 0.5,
     borderColor: Colors.goldPale,
+  },
+  cohortTag: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#bfdbfe',
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  cohortTagText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#1d4ed8',
   },
   positionBadgeText: {
     fontSize: 11,

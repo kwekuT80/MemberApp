@@ -84,7 +84,27 @@ export default function MemberSummaryCard({ member, editHref='/me/edit', showOwn
         <Field label='Employment' value={value(member.emp_status)} />
         <Field label='Occupation' value={value(member.occupation)} />
         <Field label='Workplace' value={value(member.workplace)} />
-        <Field label='Date joined' value={formatDisplayDate(member.date_joined)} />
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Field label='Date joined' value={formatDisplayDate(member.date_joined)} />
+          {member.date_joined && (
+            <Link 
+              href={`/registrar/members?cohort=${member.date_joined}`}
+              style={{
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: '#1d4ed8',
+                textDecoration: 'none',
+                marginTop: -10,
+                marginBottom: 6,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4
+              }}
+            >
+              👥 View Cohort Batch →
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );

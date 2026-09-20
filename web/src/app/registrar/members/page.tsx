@@ -9,15 +9,16 @@ import { searchMembers } from '@/services/memberService';
 export default async function RegistrarMembersPage({ 
   searchParams 
 }: { 
-  searchParams?: Promise<{ q?: string }> 
+  searchParams?: Promise<{ q?: string; cohort?: string }> 
 }) {
   await requireRegistrar();
   const params = searchParams ? await searchParams : {};
   const query = params?.q || '';
+  const initialCohort = params?.cohort || '';
   const members = await searchMembers(query);
 
   return (
-    <RegistrarShell title="Members" subtitle="Search, browse, and open any member record.">
+    <RegistrarShell title="Members" subtitle="Search, browse, and filter members by status or initiation cohort.">
       <div style={{ display: 'grid', gap: 18 }}>
         <RegistrarSearchBar defaultQuery={query} />
         
@@ -46,13 +47,17 @@ export default async function RegistrarMembersPage({
                 boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
               }}
             >
-              <span>➕</span>
+              <span>+ </span>
               <span>Create Member</span>
             </Link>
           </div>
         </div>
 
-        <MemberSearchTable members={members} emptyMessage="No members match this search yet." />
+        <MemberSearchTable 
+          members={members} 
+          initialCohort={initialCohort}
+          emptyMessage="No members match this search yet." 
+        />
       </div>
     </RegistrarShell>
   );
