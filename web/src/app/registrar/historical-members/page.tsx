@@ -17,7 +17,7 @@ export default async function HistoricalMembersPage() {
     .neq('id', 'f0000000-0000-0000-0000-000000000000')
     .order('surname', { ascending: true });
 
-  // 2. Fetch roll book entries from Supabase table first (Option 2: Private Cloud Storage)
+  // 2. Fetch roll book entries from Supabase table
   let ledgerData: LedgerItem[] = [];
   try {
     const { data: dbLedger, error } = await supabase
@@ -27,6 +27,7 @@ export default async function HistoricalMembersPage() {
 
     if (!error && dbLedger && dbLedger.length > 0) {
       ledgerData = dbLedger.map((r: any) => ({
+        id: r.id,
         ledgerId: r.ledger_id || r.id,
         source: r.source || 'Supabase Roll Book Archive',
         entryNo: r.entry_no,
@@ -39,25 +40,12 @@ export default async function HistoricalMembersPage() {
         residence: r.residence,
         occupation: r.occupation,
         ageAtInitiation: r.age_at_initiation,
-        notes: r.notes
+        notes: r.notes,
+        enrolledMemberId: r.enrolled_member_id || null
       }));
     }
   } catch (err) {
-    // Non-blocking if table is being created
-  }
-
-  // 3. Fallback to local gitignored file if Supabase table is not yet seeded
-  if (ledgerData.length === 0) {
-    try {
-      const fs = await import('fs');
-      const path = await import('path');
-      const localPath = path.resolve(process.cwd(), 'src/data/historicalLedgerData.json');
-      if (fs.existsSync(localPath)) {
-        ledgerData = JSON.parse(fs.readFileSync(localPath, 'utf8'));
-      }
-    } catch (e) {
-      ledgerData = [];
-    }
+    // Non-blocking
   }
 
   return (

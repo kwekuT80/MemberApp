@@ -624,6 +624,7 @@ export async function getBatchMemberPersonalReports(memberIds: string[]): Promis
 
 
 export async function enrollHistoricalBrother(data: {
+  rollBookId?: string;
   title?: string;
   first_name: string;
   surname: string;
@@ -696,6 +697,15 @@ export async function enrollHistoricalBrother(data: {
     }
   }
 
+    if (data.rollBookId && newMember?.id) {
+    try {
+      await supabase
+        .from('roll_book_entries')
+        .update({ enrolled_member_id: newMember.id })
+        .eq('id', data.rollBookId);
+    } catch (e) {}
+  }
+
   return newMember;
 }
 
@@ -745,6 +755,129 @@ export async function updateMemberArchivalStatus(
     .from('members')
     .update(patch)
     .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateRollBookEntry(
+  id: string,
+  updates: {
+    raw_name?: string;
+    title?: string;
+    first_name?: string;
+    surname?: string;
+    date_of_initiation?: string | null;
+    cohort_year?: string;
+    residence?: string | null;
+    occupation?: string | null;
+    age_at_initiation?: string | null;
+    notes?: string | null;
+  }
+): Promise<any> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profile?.role !== 'super_admin') {
+    throw new Error('Unauthorized: Only super_admin can edit roll book records');
+  }
+
+  const { data, error } = await supabase
+    .from('roll_book_entries')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function linkRollBookToExistingMember(
+  rollBookId: string,
+  memberId: string,
+  syncInitiationDate: boolean = true
+): Promise<any> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profile?.role !== 'super_admin') {
+    throw new Error('Unauthorized: Only super_admin can link roll book records');
+  }
+
+  // 1. Link roll book entry
+  const { data: entry, error: linkErr } = await supabase
+    .from('roll_book_entries')
+    .update({ enrolled_member_id: memberId })
+    .eq('id', rollBookId)
+    .select()
+    .single();
+
+  if (linkErr) throw linkErr;
+
+  // 2. If syncInitiationDate requested, populate initiation date if missing
+  if (syncInitiationDate && entry?.date_of_initiation) {
+    const { data: m } = await supabase
+      .from('members')
+      .select('date_joined')
+      .eq('id', memberId)
+      .maybeSingle();
+
+    if (m && !m.date_joined) {
+      await supabase
+        .from('members')
+        .update({ date_joined: entry.date_of_initiation })
+        .eq('id', memberId);
+
+      try {
+        await supabase.from('degrees').insert({
+          member_id: memberId,
+          degree_type: '1st Degree',
+          degree_date: entry.date_of_initiation,
+          degree_place: "St Margaret - Mary - D'Man"
+        });
+      } catch (e) {}
+    }
+  }
+
+  return entry;
+}
+
+export async function unlinkRollBookEntry(rollBookId: string): Promise<any> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profile?.role !== 'super_admin') {
+    throw new Error('Unauthorized: Only super_admin can unlink roll book records');
+  }
+
+  const { data, error } = await supabase
+    .from('roll_book_entries')
+    .update({ enrolled_member_id: null })
+    .eq('id', rollBookId)
     .select()
     .single();
 
