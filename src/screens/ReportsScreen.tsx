@@ -45,7 +45,7 @@ export default function ReportsScreen({ navigation }) {
     setReportType('final');
     const { data, error } = await supabase
       .from('members')
-      .select('surname, first_name, title, date_of_death, burial_date, burial_place')
+      .select('surname, first_name, title, date_of_death, burial_date, burial_place, status')
       .or('status.eq.Deceased,is_deceased.eq.true')
       .order('date_of_death', { ascending: false });
 

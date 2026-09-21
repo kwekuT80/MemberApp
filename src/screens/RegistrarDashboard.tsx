@@ -197,12 +197,23 @@ export default function RegistrarDashboard({ navigation }) {
           <Text style={styles.subtitle}>All Registered Members</Text>
         </View>
         <View style={styles.headerActionsRow}>
-          <TouchableOpacity
-            style={styles.headerReportBtn}
-            onPress={() => navigation.navigate('Reports')}
-          >
-            <Text style={styles.headerReportBtnText}>Reports</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'column', gap: 8 }}>
+            <TouchableOpacity
+              style={styles.headerReportBtn}
+              onPress={() => navigation.navigate('Reports')}
+            >
+              <Text style={styles.headerReportBtnText}>Reports</Text>
+            </TouchableOpacity>
+
+            {role === 'super_admin' && (
+              <TouchableOpacity
+                style={[styles.headerReportBtn, { backgroundColor: '#3A2E5D', borderColor: '#7E63C4' }]}
+                onPress={() => navigation.navigate('TransferOut')}
+              >
+                <Text style={styles.headerReportBtnText}>Transfers</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           {['super_admin', 'financial_registrar'].includes(role as string) && (
             <TouchableOpacity

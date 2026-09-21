@@ -10,6 +10,7 @@ import { supabase } from '../db/supabase';
 
 import AuthScreen          from '../screens/AuthScreen';
 import RegistrarDashboard from '../screens/RegistrarDashboard';
+import TransferOutScreen from '../screens/TransferOutScreen';
 import MemberFormScreen    from '../screens/MemberFormScreen';
 import {
   ChildrenScreen,
@@ -140,6 +141,9 @@ export default function AppNavigator() {
               {/* Officer & Admin screens */}
               {['registrar', 'super_admin', 'financial_registrar', 'welfare_treasurer'].includes(role) && (
                 <Stack.Screen name="RegistrarDashboard" component={RegistrarDashboard} />
+              )} 
+              {['registrar', 'super_admin'].includes(role) && (
+                <Stack.Screen name="TransferOut" component={TransferOutScreen} />
               )}
 
               {['registrar', 'super_admin', 'financial_registrar', 'welfare_treasurer'].includes(role) && (
