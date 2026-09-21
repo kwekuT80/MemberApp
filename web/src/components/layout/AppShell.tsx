@@ -26,7 +26,7 @@ export default function AppShell({
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header className="premium-header no-print">
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ maxWidth: 1480, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <p className="title-gold">Official Registry Portal</p>
             <h1 className="main-title">{title}</h1>

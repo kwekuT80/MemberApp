@@ -39,7 +39,7 @@ body {
 
 /* Page Layout */
 .max-width-container {
-  max-width: 1200px;
+  max-width: 1480px;
   margin: 0 auto;
 }
 
@@ -720,7 +720,7 @@ body {
 }
 
 .app-shell-grid {
-  max-width: 1200px;
+  max-width: 1480px;
   width: 100%;
   margin: -12px auto 0 auto;
   padding: 0 24px 60px 24px;

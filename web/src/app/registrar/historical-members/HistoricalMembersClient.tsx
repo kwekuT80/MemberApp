@@ -749,12 +749,12 @@ export default function HistoricalMembersClient({
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                  <th style={{ padding: '10px 14px', width: '70px' }}>Entry #</th>
-                  <th style={{ padding: '10px 14px' }}>Transcribed Name &amp; Match Detection</th>
-                  <th style={{ padding: '10px 14px' }}>Initiation Date</th>
-                  <th style={{ padding: '10px 14px' }}>Location &amp; Profile</th>
-                  <th style={{ padding: '10px 14px' }}>Ledger Remarks</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'right', minWidth: '360px' }}>Split Actions</th>
+                  <th style={{ padding: '8px 10px', width: '55px', whiteSpace: 'nowrap' }}>Entry #</th>
+                  <th style={{ padding: '8px 12px', minWidth: '180px' }}>Transcribed Name &amp; Match Detection</th>
+                  <th style={{ padding: '8px 10px', width: '105px', whiteSpace: 'nowrap' }}>Initiation Date</th>
+                  <th style={{ padding: '8px 10px', maxWidth: '140px' }}>Location &amp; Profile</th>
+                  <th style={{ padding: '8px 10px', maxWidth: '140px' }}>Ledger Remarks</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>Split Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -765,13 +765,13 @@ export default function HistoricalMembersClient({
                     </td>
                   </tr>
                 ) : (
-                  filteredUnregistered.map(({ item, candidateMatches }, idx) => (
+filteredUnregistered.map(({ item, candidateMatches }, idx) => (
                     <tr key={item.ledgerId} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                      <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px', fontWeight: 600 }}>
+                      <td style={{ padding: '8px 10px', color: '#64748b', fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap' }}>
                         {item.entryNo ? `#${item.entryNo}` : '—'}
                         <div style={{ fontSize: '10px', color: '#94a3b8' }}>{item.source.includes('Batch') ? 'Batch 2' : 'Append'}</div>
                       </td>
-                      <td style={{ padding: '10px 14px' }}>
+                      <td style={{ padding: '8px 12px' }}>
                         <div style={{ fontWeight: 700, color: '#0f172a' }}>
                           <span style={{ fontSize: '11px', color: '#800020', background: '#fdf2f2', padding: '2px 6px', borderRadius: '4px', marginRight: '6px' }}>{item.title}</span>
                           {item.rawName}
@@ -787,37 +787,41 @@ export default function HistoricalMembersClient({
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <span style={{ fontWeight: 600, color: '#334155' }}>{item.dateOfInitiation || 'Date Unknown'}</span>
+                      <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontWeight: 600, color: '#334155', whiteSpace: 'nowrap' }}>{item.dateOfInitiation || 'Date Unknown'}</span>
                         <div style={{ fontSize: '11px', color: '#64748b' }}>Cohort: {item.cohortYear}</div>
                       </td>
-                      <td style={{ padding: '10px 14px' }}>
+                      <td style={{ padding: '8px 10px' }}>
                         {item.residence && <div style={{ fontSize: '12px' }}>📍 {item.residence}</div>}
                         {item.occupation && <div style={{ fontSize: '12px', color: '#475569' }}>💼 {item.occupation}</div>}
                         {item.ageAtInitiation && <div style={{ fontSize: '11px', color: '#64748b' }}>Age at entry: {item.ageAtInitiation}</div>}
                         {!item.residence && !item.occupation && <span style={{ color: '#94a3b8', fontSize: '12px' }}>—</span>}
                       </td>
-                      <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px', maxWidth: '200px' }}>
+                      <td style={{ padding: '8px 10px', color: '#64748b', fontSize: '12px', maxWidth: '140px', wordBreak: 'break-word' }}>
                         {item.notes || '—'}
                       </td>
-                      <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      <td style={{ padding: '8px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', gap: '5px', flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-end' }}>
                           {/* EDIT RECORD (Correct spelling, etc.) */}
                           <button
                             onClick={() => openEditModal(item)}
-                            title="Edit name typo or link to an existing registered member"
+                            title="Edit transcribed name, typo or link to an existing member"
                             style={{
                               background: '#f8fafc',
                               color: '#1e293b',
                               border: '1px solid #cbd5e1',
                               borderRadius: '4px',
-                              padding: '5px 10px',
-                              fontSize: '12px',
+                              padding: '5px 8px',
+                              fontSize: '11px',
                               fontWeight: 700,
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
                             }}
                           >
-                            ✏️ Edit Record
+                            ✏️ Edit
                           </button>
 
                           {/* Quick Link Button if candidate match exists */}
@@ -834,10 +838,14 @@ export default function HistoricalMembersClient({
                                 color: '#15803d',
                                 border: '1px solid #bbf7d0',
                                 borderRadius: '4px',
-                                padding: '5px 10px',
-                                fontSize: '12px',
+                                padding: '5px 8px',
+                                fontSize: '11px',
                                 fontWeight: 700,
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
                               }}
                             >
                               🔗 Link ({candidateMatches[0].surname})
@@ -847,36 +855,44 @@ export default function HistoricalMembersClient({
                           {/* ENROLL AS NEW MEMBER (Deceased / Past / Active) */}
                           <button
                             onClick={() => openEnrollModal(item, 'Deceased')}
-                            title="Enroll as a new member on Roll of Honour"
+                            title="Enroll as a new deceased member on Roll of Honour"
                             style={{
                               background: '#fef2f2',
                               color: '#991b1b',
                               border: '1px solid #fecaca',
                               borderRadius: '4px',
-                              padding: '5px 10px',
-                              fontSize: '12px',
+                              padding: '5px 8px',
+                              fontSize: '11px',
                               fontWeight: 700,
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
                             }}
                           >
-                            🕊️ Roll of Honour
+                            🕊️ Honour
                           </button>
 
                           <button
                             onClick={() => openEnrollModal(item, 'Active')}
-                            title="Enroll as a new member with full options"
+                            title="Enroll as a new registered member with full options"
                             style={{
                               background: '#800020',
                               color: '#fff',
                               border: 'none',
                               borderRadius: '4px',
-                              padding: '5px 12px',
-                              fontSize: '12px',
+                              padding: '5px 10px',
+                              fontSize: '11px',
                               fontWeight: 700,
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
                             }}
                           >
-                            ➕ Enroll New
+                            ➕ Enroll
                           </button>
                         </div>
                       </td>
@@ -896,11 +912,11 @@ export default function HistoricalMembersClient({
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                  <th style={{ padding: '10px 14px' }}>Roll Book Entry</th>
-                  <th style={{ padding: '10px 14px' }}>Initiation Date</th>
-                  <th style={{ padding: '10px 14px' }}>Linked Database Member</th>
-                  <th style={{ padding: '10px 14px' }}>Member Status</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'right' }}>Actions</th>
+                  <th style={{ padding: '8px 12px' }}>Roll Book Entry</th>
+                  <th style={{ padding: '8px 10px', width: '105px', whiteSpace: 'nowrap' }}>Initiation Date</th>
+                  <th style={{ padding: '8px 12px' }}>Linked Database Member</th>
+                  <th style={{ padding: '8px 10px', width: '110px' }}>Member Status</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -911,9 +927,9 @@ export default function HistoricalMembersClient({
                     </td>
                   </tr>
                 ) : (
-                  matchedLedger.map(({ item, linkedMember }, idx) => (
+matchedLedger.map(({ item, linkedMember }, idx) => (
                     <tr key={item.ledgerId} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                      <td style={{ padding: '10px 14px' }}>
+                      <td style={{ padding: '8px 12px' }}>
                         <div style={{ fontWeight: 700, color: '#0f172a' }}>
                           <span style={{ fontSize: '11px', color: '#800020', background: '#fdf2f2', padding: '2px 6px', borderRadius: '4px', marginRight: '6px' }}>{item.title}</span>
                           {item.rawName}
@@ -922,10 +938,10 @@ export default function HistoricalMembersClient({
                           Entry #{item.entryNo || '—'} ({item.source})
                         </div>
                       </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        {item.dateOfInitiation || '—'}
+                      <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontWeight: 600, color: '#334155', whiteSpace: 'nowrap' }}>{item.dateOfInitiation || '—'}</span>
                       </td>
-                      <td style={{ padding: '10px 14px' }}>
+                      <td style={{ padding: '8px 12px' }}>
                         {linkedMember ? (
                           <div>
                             <span style={{ fontWeight: 700, color: '#0f172a' }}>
@@ -939,7 +955,7 @@ export default function HistoricalMembersClient({
                           <span style={{ color: '#94a3b8' }}>Auto-Matched by Name</span>
                         )}
                       </td>
-                      <td style={{ padding: '10px 14px' }}>
+                      <td style={{ padding: '8px 10px' }}>
                         {linkedMember && (
                           <span style={{
                             padding: '3px 8px',
@@ -954,17 +970,23 @@ export default function HistoricalMembersClient({
                           </span>
                         )}
                       </td>
-                      <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '6px' }}>
+                      <td style={{ padding: '8px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', gap: '5px', alignItems: 'center', justifyContent: 'flex-end', whiteSpace: 'nowrap' }}>
                           <button
                             onClick={() => openEditModal(item)}
+                            title="Edit entry details or change linked member"
                             style={{
                               background: '#fff',
                               border: '1px solid #cbd5e1',
                               borderRadius: '4px',
-                              padding: '4px 10px',
-                              fontSize: '12px',
-                              cursor: 'pointer'
+                              padding: '5px 8px',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
                             }}
                           >
                             ✏️ Edit Entry
@@ -972,17 +994,23 @@ export default function HistoricalMembersClient({
                           {item.enrolledMemberId && (
                             <button
                               onClick={() => { if (confirm(`Unlink "${item.rawName}" from this member?`)) handleUnlink(item.id!); }}
+                              title="Disconnect this roll book record from the linked member"
                               style={{
                                 background: '#fff',
                                 color: '#b91c1c',
                                 border: '1px solid #fecaca',
                                 borderRadius: '4px',
-                                padding: '4px 10px',
-                                fontSize: '12px',
-                                cursor: 'pointer'
+                                padding: '5px 8px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
                               }}
                             >
-                              Unlink
+                              🔗❌ Unlink
                             </button>
                           )}
                         </div>
