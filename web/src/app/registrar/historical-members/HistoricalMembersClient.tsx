@@ -6,7 +6,9 @@ import {
   updateMemberArchivalStatus,
   updateRollBookEntry,
   linkRollBookToExistingMember,
-  unlinkRollBookEntry
+  unlinkRollBookEntry,
+  deleteRollBookEntry,
+  batchBackfillAndClearLinkedEntries
 } from '@/services/memberService';
 
 export interface LedgerItem {
@@ -374,7 +376,7 @@ export default function HistoricalMembersClient({
     setExistingModalOpen(true);
   }
 
-  // Save Roll Book Corrections (Updates roll_book_entries table ONLY)
+  // Save Roll Book Corrections (Updates roll_book_entries table, or links & merges if member selected)
   async function handleSaveRollBookEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editForm.id) {
@@ -382,9 +384,15 @@ export default function HistoricalMembersClient({
       return;
     }
 
+    // If user chose a member to link, run link and merge directly
+    if (editForm.selectedLinkMemberId) {
+      await handleLinkMember(editForm.id, editForm.selectedLinkMemberId, true);
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const updated = await updateRollBookEntry(editForm.id, {
+      await updateRollBookEntry(editForm.id, {
         raw_name: editForm.raw_name,
         title: editForm.title,
         first_name: editForm.first_name,
@@ -422,23 +430,70 @@ export default function HistoricalMembersClient({
     }
   }
 
-  // Link Roll Book Entry to Existing Member
-  async function handleLinkMember(rollBookId: string, memberId: string) {
+  // Link Roll Book Entry to Existing Member, Backfill NULL Fields, and Clear from Roll Book Queue
+  async function handleLinkMember(rollBookId: string, memberId: string, removeEntry: boolean = true) {
     if (!rollBookId || !memberId) return;
     setSubmitting(true);
     try {
-      await linkRollBookToExistingMember(rollBookId, memberId, true);
-      
-      // Update local state
-      setLedger(prev => prev.map(l => l.id === rollBookId ? { ...l, enrolledMemberId: memberId } : l));
+      const result = await linkRollBookToExistingMember(rollBookId, memberId, true, removeEntry);
       
       const targetMember = dbMembers.find(m => m.id === memberId);
       const entry = ledger.find(l => l.id === rollBookId);
-      showToast(`Linked roll book entry "${entry?.rawName || ""}" to registered member: ${targetMember?.first_name} ${targetMember?.surname}!`);
+
+      if (removeEntry) {
+        // Remove completely from ledger state so it leaves the unassigned queue
+        setLedger(prev => prev.filter(l => l.id !== rollBookId));
+      } else {
+        setLedger(prev => prev.map(l => l.id === rollBookId ? { ...l, enrolledMemberId: memberId } : l));
+      }
+
+      // Update dbMembers state with any backfilled fields so the UI immediately reflects the new data
+      if (result.updatedFields && Object.keys(result.updatedFields).length > 0) {
+        setDbMembers(prev => prev.map(m => m.id === memberId ? { ...m, ...result.updatedFields } : m));
+      }
+
+      const backfilledCount = Object.keys(result.updatedFields || {}).length;
+      const backfillMsg = backfilledCount > 0 ? ` Backfilled ${backfilledCount} missing fields on member profile.` : '';
+
+      showToast(`Linked "${entry?.rawName || ''}" to ${targetMember?.first_name} ${targetMember?.surname}!${backfillMsg} Record removed from unassigned queue.`);
       setEditModalOpen(false);
     } catch (err: any) {
       console.error(err);
-      showToast(err.message || 'Failed to link record.', 'error');
+      showToast(err.message || 'Failed to link and merge record.', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Delete an individual roll book entry from the queue
+  async function handleDeleteRollBookEntry(rollBookId: string) {
+    if (!confirm('Are you sure you want to permanently delete this roll book record from the queue?')) return;
+    setSubmitting(true);
+    try {
+      await deleteRollBookEntry(rollBookId);
+      setLedger(prev => prev.filter(l => l.id !== rollBookId));
+      showToast('Record deleted from roll book queue.');
+      setEditModalOpen(false);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to delete record.', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Batch backfill all currently linked records and clear them from the roll book queue
+  async function handleBatchBackfillAndClear() {
+    if (!confirm(`Sync missing information to all linked database members and clear all ${matchedLedger.length} matched records from the roll book queue?`)) return;
+    setSubmitting(true);
+    try {
+      const res = await batchBackfillAndClearLinkedEntries();
+      const matchedIds = new Set(matchedLedger.map(m => m.item.id));
+      setLedger(prev => prev.filter(l => !matchedIds.has(l.id)));
+      showToast(`Reconciled: backfilled ${res.processedCount} members and cleared ${res.clearedCount} matched records from the roll book queue!`);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || 'Failed to backfill and clear matched records.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -828,11 +883,11 @@ filteredUnregistered.map(({ item, candidateMatches }, idx) => (
                           {candidateMatches.length > 0 && (
                             <button
                               onClick={() => {
-                                if (confirm(`Link "${item.rawName}" to ${candidateMatches[0].first_name} ${candidateMatches[0].surname}?`)) {
+                                if (confirm(`Link "${item.rawName}" to ${candidateMatches[0].first_name} ${candidateMatches[0].surname}?\n\nThis will backfill missing profile info (initiation date, occupation, residence, notes) and clear this entry from the unassigned roll book queue.`)) {
                                   handleLinkMember(item.id!, candidateMatches[0].id);
                                 }
                               }}
-                              title={`Link this entry directly to ${candidateMatches[0].first_name} ${candidateMatches[0].surname}`}
+                              title={`Link to ${candidateMatches[0].first_name} ${candidateMatches[0].surname}, backfill missing data, and clear from queue`}
                               style={{
                                 background: '#f0fdf4',
                                 color: '#15803d',
@@ -848,7 +903,7 @@ filteredUnregistered.map(({ item, candidateMatches }, idx) => (
                                 gap: '4px'
                               }}
                             >
-                              🔗 Link ({candidateMatches[0].surname})
+                              🔗 Link & Merge ({candidateMatches[0].surname})
                             </button>
                           )}
 
@@ -929,7 +984,48 @@ filteredUnregistered.map(({ item, candidateMatches }, idx) => (
 
       {/* TAB 2: MATCHED & LINKED RECORDS */}
       {activeTab === 'matched' && (
-        <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+        <div>
+          {matchedLedger.length > 0 && (
+            <div style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '8px',
+              padding: '14px 18px',
+              marginBottom: '16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div>
+                <strong style={{ color: '#166534', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  ⚡ {matchedLedger.length} Records Currently Linked / Reconciled
+                </strong>
+                <p style={{ fontSize: '12px', color: '#15803d', margin: '4px 0 0 0' }}>
+                  Click below to backfill all missing data (initiation date, residence, occupation, remarks) into the brothers&apos; master profiles and remove them from the roll book queue.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleBatchBackfillAndClear}
+                style={{
+                  background: '#15803d',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '9px 18px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: submitting ? 'not-allowed' : 'pointer'
+                }}
+              >
+                ⚡ Backfill &amp; Clear All ({matchedLedger.length})
+              </button>
+            </div>
+          )}
+          <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
@@ -994,6 +1090,28 @@ matchedLedger.map(({ item, linkedMember }, idx) => (
                       </td>
                       <td style={{ padding: '8px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'inline-flex', gap: '5px', alignItems: 'center', justifyContent: 'flex-end', whiteSpace: 'nowrap' }}>
+                          {item.enrolledMemberId && (
+                            <button
+                              onClick={() => handleLinkMember(item.id!, item.enrolledMemberId!, true)}
+                              title="Backfill missing data into brother's profile and clear this record from queue"
+                              style={{
+                                background: '#f0fdf4',
+                                color: '#15803d',
+                                border: '1px solid #bbf7d0',
+                                borderRadius: '4px',
+                                padding: '5px 8px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              ⚡ Merge &amp; Clear
+                            </button>
+                          )}
                           <button
                             onClick={() => openEditModal(item)}
                             title="Edit entry details or change linked member"
@@ -1043,6 +1161,7 @@ matchedLedger.map(({ item, linkedMember }, idx) => (
               </tbody>
             </table>
           </div>
+        </div>
         </div>
       )}
 
@@ -1444,7 +1563,24 @@ matchedLedger.map(({ item, linkedMember }, idx) => (
                   ➕ Not Registered? Enroll as New Member
                 </button>
 
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteRollBookEntry(editForm.id)}
+                    title="Permanently remove this entry from the roll book queue"
+                    style={{
+                      background: '#fff',
+                      color: '#dc2626',
+                      border: '1px solid #fecaca',
+                      borderRadius: '6px',
+                      padding: '8px 14px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🗑️ Delete Entry
+                  </button>
                   <button
                     type="button"
                     onClick={() => setEditModalOpen(false)}
@@ -1465,7 +1601,7 @@ matchedLedger.map(({ item, linkedMember }, idx) => (
                     type="submit"
                     disabled={submitting}
                     style={{
-                      background: '#1e293b',
+                      background: editForm.selectedLinkMemberId ? '#0284c7' : '#1e293b',
                       color: '#fff',
                       border: 'none',
                       borderRadius: '6px',
@@ -1476,7 +1612,11 @@ matchedLedger.map(({ item, linkedMember }, idx) => (
                       opacity: submitting ? 0.7 : 1
                     }}
                   >
-                    {submitting ? 'Saving...' : '💾 Save Roll Book Corrections'}
+                    {submitting
+                      ? 'Processing...'
+                      : editForm.selectedLinkMemberId
+                        ? '🔗 Link & Merge into Selected Member'
+                        : '💾 Save Roll Book Corrections'}
                   </button>
                 </div>
               </div>

@@ -805,8 +805,14 @@ export async function updateRollBookEntry(
 export async function linkRollBookToExistingMember(
   rollBookId: string,
   memberId: string,
-  syncInitiationDate: boolean = true
-): Promise<any> {
+  syncMissingData: boolean = true,
+  removeRollBookEntry: boolean = true
+): Promise<{
+  success: boolean;
+  updatedFields: Record<string, any>;
+  removed: boolean;
+  member: any;
+}> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
@@ -821,42 +827,222 @@ export async function linkRollBookToExistingMember(
     throw new Error('Unauthorized: Only super_admin can link roll book records');
   }
 
-  // 1. Link roll book entry
-  const { data: entry, error: linkErr } = await supabase
+  // 1. Fetch roll book entry
+  const { data: entry, error: fetchEntryErr } = await supabase
     .from('roll_book_entries')
-    .update({ enrolled_member_id: memberId })
+    .select('*')
     .eq('id', rollBookId)
-    .select()
     .single();
 
-  if (linkErr) throw linkErr;
+  if (fetchEntryErr || !entry) throw new Error('Roll book entry not found');
 
-  // 2. If syncInitiationDate requested, populate initiation date if missing
-  if (syncInitiationDate && entry?.date_of_initiation) {
-    const { data: m } = await supabase
-      .from('members')
-      .select('date_joined')
-      .eq('id', memberId)
-      .maybeSingle();
+  // 2. Fetch target member
+  const { data: member, error: fetchMemberErr } = await supabase
+    .from('members')
+    .select('*')
+    .eq('id', memberId)
+    .single();
 
-    if (m && !m.date_joined) {
-      await supabase
+  if (fetchMemberErr || !member) throw new Error('Target registered member not found');
+
+  const updatedFields: Record<string, any> = {};
+
+  // 3. Backfill any missing/null data from roll book into member
+  if (syncMissingData) {
+    if (!member.date_joined && entry.date_of_initiation) {
+      updatedFields.date_joined = entry.date_of_initiation;
+    }
+    if (!member.occupation && entry.occupation) {
+      updatedFields.occupation = entry.occupation;
+    }
+    if (!member.residential_address && entry.residence) {
+      updatedFields.residential_address = entry.residence;
+    }
+    if ((!member.title || member.title === 'Bro.') && entry.title && entry.title !== 'Bro.') {
+      updatedFields.title = entry.title;
+    }
+    if (entry.notes) {
+      const rollBookNote = `[Roll Book #${entry.entry_no || 'N/A'}]: ${entry.notes}`;
+      if (!member.notes) {
+        updatedFields.notes = rollBookNote;
+      } else if (!member.notes.includes(entry.notes)) {
+        updatedFields.notes = `${member.notes}\n${rollBookNote}`;
+      }
+    }
+
+    if (Object.keys(updatedFields).length > 0) {
+      const { error: updateErr } = await supabase
         .from('members')
-        .update({ date_joined: entry.date_of_initiation })
+        .update(updatedFields)
         .eq('id', memberId);
 
-      try {
-        await supabase.from('degrees').insert({
-          member_id: memberId,
-          degree_type: '1st Degree',
-          degree_date: entry.date_of_initiation,
-          degree_place: "St Margaret - Mary - D'Man"
-        });
-      } catch (e) {}
+      if (updateErr) throw updateErr;
+    }
+
+    // Sync 1st degree if missing and date exists
+    const initiationDate = updatedFields.date_joined || member.date_joined || entry.date_of_initiation;
+    if (initiationDate) {
+      const { data: deg } = await supabase
+        .from('degrees')
+        .select('id')
+        .eq('member_id', memberId)
+        .eq('degree_type', '1st Degree')
+        .maybeSingle();
+
+      if (!deg) {
+        try {
+          await supabase.from('degrees').insert({
+            member_id: memberId,
+            degree_type: '1st Degree',
+            degree_date: initiationDate,
+            degree_place: "St Margaret - Mary - D'Man"
+          });
+        } catch (e) {}
+      }
     }
   }
 
-  return entry;
+  // 4. Remove roll book entry if removeRollBookEntry is true (or link foreign key)
+  if (removeRollBookEntry) {
+    const { error: delErr } = await supabase
+      .from('roll_book_entries')
+      .delete()
+      .eq('id', rollBookId);
+
+    if (delErr) throw delErr;
+  } else {
+    await supabase
+      .from('roll_book_entries')
+      .update({ enrolled_member_id: memberId })
+      .eq('id', rollBookId);
+  }
+
+  return {
+    success: true,
+    updatedFields,
+    removed: removeRollBookEntry,
+    member: { ...member, ...updatedFields }
+  };
+}
+
+export async function deleteRollBookEntry(rollBookId: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profile?.role !== 'super_admin') {
+    throw new Error('Unauthorized: Only super_admin can delete roll book records');
+  }
+
+  const { error } = await supabase
+    .from('roll_book_entries')
+    .delete()
+    .eq('id', rollBookId);
+
+  if (error) throw error;
+}
+
+export async function batchBackfillAndClearLinkedEntries(): Promise<{
+  processedCount: number;
+  clearedCount: number;
+}> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profile?.role !== 'super_admin') {
+    throw new Error('Unauthorized: Only super_admin can perform batch maintenance');
+  }
+
+  // Fetch all roll_book_entries with enrolled_member_id
+  const { data: entries, error } = await supabase
+    .from('roll_book_entries')
+    .select('*')
+    .not('enrolled_member_id', 'is', null);
+
+  if (error || !entries) return { processedCount: 0, clearedCount: 0 };
+
+  let processedCount = 0;
+  let clearedCount = 0;
+
+  for (const entry of entries) {
+    if (!entry.enrolled_member_id) continue;
+
+    const { data: member } = await supabase
+      .from('members')
+      .select('*')
+      .eq('id', entry.enrolled_member_id)
+      .maybeSingle();
+
+    if (member) {
+      const updates: Record<string, any> = {};
+      if (!member.date_joined && entry.date_of_initiation) {
+        updates.date_joined = entry.date_of_initiation;
+      }
+      if (!member.occupation && entry.occupation) {
+        updates.occupation = entry.occupation;
+      }
+      if (!member.residential_address && entry.residence) {
+        updates.residential_address = entry.residence;
+      }
+      if ((!member.title || member.title === 'Bro.') && entry.title && entry.title !== 'Bro.') {
+        updates.title = entry.title;
+      }
+      if (entry.notes) {
+        const rollBookNote = `[Roll Book #${entry.entry_no || 'N/A'}]: ${entry.notes}`;
+        if (!member.notes) {
+          updates.notes = rollBookNote;
+        } else if (!member.notes.includes(entry.notes)) {
+          updates.notes = `${member.notes}\n${rollBookNote}`;
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await supabase.from('members').update(updates).eq('id', member.id);
+        processedCount++;
+      }
+
+      // Sync 1st Degree
+      const initiationDate = updates.date_joined || member.date_joined || entry.date_of_initiation;
+      if (initiationDate) {
+        const { data: deg } = await supabase
+          .from('degrees')
+          .select('id')
+          .eq('member_id', member.id)
+          .eq('degree_type', '1st Degree')
+          .maybeSingle();
+
+        if (!deg) {
+          try {
+            await supabase.from('degrees').insert({
+              member_id: member.id,
+              degree_type: '1st Degree',
+              degree_date: initiationDate,
+              degree_place: "St Margaret - Mary - D'Man"
+            });
+          } catch (e) {}
+        }
+      }
+    }
+
+    // Delete the reconciled entry from roll_book_entries
+    await supabase.from('roll_book_entries').delete().eq('id', entry.id);
+    clearedCount++;
+  }
+
+  return { processedCount, clearedCount };
 }
 
 export async function unlinkRollBookEntry(rollBookId: string): Promise<any> {
