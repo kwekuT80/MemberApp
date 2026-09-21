@@ -44,7 +44,7 @@ const COMMANDERY_PRESETS: CommanderyPreset[] = [
   {
     id: '747',
     name: 'SS. Peter & Paul Commandery (#747)',
-    location: 'New Mamprobi / Dansoman',
+    location: 'New Aplaku',
     defaultDate: '2012-10-04',
     badge: 'Chartered: Oct 4, 2012'
   },
