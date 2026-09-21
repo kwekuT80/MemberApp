@@ -874,6 +874,28 @@ filteredUnregistered.map(({ item, candidateMatches }, idx) => (
                             🕊️ Honour
                           </button>
 
+                          {/* ENROLL AS TRANSFERRED OUT */}
+                          <button
+                            onClick={() => openEnrollModal(item, 'Transfer-Out')}
+                            title="Enroll member directly as Transferred Out"
+                            style={{
+                              background: '#f0f9ff',
+                              color: '#0369a1',
+                              border: '1px solid #bae6fd',
+                              borderRadius: '4px',
+                              padding: '5px 8px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            🔄 Transfer
+                          </button>
+
                           <button
                             onClick={() => openEnrollModal(item, 'Active')}
                             title="Enroll as a new registered member with full options"
