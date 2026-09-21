@@ -87,7 +87,8 @@ export default function RegistrarShell({
     ...(isSuperAdmin ? [{
       title: 'SUPER ADMIN ARCHIVES',
       items: [
-        { href: '/registrar/historical-members', label: '📜 Roll Book & Archives' }
+        { href: '/registrar/historical-members', label: '📜 Roll Book & Archives' },
+        { href: '/registrar/transfers', label: '🔄 Member Transfers Out' }
       ]
     }] : []),
     {
