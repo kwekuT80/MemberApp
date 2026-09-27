@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { enrollHistoricalBrother, updateMemberArchivalStatus } from '@/services/memberService';
 
 interface RollBookEntry {
@@ -255,6 +256,79 @@ export default function TransferOutClient({
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '16px 20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
+      {/* SISTER SUITE NAVIGATION BAR */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        background: '#fff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '10px',
+        padding: '6px 12px',
+        marginBottom: '20px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        flexWrap: 'wrap',
+        gap: '10px'
+      }}>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginRight: '6px' }}>
+            Historical Suite:
+          </span>
+          <Link
+            href="/registrar/historical-members"
+            style={{
+              padding: '6px 14px',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: 600,
+              textDecoration: 'none',
+              color: '#475569',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>📜</span> Roll Book & Archives
+          </Link>
+          <span
+            style={{
+              padding: '6px 14px',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: 700,
+              color: '#0284c7',
+              background: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>🔄</span> Member Transfers Out
+          </span>
+          <Link
+            href="/registrar/initiation-cohorts"
+            style={{
+              padding: '6px 14px',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: 600,
+              textDecoration: 'none',
+              color: '#475569',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>🏛️</span> Initiation Cohorts
+          </Link>
+        </div>
+      </div>
+
       {/* HEADER CARD */}
       <div style={{
         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',

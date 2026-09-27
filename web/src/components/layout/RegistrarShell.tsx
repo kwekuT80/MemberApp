@@ -88,7 +88,8 @@ export default function RegistrarShell({
       title: 'SUPER ADMIN ARCHIVES',
       items: [
         { href: '/registrar/historical-members', label: '📜 Roll Book & Archives' },
-        { href: '/registrar/transfers', label: '🔄 Member Transfers Out' }
+        { href: '/registrar/transfers', label: '🔄 Member Transfers Out' },
+        { href: '/registrar/initiation-cohorts', label: '🏛️ Initiation Cohorts' }
       ]
     }] : []),
     {

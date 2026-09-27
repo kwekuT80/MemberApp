@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import {
   enrollHistoricalBrother,
   updateMemberArchivalStatus,
@@ -604,6 +605,78 @@ export default function HistoricalMembersClient({
           {toastMessage.type === 'success' ? '✓ ' : '✕ '} {toastMessage.text}
         </div>
       )}
+
+      {/* SISTER SUITE NAVIGATION BAR */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        background: '#fff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '10px',
+        padding: '6px 12px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        flexWrap: 'wrap',
+        gap: '10px'
+      }}>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginRight: '6px' }}>
+            Historical Suite:
+          </span>
+          <span
+            style={{
+              padding: '6px 14px',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: 700,
+              color: '#800020',
+              background: '#fdf2f2',
+              border: '1px solid #fecaca',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>📜</span> Roll Book & Archives
+          </span>
+          <Link
+            href="/registrar/transfers"
+            style={{
+              padding: '6px 14px',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: 600,
+              textDecoration: 'none',
+              color: '#475569',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>🔄</span> Member Transfers Out
+          </Link>
+          <Link
+            href="/registrar/initiation-cohorts"
+            style={{
+              padding: '6px 14px',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: 600,
+              textDecoration: 'none',
+              color: '#475569',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>🏛️</span> Initiation Cohorts
+          </Link>
+        </div>
+      </div>
 
       {/* KPI Stats Cards */}
       <div style={{
