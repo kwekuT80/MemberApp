@@ -966,10 +966,10 @@ export default function InitiationCohortsClient({
           <span style={{ fontSize: '24px' }}>📜</span>
           <div>
             <div style={{ fontSize: '14px', fontWeight: 800, color: '#0369a1' }}>
-              Historical Foundation Era: Initiation Cohorts Prior to 2000 ({pre2000Count} Registered Brothers)
+              Historical Foundation Era: Initiation Cohorts Prior to 2000 ({pre2000Count} Brothers Recorded)
             </div>
             <div style={{ fontSize: '13px', color: '#0c4a6e', marginTop: '3px', lineHeight: '1.5' }}>
-              The cohorts listed below are currently populated from registered brother profile records (spanning 1964 through 1999). Physical Roll Book ledger sheets for this foundation period have not yet been transcribed into the digital register. Once pre-2000 roll book sheets are ingested, full initiation classes for every brother initiated in this era will display automatically.
+              The cohorts listed below unify the digitized entries from <strong>Physical Roll Book Page 1 (Foundation Charter entries 1 to 14, 1964–1995)</strong> with registered member profiles spanning 1964 through 1999. All 26 foundational brothers across 14 ceremony dates are displayed below.
             </div>
           </div>
         </div>

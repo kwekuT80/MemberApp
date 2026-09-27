@@ -95,7 +95,7 @@ export default async function InitiationCohortsPage() {
         residence: m.residential_address || linkedRoll?.residence || null,
         ageAtInitiation: linkedRoll?.age_at_initiation || null,
         notes: m.notes || linkedRoll?.notes || null,
-        source: 'Registered Member',
+        source: linkedRoll?.source || 'Registered Member',
         photoUrl: m.photo_url || null,
         rank: null,
         memberNumber: null
