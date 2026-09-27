@@ -1070,3 +1070,280 @@ export async function unlinkRollBookEntry(rollBookId: string): Promise<any> {
   if (error) throw error;
   return data;
 }
+
+export interface MyCohortBrother {
+  id: string;
+  memberId: string | null;
+  rollBookId: string | null;
+  entryNo: string | null;
+  fullName: string;
+  title: string;
+  firstName: string;
+  surname: string;
+  otherNames: string;
+  status: string;
+  isDeceased: boolean;
+  dateOfBirth: string | null;
+  formattedBirthday: string | null;
+  phone: string | null;
+  mobile: string | null;
+  residence: string | null;
+  occupation: string | null;
+  ageAtInitiation: string | null;
+  notes: string | null;
+  photoUrl: string | null;
+  transferTo: string | null;
+  isCurrentUser: boolean;
+  source: string;
+}
+
+export interface MyCohortResult {
+  hasCohort: boolean;
+  initiationDate: string | null;
+  formattedDate: string | null;
+  cohortYear: string | null;
+  totalMembers: number;
+  activeCount: number;
+  deceasedCount: number;
+  transferCount: number;
+  archivedCount: number;
+  isPreCharter: boolean;
+  isCharterDay: boolean;
+  myMember: any | null;
+  members: MyCohortBrother[];
+}
+
+function formatOrdinalDate(dateStr: string): string {
+  if (!dateStr || dateStr.length < 10) return dateStr;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const day = date.getDate();
+  const suffix = (n: number) => {
+    if (n > 3 && n < 21) return 'th';
+    switch (n % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
+  };
+  const monthName = date.toLocaleDateString('en-GB', { month: 'long' });
+  return `${day}${suffix(day)} ${monthName} ${y}`;
+}
+
+function formatBirthday(dobStr: string | null, birthMonth?: number | null, birthDay?: number | null): string | null {
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const suffix = (n: number) => {
+    if (n > 3 && n < 21) return 'th';
+    switch (n % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
+  };
+
+  if (dobStr && dobStr.length >= 10) {
+    const [y, m, d] = dobStr.split('-').map(Number);
+    if (!isNaN(m) && !isNaN(d) && m >= 1 && m <= 12) {
+      return `${d}${suffix(d)} ${MONTHS[m - 1]}`;
+    }
+  }
+
+  if (birthMonth && birthDay && birthMonth >= 1 && birthMonth <= 12) {
+    return `${birthDay}${suffix(birthDay)} ${MONTHS[birthMonth - 1]}`;
+  }
+
+  return null;
+}
+
+export async function getMyInitiationCohort(): Promise<MyCohortResult> {
+  const myMember = await getMyMember();
+  if (!myMember) {
+    return {
+      hasCohort: false,
+      initiationDate: null,
+      formattedDate: null,
+      cohortYear: null,
+      totalMembers: 0,
+      activeCount: 0,
+      deceasedCount: 0,
+      transferCount: 0,
+      archivedCount: 0,
+      isPreCharter: false,
+      isCharterDay: false,
+      myMember: null,
+      members: []
+    };
+  }
+
+  const supabase = await createClient();
+
+  // 1. Determine logged-in member's initiation date
+  let initiationDate: string | null = myMember.date_joined || null;
+
+  if (!initiationDate && myMember.degrees && Array.isArray(myMember.degrees)) {
+    const firstDeg = myMember.degrees.find((d: any) => d.degree_type === '1st Degree');
+    if (firstDeg?.degree_date) {
+      initiationDate = firstDeg.degree_date;
+    }
+  }
+
+  if (!initiationDate) {
+    const { data: rollMatch } = await supabase
+      .from('roll_book_entries')
+      .select('date_of_initiation')
+      .eq('enrolled_member_id', myMember.id)
+      .maybeSingle();
+    if (rollMatch?.date_of_initiation) {
+      initiationDate = rollMatch.date_of_initiation;
+    }
+  }
+
+  if (!initiationDate) {
+    return {
+      hasCohort: false,
+      initiationDate: null,
+      formattedDate: null,
+      cohortYear: null,
+      totalMembers: 0,
+      activeCount: 0,
+      deceasedCount: 0,
+      transferCount: 0,
+      archivedCount: 0,
+      isPreCharter: false,
+      isCharterDay: false,
+      myMember,
+      members: []
+    };
+  }
+
+  // 2. Fetch all members with this initiation date (or 1st degree date)
+  const { data: allMembers } = await supabase
+    .from('members')
+    .select('id, title, first_name, surname, other_names, date_joined, date_of_birth, birth_month, birth_day, phone, mobile, residential_address, occupation, status, is_deceased, date_of_death, burial_place, transfer_to, transfer_date, photo_url, notes')
+    .or(`date_joined.eq.${initiationDate}`)
+    .order('surname', { ascending: true });
+
+  // 3. Fetch all roll book entries for this initiation date
+  const { data: rollEntries } = await supabase
+    .from('roll_book_entries')
+    .select('*')
+    .eq('date_of_initiation', initiationDate)
+    .order('entry_no', { ascending: true });
+
+  const enrolledMap = new Map<string, any>();
+  const linkedRollIds = new Set<string>();
+
+  if (rollEntries) {
+    rollEntries.forEach((r: any) => {
+      if (r.enrolled_member_id) {
+        enrolledMap.set(r.enrolled_member_id, r);
+        linkedRollIds.add(r.id);
+      }
+    });
+  }
+
+  const cohortList: MyCohortBrother[] = [];
+
+  // Add registered members
+  if (allMembers) {
+    allMembers.forEach((m: any) => {
+      const linkedRoll = enrolledMap.get(m.id);
+      let entryNo = linkedRoll?.entry_no || null;
+      if (!entryNo && m.notes) {
+        const match = m.notes.match(/Roll Book #?(\d+)/i) || m.notes.match(/Entry #?(\d+)/i);
+        if (match) entryNo = match[1];
+      }
+
+      cohortList.push({
+        id: m.id,
+        memberId: m.id,
+        rollBookId: linkedRoll?.id || null,
+        entryNo: entryNo ? String(entryNo) : null,
+        title: m.title || 'Bro.',
+        firstName: m.first_name || '',
+        surname: m.surname || '',
+        otherNames: m.other_names || '',
+        fullName: [m.title, m.first_name, m.other_names, m.surname].filter(Boolean).join(' '),
+        status: m.status || (m.is_deceased ? 'Deceased' : 'Active'),
+        isDeceased: Boolean(m.is_deceased || m.status === 'Deceased'),
+        dateOfBirth: m.date_of_birth || null,
+        formattedBirthday: formatBirthday(m.date_of_birth, m.birth_month, m.birth_day),
+        phone: m.phone || null,
+        mobile: m.mobile || null,
+        residence: m.residential_address || linkedRoll?.residence || null,
+        occupation: m.occupation || linkedRoll?.occupation || null,
+        ageAtInitiation: linkedRoll?.age_at_initiation || null,
+        notes: m.notes || linkedRoll?.notes || null,
+        photoUrl: m.photo_url || null,
+        transferTo: m.transfer_to || null,
+        isCurrentUser: m.id === myMember.id,
+        source: linkedRoll?.source || 'Registered Member'
+      });
+    });
+  }
+
+  // Add unlinked roll book entries for this date (e.g. historical brothers who haven't registered online)
+  if (rollEntries) {
+    rollEntries.forEach((r: any) => {
+      if (linkedRollIds.has(r.id)) return;
+      if (r.enrolled_member_id) return;
+
+      cohortList.push({
+        id: `roll-${r.id}`,
+        memberId: null,
+        rollBookId: r.id,
+        entryNo: r.entry_no ? String(r.entry_no) : null,
+        title: r.title || 'Bro.',
+        firstName: r.first_name || '',
+        surname: r.surname || '',
+        otherNames: '',
+        fullName: r.raw_name || [r.title, r.first_name, r.surname].filter(Boolean).join(' '),
+        status: 'Archived Roll',
+        isDeceased: false,
+        dateOfBirth: null,
+        formattedBirthday: null,
+        phone: null,
+        mobile: null,
+        residence: r.residence || null,
+        occupation: r.occupation || null,
+        ageAtInitiation: r.age_at_initiation ? String(r.age_at_initiation) : null,
+        notes: r.notes || null,
+        photoUrl: null,
+        transferTo: null,
+        isCurrentUser: false,
+        source: r.source || 'Roll Book Ledger'
+      });
+    });
+  }
+
+  // Sort cohort list: if entry numbers exist sort by entry number, otherwise alphabetical
+  cohortList.sort((a, b) => {
+    const numA = a.entryNo ? parseInt(a.entryNo, 10) : NaN;
+    const numB = b.entryNo ? parseInt(b.entryNo, 10) : NaN;
+    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+    if (!isNaN(numA)) return -1;
+    if (!isNaN(numB)) return 1;
+    return a.fullName.localeCompare(b.fullName);
+  });
+
+  const isPreCharter = initiationDate < '1995-12-30';
+  const isCharterDay = initiationDate === '1995-12-30';
+
+  return {
+    hasCohort: true,
+    initiationDate,
+    formattedDate: formatOrdinalDate(initiationDate),
+    cohortYear: initiationDate.substring(0, 4),
+    totalMembers: cohortList.length,
+    activeCount: cohortList.filter(c => c.status === 'Active' && !c.isDeceased).length,
+    deceasedCount: cohortList.filter(c => c.isDeceased || c.status === 'Deceased').length,
+    transferCount: cohortList.filter(c => c.status === 'Transfer-Out' || c.transferTo).length,
+    archivedCount: cohortList.filter(c => c.status === 'Archived Roll').length,
+    isPreCharter,
+    isCharterDay,
+    myMember,
+    members: cohortList
+  };
+}

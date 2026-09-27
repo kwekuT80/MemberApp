@@ -141,7 +141,14 @@ export default function LoginForm() {
         }
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred.');
+      const msg = err.message || '';
+      if (msg.toLowerCase().includes('user already registered')) {
+        setError('This email is already registered! Please switch to the "Sign In" tab above. If you do not remember your password, click "Forgot password?" below.');
+      } else if (msg.toLowerCase().includes('invalid login credentials')) {
+        setError('Incorrect email or password. If you have forgotten your password, please click "Forgot password?" below to reset it.');
+      } else {
+        setError(msg || 'An error occurred.');
+      }
     } finally {
       setBusy(false);
     }
