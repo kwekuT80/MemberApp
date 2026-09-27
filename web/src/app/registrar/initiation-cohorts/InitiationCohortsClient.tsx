@@ -102,6 +102,7 @@ export default function InitiationCohortsClient({
 }) {
   const [members] = useState<CohortMemberItem[]>(initialMembers);
   const [search, setSearch] = useState('');
+  const [selectedEra, setSelectedEra] = useState<'ALL' | 'PRE_2000' | '2000s' | '2010s' | '2020s'>('ALL');
   const [selectedYear, setSelectedYear] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [onlyMultipleCohorts, setOnlyMultipleCohorts] = useState<boolean>(false);
@@ -141,9 +142,19 @@ export default function InitiationCohortsClient({
     return multiSet;
   }, [allCohortsMap]);
 
-  // 3. Filter members based on search and status
+  // 3. Filter members based on search, era, year, and status
   const filteredMembers = useMemo(() => {
     return members.filter(m => {
+      // Era filter
+      if (selectedEra !== 'ALL') {
+        const y = parseInt(m.cohortYear, 10);
+        if (isNaN(y)) return false;
+        if (selectedEra === 'PRE_2000' && y >= 2000) return false;
+        if (selectedEra === '2000s' && (y < 2000 || y > 2009)) return false;
+        if (selectedEra === '2010s' && (y < 2010 || y > 2019)) return false;
+        if (selectedEra === '2020s' && y < 2020) return false;
+      }
+
       // Status filter
       if (statusFilter !== 'ALL') {
         if (statusFilter === 'Active' && m.status !== 'Active') return false;
@@ -189,7 +200,7 @@ export default function InitiationCohortsClient({
 
       return true;
     });
-  }, [members, statusFilter, selectedYear, onlyMultipleCohorts, search, multiCohortYearsSet]);
+  }, [members, statusFilter, selectedEra, selectedYear, onlyMultipleCohorts, search, multiCohortYearsSet]);
 
   // 4. Group filtered members by Cohort Date and Year
   const yearGroups = useMemo(() => {
@@ -313,14 +324,42 @@ export default function InitiationCohortsClient({
     };
   }, [members, allCohortsMap, multiCohortYearsSet]);
 
-  // List of all distinct years for the dropdown
+  // Era brother counts
+  const pre2000Count = useMemo(() => members.filter(m => {
+    const y = parseInt(m.cohortYear, 10);
+    return !isNaN(y) && y < 2000;
+  }).length, [members]);
+
+  const era2000sCount = useMemo(() => members.filter(m => {
+    const y = parseInt(m.cohortYear, 10);
+    return !isNaN(y) && y >= 2000 && y <= 2009;
+  }).length, [members]);
+
+  const era2010sCount = useMemo(() => members.filter(m => {
+    const y = parseInt(m.cohortYear, 10);
+    return !isNaN(y) && y >= 2010 && y <= 2019;
+  }).length, [members]);
+
+  const era2020sCount = useMemo(() => members.filter(m => {
+    const y = parseInt(m.cohortYear, 10);
+    return !isNaN(y) && y >= 2020;
+  }).length, [members]);
+
+  // List of all distinct years for the dropdown (scoped to active era if selected)
   const availableYears = useMemo(() => {
     const set = new Set<string>();
     members.forEach(m => {
-      if (m.cohortYear && m.cohortYear !== 'Unknown') set.add(m.cohortYear);
+      if (m.cohortYear && m.cohortYear !== 'Unknown') {
+        const y = parseInt(m.cohortYear, 10);
+        if (selectedEra === 'PRE_2000' && (!isNaN(y) && y >= 2000)) return;
+        if (selectedEra === '2000s' && (!isNaN(y) && (y < 2000 || y > 2009))) return;
+        if (selectedEra === '2010s' && (!isNaN(y) && (y < 2010 || y > 2019))) return;
+        if (selectedEra === '2020s' && (!isNaN(y) && y < 2020)) return;
+        set.add(m.cohortYear);
+      }
     });
     return Array.from(set).sort((a, b) => b.localeCompare(a));
-  }, [members]);
+  }, [members, selectedEra]);
 
   const toggleYear = (yr: string) => {
     const next = new Set(expandedYears);
@@ -647,6 +686,57 @@ export default function InitiationCohortsClient({
         marginBottom: '20px',
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
       }}>
+        {/* Era / Decade Quick Selector Tabs */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', alignSelf: 'center', marginRight: '4px' }}>
+            Historical Era:
+          </span>
+          {[
+            { id: 'ALL', label: 'All Eras (1964–Present)', count: members.length },
+            { id: 'PRE_2000', label: '⏳ Prior to 2000 (1964–1999)', count: pre2000Count },
+            { id: '2000s', label: '2000–2009', count: era2000sCount },
+            { id: '2010s', label: '2010–2019', count: era2010sCount },
+            { id: '2020s', label: '2020–Present', count: era2020sCount },
+          ].map(era => {
+            const isSel = selectedEra === era.id;
+            return (
+              <button
+                key={era.id}
+                onClick={() => {
+                  setSelectedEra(era.id as any);
+                  setSelectedYear('ALL');
+                }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12.5px',
+                  fontWeight: isSel ? 700 : 600,
+                  cursor: 'pointer',
+                  border: isSel ? '1px solid #800020' : '1px solid #e2e8f0',
+                  background: isSel ? '#800020' : '#f8fafc',
+                  color: isSel ? '#ffffff' : '#475569',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <span>{era.label}</span>
+                <span style={{
+                  background: isSel ? 'rgba(255,255,255,0.22)' : '#e2e8f0',
+                  color: isSel ? '#ffffff' : '#64748b',
+                  borderRadius: '999px',
+                  padding: '1px 6px',
+                  fontSize: '11px',
+                  fontWeight: 700
+                }}>
+                  {era.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'center', justifyContent: 'space-between' }}>
           
           {/* Search Box */}
@@ -860,6 +950,30 @@ export default function InitiationCohortsClient({
           )}
         </div>
       </div>
+
+      {/* PRE-2000 HISTORICAL BANNER IF PRE-2000 FILTER ACTIVE */}
+      {selectedEra === 'PRE_2000' && (
+        <div style={{
+          background: '#f0f9ff',
+          border: '1px solid #bae6fd',
+          borderRadius: '8px',
+          padding: '14px 20px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '14px'
+        }}>
+          <span style={{ fontSize: '24px' }}>📜</span>
+          <div>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: '#0369a1' }}>
+              Historical Foundation Era: Initiation Cohorts Prior to 2000 ({pre2000Count} Registered Brothers)
+            </div>
+            <div style={{ fontSize: '13px', color: '#0c4a6e', marginTop: '3px', lineHeight: '1.5' }}>
+              The cohorts listed below are currently populated from registered brother profile records (spanning 1964 through 1999). Physical Roll Book ledger sheets for this foundation period have not yet been transcribed into the digital register. Once pre-2000 roll book sheets are ingested, full initiation classes for every brother initiated in this era will display automatically.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MULTI-COHORT YEARS NOTIFICATION BADGE IF FILTER APPLIED */}
       {onlyMultipleCohorts && (
