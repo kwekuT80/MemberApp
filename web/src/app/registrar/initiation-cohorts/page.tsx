@@ -13,7 +13,7 @@ export default async function InitiationCohortsPage() {
   // 1. Fetch all members (regardless of status: Active, Deceased, Transfer-Out, Dismissed)
   const { data: members, error: mErr } = await supabase
     .from('members')
-    .select('id, title, first_name, surname, other_names, date_joined, status, is_deceased, transfer_from, transfer_to, transfer_date, date_of_death, burial_place, burial_date, date_of_dismissal, notes, occupation, residential_address, photo_url, member_number, rank')
+    .select('id, title, first_name, surname, other_names, date_joined, status, is_deceased, transfer_from, transfer_to, transfer_date, date_of_death, burial_place, burial_date, date_of_dismissal, notes, occupation, residential_address, photo_url')
     .neq('id', 'f0000000-0000-0000-0000-000000000000')
     .order('surname', { ascending: true });
 
@@ -97,8 +97,8 @@ export default async function InitiationCohortsPage() {
         notes: m.notes || linkedRoll?.notes || null,
         source: 'Registered Member',
         photoUrl: m.photo_url || null,
-        rank: m.rank || null,
-        memberNumber: m.member_number || null
+        rank: null,
+        memberNumber: null
       });
     });
   }

@@ -147,7 +147,7 @@ export default function InitiationCohortsClient({
       // Status filter
       if (statusFilter !== 'ALL') {
         if (statusFilter === 'Active' && m.status !== 'Active') return false;
-        if (statusFilter === 'Deceased' && !m.isDeceased && m.status !== 'Deceased') return false;
+        if (statusFilter === 'Deceased' && (m.status === 'Dismissed' || m.status === 'Transfer-Out' || (!m.isDeceased && m.status !== 'Deceased'))) return false;
         if (statusFilter === 'Transfer-Out' && m.status !== 'Transfer-Out') return false;
         if (statusFilter === 'Dismissed' && m.status !== 'Dismissed') return false;
         if (statusFilter === 'Archived' && m.status !== 'Archived Roll') return false;
@@ -229,7 +229,7 @@ export default function InitiationCohortsClient({
         });
 
         const activeCount = sortedMembers.filter(m => m.status === 'Active').length;
-        const deceasedCount = sortedMembers.filter(m => m.isDeceased || m.status === 'Deceased').length;
+        const deceasedCount = sortedMembers.filter(m => (m.status === 'Deceased' || m.isDeceased) && m.status !== 'Dismissed' && m.status !== 'Transfer-Out').length;
         const transferCount = sortedMembers.filter(m => m.status === 'Transfer-Out').length;
         const dismissedCount = sortedMembers.filter(m => m.status === 'Dismissed').length;
         const archivedCount = sortedMembers.filter(m => m.status === 'Archived Roll').length;
@@ -292,9 +292,10 @@ export default function InitiationCohortsClient({
   const stats = useMemo(() => {
     let totalBrothers = members.length;
     let totalActive = members.filter(m => m.status === 'Active').length;
-    let totalDeceased = members.filter(m => m.isDeceased || m.status === 'Deceased').length;
+    let totalDeceased = members.filter(m => (m.status === 'Deceased' || m.isDeceased) && m.status !== 'Dismissed' && m.status !== 'Transfer-Out').length;
     let totalTransfers = members.filter(m => m.status === 'Transfer-Out').length;
     let totalDismissed = members.filter(m => m.status === 'Dismissed').length;
+    let totalDismissedDeceased = members.filter(m => m.status === 'Dismissed' && m.isDeceased).length;
     let totalArchived = members.filter(m => m.status === 'Archived Roll').length;
     let totalCohorts = allCohortsMap.size;
     let multiYearsCount = multiCohortYearsSet.size;
@@ -305,6 +306,7 @@ export default function InitiationCohortsClient({
       totalDeceased,
       totalTransfers,
       totalDismissed,
+      totalDismissedDeceased,
       totalArchived,
       totalCohorts,
       multiYearsCount
@@ -612,7 +614,7 @@ export default function InitiationCohortsClient({
         <div style={{ background: '#fff', borderRadius: '8px', padding: '14px 16px', border: '1px solid #fed7aa', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, color: '#9a3412', textTransform: 'uppercase', letterSpacing: '0.4px' }}>🕊️ Roll of Honour</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#c2410c', marginTop: '2px' }}>{stats.totalDeceased}</div>
-          <div style={{ fontSize: '11px', color: '#64748b' }}>Deceased brothers</div>
+          <div style={{ fontSize: '11px', color: '#64748b' }}>Died in good standing</div>
         </div>
 
         <div style={{ background: '#fff', borderRadius: '8px', padding: '14px 16px', border: '1px solid #bae6fd', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
@@ -624,7 +626,9 @@ export default function InitiationCohortsClient({
         <div style={{ background: '#fff', borderRadius: '8px', padding: '14px 16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.4px' }}>🚫 Dismissed</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#64748b', marginTop: '2px' }}>{stats.totalDismissed}</div>
-          <div style={{ fontSize: '11px', color: '#64748b' }}>Separated membership</div>
+          <div style={{ fontSize: '11px', color: '#64748b' }}>
+            {stats.totalDismissedDeceased > 0 ? `Separated (${stats.totalDismissedDeceased} deceased)` : 'Separated membership'}
+          </div>
         </div>
 
         <div style={{ background: '#fff', borderRadius: '8px', padding: '14px 16px', border: '1px solid #fef08a', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
@@ -712,7 +716,7 @@ export default function InitiationCohortsClient({
             >
               <option value="ALL">All Standings</option>
               <option value="Active">🟢 Active Only</option>
-              <option value="Deceased">🕊️ Roll of Honour (Deceased)</option>
+              <option value="Deceased">🕊️ Roll of Honour (Died in Good Standing)</option>
               <option value="Transfer-Out">🔄 Transferred Out</option>
               <option value="Dismissed">🚫 Dismissed</option>
               <option value="Archived">📜 Roll Book Archive</option>
@@ -1077,7 +1081,17 @@ export default function InitiationCohortsClient({
                           Transferred to: {m.transferTo} {m.transferDate ? `(${m.transferDate})` : ''}
                         </div>
                       )}
-                      {m.notes || '—'}
+                      {m.status === 'Dismissed' && m.isDeceased && (
+                        <div style={{ color: '#475569', fontWeight: 600 }}>
+                          ✝ Passed into eternity {m.dateOfDeath ? `(${m.dateOfDeath})` : ''} · Dismissed
+                        </div>
+                      )}
+                      {m.status !== 'Dismissed' && (m.status === 'Deceased' || m.isDeceased) && (
+                        <div style={{ color: '#c2410c', fontWeight: 600 }}>
+                          🕊️ Roll of Honour {m.dateOfDeath ? `(${m.dateOfDeath})` : ''}
+                        </div>
+                      )}
+                      {m.notes || (!m.transferTo && !m.isDeceased ? '—' : '')}
                     </td>
                   </tr>
                 ))}
@@ -1204,13 +1218,16 @@ function CohortCard({ cohort }: { cohort: CohortGroup }) {
               <span style={{ color: '#16a34a', fontWeight: 600 }}>🟢 {cohort.activeCount} Active</span>
             )}
             {cohort.deceasedCount > 0 && (
-              <span style={{ color: '#c2410c', fontWeight: 600 }}>🕊️ {cohort.deceasedCount} Deceased</span>
+              <span style={{ color: '#c2410c', fontWeight: 600 }}>🕊️ {cohort.deceasedCount} Roll of Honour</span>
             )}
             {cohort.transferCount > 0 && (
               <span style={{ color: '#0284c7', fontWeight: 600 }}>🔄 {cohort.transferCount} Transferred</span>
             )}
             {cohort.dismissedCount > 0 && (
-              <span style={{ color: '#64748b', fontWeight: 600 }}>🚫 {cohort.dismissedCount} Dismissed</span>
+              <span style={{ color: '#64748b', fontWeight: 600 }}>
+                🚫 {cohort.dismissedCount} Dismissed
+                {cohort.members.filter(m => m.status === 'Dismissed' && m.isDeceased).length > 0 && ` (${cohort.members.filter(m => m.status === 'Dismissed' && m.isDeceased).length} deceased)`}
+              </span>
             )}
             {cohort.archivedCount > 0 && (
               <span style={{ color: '#b45309', fontWeight: 600 }}>📜 {cohort.archivedCount} Roll Book</span>
@@ -1352,7 +1369,12 @@ function CohortCard({ cohort }: { cohort: CohortGroup }) {
                         🔄 Transferred to {m.transferTo} {m.transferDate ? `(${m.transferDate})` : ''}
                       </div>
                     )}
-                    {m.isDeceased && (
+                    {m.status === 'Dismissed' && m.isDeceased && (
+                      <div style={{ color: '#475569', fontSize: '12px', fontWeight: 600, marginBottom: '2px' }}>
+                        ✝ Passed into eternity {m.dateOfDeath ? `(${m.dateOfDeath})` : ''} · Dismissed member {m.burialPlace ? `· ${m.burialPlace}` : ''}
+                      </div>
+                    )}
+                    {m.status !== 'Dismissed' && (m.status === 'Deceased' || m.isDeceased) && (
                       <div style={{ color: '#c2410c', fontSize: '12px', fontWeight: 600, marginBottom: '2px' }}>
                         🕊️ Rest in Peace {m.dateOfDeath ? `(${m.dateOfDeath})` : ''} {m.burialPlace ? `· ${m.burialPlace}` : ''}
                       </div>
@@ -1413,26 +1435,62 @@ function StatusBadge({
   isDeceased: boolean;
   transferTo?: string | null;
 }) {
-  if (isDeceased || status === 'Deceased') {
+  if (status === 'Dismissed') {
+    if (isDeceased) {
+      return (
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          background: '#f8fafc',
+          border: '1px solid #cbd5e1',
+          color: '#475569',
+          padding: '3px 8px',
+          borderRadius: '6px',
+          fontSize: '11.5px',
+          fontWeight: 700
+        }} title="Dismissed member who has passed into eternity. Not listed on Commandery Roll of Honour.">
+          <span>✝</span> Dismissed (Deceased)
+        </span>
+      );
+    }
     return (
       <span style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: '4px',
-        background: '#fff7ed',
-        border: '1px solid #fed7aa',
-        color: '#c2410c',
+        background: '#f8fafc',
+        border: '1px solid #cbd5e1',
+        color: '#475569',
         padding: '3px 8px',
         borderRadius: '6px',
         fontSize: '11.5px',
         fontWeight: 700
       }}>
-        <span>🕊️</span> Roll of Honour
+        <span>🚫</span> Dismissed
       </span>
     );
   }
 
   if (status === 'Transfer-Out') {
+    if (isDeceased) {
+      return (
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          background: '#f0f9ff',
+          border: '1px solid #bae6fd',
+          color: '#0369a1',
+          padding: '3px 8px',
+          borderRadius: '6px',
+          fontSize: '11.5px',
+          fontWeight: 700
+        }} title="Transferred member who has passed into eternity.">
+          <span>✝</span> Transferred Out (Deceased)
+        </span>
+      );
+    }
     return (
       <span style={{
         display: 'inline-flex',
@@ -1451,21 +1509,21 @@ function StatusBadge({
     );
   }
 
-  if (status === 'Dismissed') {
+  if (status === 'Deceased' || isDeceased) {
     return (
       <span style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: '4px',
-        background: '#f8fafc',
-        border: '1px solid #cbd5e1',
-        color: '#475569',
+        background: '#fff7ed',
+        border: '1px solid #fed7aa',
+        color: '#c2410c',
         padding: '3px 8px',
         borderRadius: '6px',
         fontSize: '11.5px',
         fontWeight: 700
-      }}>
-        <span>🚫</span> Dismissed
+      }} title="Passed into eternity while in good standing in Commandery No. 500">
+        <span>🕊️</span> Roll of Honour
       </span>
     );
   }

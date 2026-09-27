@@ -251,7 +251,7 @@ export default function HistoricalMembersClient({
     return dbMembers.filter(m => m.status === 'Deceased' || m.is_deceased || m.status === 'Transfer-Out' || m.status === 'Dismissed');
   }, [dbMembers]);
 
-  const deceasedCount = useMemo(() => dbMembers.filter(m => m.status === 'Deceased' || m.is_deceased).length, [dbMembers]);
+  const deceasedCount = useMemo(() => dbMembers.filter(m => m.status === 'Deceased' || (m.is_deceased && m.status !== 'Dismissed' && m.status !== 'Transfer-Out')).length, [dbMembers]);
   const transferCount = useMemo(() => dbMembers.filter(m => m.status === 'Transfer-Out').length, [dbMembers]);
   const dismissedCount = useMemo(() => dbMembers.filter(m => m.status === 'Dismissed').length, [dbMembers]);
   const activeCount = useMemo(() => dbMembers.filter(m => m.status === 'Active').length, [dbMembers]);
@@ -285,7 +285,7 @@ export default function HistoricalMembersClient({
   const filteredArchived = useMemo(() => {
     return pastArchivedMembers.filter(m => {
       if (archivedFilter !== 'ALL') {
-        if (archivedFilter === 'Deceased' && m.status !== 'Deceased' && !m.is_deceased) return false;
+        if (archivedFilter === 'Deceased' && (m.status === 'Dismissed' || m.status === 'Transfer-Out' || (!m.is_deceased && m.status !== 'Deceased'))) return false;
         if (archivedFilter === 'Transfer-Out' && m.status !== 'Transfer-Out') return false;
         if (archivedFilter === 'Dismissed' && m.status !== 'Dismissed') return false;
       }
@@ -1262,7 +1262,11 @@ matchedLedger.map(({ item, linkedMember }, idx) => (
                   </tr>
                 ) : (
                   filteredArchived.map((m, idx) => {
+                    const isDismissed = m.status === 'Dismissed';
+                    const isTransferred = m.status === 'Transfer-Out';
                     const isDeceased = m.status === 'Deceased' || m.is_deceased;
+                    const isGoodStandingDeceased = (m.status === 'Deceased' || m.is_deceased) && !isDismissed && !isTransferred;
+
                     return (
                       <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
                         <td style={{ padding: '10px 14px' }}>
@@ -1272,19 +1276,35 @@ matchedLedger.map(({ item, linkedMember }, idx) => (
                           {m.occupation && <div style={{ fontSize: '12px', color: '#64748b' }}>{m.occupation}</div>}
                         </td>
                         <td style={{ padding: '10px 14px' }}>
-                          {isDeceased && (
-                            <span style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
+                          {isGoodStandingDeceased && (
+                            <span style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }} title="Died in good standing">
                               🕊️ Roll of Honour (Deceased)
                             </span>
                           )}
-                          {m.status === 'Transfer-Out' && (
-                            <span style={{ background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
-                              🔄 Transferred Out
+                          {isTransferred && (
+                            <span style={{
+                              background: '#f0f9ff',
+                              color: '#0369a1',
+                              border: '1px solid #bae6fd',
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: 700
+                            }}>
+                              {isDeceased ? '✝ Transferred Out (Deceased)' : '🔄 Transferred Out'}
                             </span>
                           )}
-                          {m.status === 'Dismissed' && (
-                            <span style={{ background: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
-                              🚫 Dismissed
+                          {isDismissed && (
+                            <span style={{
+                              background: '#f8fafc',
+                              color: '#475569',
+                              border: '1px solid #cbd5e1',
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: 700
+                            }} title={isDeceased ? "Dismissed member who passed into eternity (not on Commandery Roll of Honour)" : "Dismissed record"}>
+                              {isDeceased ? '✝ Dismissed (Deceased)' : '🚫 Dismissed'}
                             </span>
                           )}
                         </td>
@@ -1292,23 +1312,34 @@ matchedLedger.map(({ item, linkedMember }, idx) => (
                           {m.date_joined || '—'}
                         </td>
                         <td style={{ padding: '10px 14px', fontSize: '12px' }}>
-                          {isDeceased && (
+                          {isGoodStandingDeceased && (
                             <div>
                               {m.date_of_death && <div>Died: {m.date_of_death}</div>}
                               {m.burial_place && <div>Burial: {m.burial_place}</div>}
                               {!m.date_of_death && !m.burial_place && <span style={{ color: '#94a3b8' }}>Archived Memorial</span>}
                             </div>
                           )}
-                          {m.status === 'Transfer-Out' && (
+                          {isTransferred && (
                             <div>
                               {m.transfer_to && <div>To: {m.transfer_to}</div>}
                               {m.transfer_date && <div>Date: {m.transfer_date}</div>}
-                              {!m.transfer_to && !m.transfer_date && <span style={{ color: '#94a3b8' }}>Transferred</span>}
+                              {isDeceased && (
+                                <div style={{ color: '#0369a1', marginTop: '2px', fontWeight: 600 }}>
+                                  ✝ Passed into eternity {m.date_of_death ? `(${m.date_of_death})` : ''}
+                                </div>
+                              )}
+                              {!m.transfer_to && !m.transfer_date && !isDeceased && <span style={{ color: '#94a3b8' }}>Transferred</span>}
                             </div>
                           )}
-                          {m.status === 'Dismissed' && (
+                          {isDismissed && (
                             <div>
-                              {m.date_of_dismissal ? `Dismissed: ${m.date_of_dismissal}` : 'Dismissed Record'}
+                              <div>{m.date_of_dismissal ? `Dismissed: ${m.date_of_dismissal}` : 'Dismissed Record'}</div>
+                              {isDeceased && (
+                                <div style={{ color: '#475569', marginTop: '2px', fontWeight: 600 }}>
+                                  ✝ Passed into eternity {m.date_of_death ? `(${m.date_of_death})` : ''}
+                                  {m.burial_place ? ` · Burial: ${m.burial_place}` : ''}
+                                </div>
+                              )}
                             </div>
                           )}
                         </td>

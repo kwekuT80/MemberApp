@@ -467,8 +467,11 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
                 const today = new Date().toISOString().split('T')[0];
                 const prevStatus = form.status;
                 updateField('status', v);
-                if (v === 'Deceased') updateField('is_deceased', true);
-                else updateField('is_deceased', false);
+                if (v === 'Deceased') {
+                  updateField('is_deceased', true);
+                } else if (v === 'Active') {
+                  updateField('is_deceased', false);
+                }
 
                 if (v === 'Suspended') {
                   if (!form.date_of_suspension) {
@@ -497,12 +500,23 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
               />
             )}
             {form.status === 'Dismissed' && (
-              <InputField 
-                label="Date of Dismissal" 
-                type="date" 
-                value={form.date_of_dismissal} 
-                onChange={(v: string) => updateField('date_of_dismissal', v)} 
-              />
+              <>
+                <InputField 
+                  label="Date of Dismissal" 
+                  type="date" 
+                  value={form.date_of_dismissal} 
+                  onChange={(v: string) => updateField('date_of_dismissal', v)} 
+                />
+                <SelectField
+                  label="Deceased / Passed to Eternity?"
+                  value={form.is_deceased ? 'Yes' : 'No'}
+                  options={['No', 'Yes']}
+                  onChange={(v: string) => {
+                    const isDec = v === 'Yes';
+                    updateField('is_deceased', isDec);
+                  }}
+                />
+              </>
             )}
             {form.date_of_reinstatement && (
               <InputField 
@@ -512,8 +526,13 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
                 onChange={(v: string) => updateField('date_of_reinstatement', v)} 
               />
             )}
-            {form.status === 'Deceased' && (
+            {(form.status === 'Deceased' || form.is_deceased) && (
               <>
+                {form.status === 'Dismissed' && (
+                  <div style={{ gridColumn: '1 / -1', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', color: '#475569' }}>
+                    ✝ <strong>Dismissed Brother Passing</strong>: Record death date and burial location for biographical archives. He remains classified as <em>Dismissed (Deceased)</em> and is not listed on the active Commandery Roll of Honour.
+                  </div>
+                )}
                 <InputField label="Date of Death" type="date" value={form.date_of_death} onChange={(v: string) => updateField('date_of_death', v)} />
                 <InputField label="Burial Date" type="date" value={form.burial_date} onChange={(v: string) => updateField('burial_date', v)} />
                 <div className="input-group" style={{ gridColumn: '1 / -1' }}>
