@@ -693,7 +693,7 @@ export default function InitiationCohortsClient({
           </span>
           {[
             { id: 'ALL', label: 'All Eras (1964–Present)', count: members.length },
-            { id: 'PRE_2000', label: '⏳ Prior to 2000 (1964–1999)', count: pre2000Count },
+            { id: 'PRE_2000', label: '🏛️ Charter & Foundation Era (1964–1999)', count: pre2000Count },
             { id: '2000s', label: '2000–2009', count: era2000sCount },
             { id: '2010s', label: '2010–2019', count: era2010sCount },
             { id: '2020s', label: '2020–Present', count: era2020sCount },
@@ -957,19 +957,19 @@ export default function InitiationCohortsClient({
           background: '#f0f9ff',
           border: '1px solid #bae6fd',
           borderRadius: '8px',
-          padding: '14px 20px',
+          padding: '16px 20px',
           marginBottom: '20px',
           display: 'flex',
           alignItems: 'flex-start',
           gap: '14px'
         }}>
-          <span style={{ fontSize: '24px' }}>📜</span>
+          <span style={{ fontSize: '26px' }}>🏛️</span>
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: '#0369a1' }}>
-              Historical Foundation Era: Initiation Cohorts Prior to 2000 ({pre2000Count} Brothers Recorded)
+            <div style={{ fontSize: '15px', fontWeight: 800, color: '#0369a1' }}>
+              Historical Charter & Foundation Era (1964–1999) — {pre2000Count} Brothers Recorded
             </div>
-            <div style={{ fontSize: '13px', color: '#0c4a6e', marginTop: '3px', lineHeight: '1.5' }}>
-              The cohorts listed below unify the digitized entries from <strong>Physical Roll Book Page 1 (Foundation Charter entries 1 to 14, 1964–1995)</strong> with registered member profiles spanning 1964 through 1999. All 26 foundational brothers across 14 ceremony dates are displayed below.
+            <div style={{ fontSize: '13px', color: '#0c4a6e', marginTop: '4px', lineHeight: '1.55' }}>
+              <strong>St. Margaret-Mary Commandery #500 received its charter and came into being on 30th December 1995.</strong> All members with initiation dates predating this charter date (1964–1993) were initiated in mother commanderies and transferred into Commandery #500 on Charter Inauguration Day as its founding brothers. All entries from the Foundation Roll Book register (Page 1) and registered member profiles have been captured into the digital register. Local initiation cohorts commenced on Charter Day (30th Dec 1995) and continued through 1997, 1998, and 1999.
             </div>
           </div>
         </div>
@@ -1078,6 +1078,33 @@ export default function InitiationCohortsClient({
                       <span style={{ color: '#64748b', fontSize: '13px', fontWeight: 600 }}>
                         ({yg.totalMembers} Brother{yg.totalMembers === 1 ? '' : 's'} Total)
                       </span>
+
+                      {yg.year !== 'Unknown' && parseInt(yg.year) < 1995 && (
+                        <span style={{
+                          background: '#fef3c7',
+                          color: '#92400e',
+                          border: '1px solid #fde68a',
+                          borderRadius: '999px',
+                          padding: '3px 10px',
+                          fontSize: '11.5px',
+                          fontWeight: 700
+                        }}>
+                          🏛️ Pre-Charter Foundation (Charter Day Transferees)
+                        </span>
+                      )}
+                      {yg.year === '1995' && (
+                        <span style={{
+                          background: '#dcfce7',
+                          color: '#15803d',
+                          border: '1px solid #86efac',
+                          borderRadius: '999px',
+                          padding: '3px 10px',
+                          fontSize: '11.5px',
+                          fontWeight: 700
+                        }}>
+                          🎉 Commandery #500 Chartered (30th Dec 1995)
+                        </span>
+                      )}
                     </div>
 
                     <div style={{ fontSize: '12.5px', color: '#64748b', fontWeight: 600 }}>
@@ -1300,6 +1327,33 @@ function CohortCard({ cohort }: { cohort: CohortGroup }) {
               Cohort of {cohort.formattedDate}
             </h3>
 
+            {cohort.dateKey < '1995-12-30' && (
+              <span style={{
+                background: '#fef3c7',
+                color: '#92400e',
+                border: '1px solid #fde68a',
+                borderRadius: '6px',
+                padding: '2px 8px',
+                fontSize: '11.5px',
+                fontWeight: 700
+              }}>
+                🏛️ Charter Transferees (Pre-1995 Mother Commandery)
+              </span>
+            )}
+            {cohort.dateKey === '1995-12-30' && (
+              <span style={{
+                background: '#dcfce7',
+                color: '#15803d',
+                border: '1px solid #86efac',
+                borderRadius: '6px',
+                padding: '2px 8px',
+                fontSize: '11.5px',
+                fontWeight: 700
+              }}>
+                🎉 Commandery #500 Charter Day Class (30-12-1995)
+              </span>
+            )}
+
             {cohort.totalCohortsInYear > 1 && (
               <span style={{
                 background: '#eff6ff',
@@ -1478,6 +1532,16 @@ function CohortCard({ cohort }: { cohort: CohortGroup }) {
 
                   {/* Notes / Remarks */}
                   <td style={{ padding: '12px 16px', verticalAlign: 'middle', maxWidth: '280px' }}>
+                    {cohort.dateKey < '1995-12-30' && (
+                      <div style={{ color: '#92400e', fontSize: '11.5px', fontWeight: 700, marginBottom: '3px' }}>
+                        🏛️ Charter Transferee (Pre-1995 Initiate)
+                      </div>
+                    )}
+                    {cohort.dateKey === '1995-12-30' && (
+                      <div style={{ color: '#15803d', fontSize: '11.5px', fontWeight: 700, marginBottom: '3px' }}>
+                        🎉 Charter Day Inauguration Class
+                      </div>
+                    )}
                     {m.transferTo && (
                       <div style={{ color: '#0369a1', fontSize: '12px', fontWeight: 600, marginBottom: '2px' }}>
                         🔄 Transferred to {m.transferTo} {m.transferDate ? `(${m.transferDate})` : ''}
@@ -1498,7 +1562,7 @@ function CohortCard({ cohort }: { cohort: CohortGroup }) {
                         {m.notes}
                       </div>
                     ) : (
-                      !m.transferTo && !m.isDeceased && <span style={{ color: '#94a3b8' }}>—</span>
+                      !m.transferTo && !m.isDeceased && cohort.dateKey >= '1995-12-30' && <span style={{ color: '#94a3b8' }}>—</span>
                     )}
                   </td>
 
