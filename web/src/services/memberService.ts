@@ -948,7 +948,9 @@ export async function deleteRollBookEntry(rollBookId: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function batchBackfillAndClearLinkedEntries(): Promise<{
+export async function batchBackfillAndClearLinkedEntries(
+  matchedPairs?: Array<{ rollBookId: string; memberId: string }>
+): Promise<{
   processedCount: number;
   clearedCount: number;
 }> {
@@ -962,28 +964,66 @@ export async function batchBackfillAndClearLinkedEntries(): Promise<{
     .eq('id', user.id)
     .maybeSingle();
 
-  if (profile?.role !== 'super_admin') {
-    throw new Error('Unauthorized: Only super_admin can perform batch maintenance');
+  if (profile?.role !== 'super_admin' && profile?.role !== 'registrar') {
+    throw new Error('Unauthorized: Only super_admin or registrar can perform batch maintenance');
   }
 
-  // Fetch all roll_book_entries with enrolled_member_id
-  const { data: entries, error } = await supabase
-    .from('roll_book_entries')
-    .select('*')
-    .not('enrolled_member_id', 'is', null);
+  // Resolve pairs of (entry, memberId)
+  const pairsToProcess: Array<{ entry: any; memberId: string }> = [];
 
-  if (error || !entries) return { processedCount: 0, clearedCount: 0 };
+  if (matchedPairs && Array.isArray(matchedPairs) && matchedPairs.length > 0) {
+    const entryIds = matchedPairs.map(p => p.rollBookId);
+    const { data: entries } = await supabase
+      .from('roll_book_entries')
+      .select('*')
+      .in('id', entryIds);
+
+    const entryMap = new Map((entries || []).map(e => [e.id, e]));
+    for (const p of matchedPairs) {
+      const entry = entryMap.get(p.rollBookId);
+      if (entry) {
+        pairsToProcess.push({ entry, memberId: p.memberId });
+      }
+    }
+  } else {
+    // Fallback: check roll_book_entries with enrolled_member_id or clean name matches
+    const { data: entries } = await supabase
+      .from('roll_book_entries')
+      .select('*');
+
+    const { data: allMembers } = await supabase
+      .from('members')
+      .select('id, first_name, surname');
+
+    const cleanStr = (s: string | null | undefined) =>
+      (s || '').toLowerCase().replace(/^(bro\.|brother|sir\s+kt\.?|capt\.?|col\.?|dr\.?)\s+/i, '').replace(/[^a-z0-9]/g, '').trim();
+
+    for (const entry of (entries || [])) {
+      if (entry.enrolled_member_id) {
+        pairsToProcess.push({ entry, memberId: entry.enrolled_member_id });
+      } else {
+        const sName = cleanStr(entry.surname);
+        const fName = cleanStr(entry.first_name);
+        const candidates = (allMembers || []).filter(m => {
+          const ms = cleanStr(m.surname);
+          const mf = cleanStr(m.first_name);
+          return ms.length >= 3 && mf.length >= 3 && ms === sName && mf === fName;
+        });
+        if (candidates.length === 1) {
+          pairsToProcess.push({ entry, memberId: candidates[0].id });
+        }
+      }
+    }
+  }
 
   let processedCount = 0;
   let clearedCount = 0;
 
-  for (const entry of entries) {
-    if (!entry.enrolled_member_id) continue;
-
+  for (const { entry, memberId } of pairsToProcess) {
     const { data: member } = await supabase
       .from('members')
       .select('*')
-      .eq('id', entry.enrolled_member_id)
+      .eq('id', memberId)
       .maybeSingle();
 
     if (member) {
@@ -1037,7 +1077,7 @@ export async function batchBackfillAndClearLinkedEntries(): Promise<{
       }
     }
 
-    // Delete the reconciled entry from roll_book_entries
+    // Delete the reconciled entry from roll_book_entries queue
     await supabase.from('roll_book_entries').delete().eq('id', entry.id);
     clearedCount++;
   }

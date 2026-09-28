@@ -488,7 +488,10 @@ export default function HistoricalMembersClient({
     if (!confirm(`Sync missing information to all linked database members and clear all ${matchedLedger.length} matched records from the roll book queue?`)) return;
     setSubmitting(true);
     try {
-      const res = await batchBackfillAndClearLinkedEntries();
+      const pairs = matchedLedger
+        .filter(m => Boolean(m.item.id && m.linkedMember?.id))
+        .map(m => ({ rollBookId: m.item.id as string, memberId: m.linkedMember!.id }));
+      const res = await batchBackfillAndClearLinkedEntries(pairs);
       const matchedIds = new Set(matchedLedger.map(m => m.item.id));
       setLedger(prev => prev.filter(l => !matchedIds.has(l.id)));
       showToast(`Reconciled: backfilled ${res.processedCount} members and cleared ${res.clearedCount} matched records from the roll book queue!`);
