@@ -1,12 +1,205 @@
 /**
- * Official KSJI Terminology and Logic
+ * ============================================================================
+ * KSJI COMMANDERY #500 CANONICAL TRUTHS & BUSINESS DOMAIN CONSTANTS
+ * ============================================================================
  */
+
+export const KSJI_COMMANDERY_CONSTANTS = {
+  COMMANDERY_NUMBER: 500,
+  COMMANDERY_NAME: 'St. Margaret-Mary Commandery',
+  PARISH: 'St. Margaret-Mary Catholic Parish, Dansoman',
+  CHARTER_DATE: '1995-12-30', // 30th December 1995
+  GENESIS_WELFARE_YEAR: 2022,
+};
 
 export const KSJI_TERMINOLOGY = {
   DEGREE_SECTION: 'Exemplification',
   EXEMPLIFIED: 'Exemplified into the',
   NOBLE_BROTHER: 'Noble Brother',
+  ROLL_OF_HONOUR: 'Roll of Honour',
+  REST_IN_PEACE: 'Rest in Peace',
+  PASSED_TO_ETERNITY: 'Passed into Eternity',
+  CHARTER_TRANSFEREE: 'Charter Foundation Member',
+  CHARTER_CLASS: 'Charter Day Inauguration Class',
 };
+
+/**
+ * 1. CHARTER & FOUNDATION TRUTHS:
+ * - Commandery #500 received its charter and came into being on 30th December 1995.
+ * - Any initiation date strictly BEFORE 1995-12-30 indicates the brother was initiated
+ *   in a mother commandery and transferred into #500 on Charter Day as a founding roll member.
+ * - 30th December 1995 is the Charter Day Inauguration Class (Entry 14 in Roll Book).
+ * - 1996+ are locally initiated Commandery #500 cohorts.
+ */
+export function isPreCharterInitiation(dateStr: string | null | undefined): boolean {
+  if (!dateStr) return false;
+  const clean = dateStr.split('T')[0];
+  return clean < KSJI_COMMANDERY_CONSTANTS.CHARTER_DATE;
+}
+
+export function isCharterDayInitiation(dateStr: string | null | undefined): boolean {
+  if (!dateStr) return false;
+  const clean = dateStr.split('T')[0];
+  return clean === KSJI_COMMANDERY_CONSTANTS.CHARTER_DATE;
+}
+
+/**
+ * Categorizes a date or year into its official historical era:
+ * - CHARTER_FOUNDATION: 1964–1999 (Includes pre-1995 transferees + 1995 charter class + 1997–1999 local cohorts)
+ * - ERA_2000s: 2000–2009
+ * - ERA_2010s: 2010–2019
+ * - ERA_2020s: 2020–Present
+ */
+export function getHistoricalEra(dateOrYear: string | number | null | undefined): 'CHARTER_FOUNDATION' | '2000s' | '2010s' | '2020s' | 'UNKNOWN' {
+  if (!dateOrYear) return 'UNKNOWN';
+  let year: number;
+  if (typeof dateOrYear === 'number') {
+    year = dateOrYear;
+  } else {
+    const yrStr = dateOrYear.substring(0, 4);
+    year = parseInt(yrStr, 10);
+  }
+  if (isNaN(year)) return 'UNKNOWN';
+  if (year < 2000) return 'CHARTER_FOUNDATION';
+  if (year < 2010) return '2000s';
+  if (year < 2020) return '2010s';
+  return '2020s';
+}
+
+/**
+ * 2. DECEASED, DISMISSED & MEMORIAL TRUTHS:
+ * - Deceased members are NEVER deleted from the database.
+ * - Avoid clinical/morbid words like "Necrology".
+ * - If a brother died while an active member: "Roll of Honour / Rest in Peace" (🕊️).
+ * - If a dismissed brother later died: "Passed into Eternity" (✝) — acknowledge their passing
+ *   with Christian dignity without creating the impression they passed as an active brother.
+ */
+export function formatFraternalStanding(status: string | null | undefined, isDeceased?: boolean | null, transferTo?: string | null) {
+  const isDec = Boolean(isDeceased || status === 'Deceased');
+  const s = String(status || '').trim();
+
+  if (s === 'Dismissed' && isDec) {
+    return {
+      label: 'Passed into Eternity (Dismissed)',
+      badge: '✝ Passed into Eternity',
+      bg: '#f1f5f9',
+      color: '#475569',
+      border: '#cbd5e1',
+      memorialStyle: 'dismissed_deceased' as const,
+      isMemorial: true,
+    };
+  }
+
+  if (isDec || s === 'Deceased') {
+    return {
+      label: 'Roll of Honour (Rest in Peace)',
+      badge: '🕊️ Roll of Honour',
+      bg: '#ffedd5',
+      color: '#c2410c',
+      border: '#fdba74',
+      memorialStyle: 'roll_of_honour' as const,
+      isMemorial: true,
+    };
+  }
+
+  if (s === 'Transfer-Out' || transferTo) {
+    return {
+      label: `Transferred Out${transferTo ? ` (${transferTo})` : ''}`,
+      badge: '🔄 Transferred',
+      bg: '#e0f2fe',
+      color: '#0369a1',
+      border: '#bae6fd',
+      memorialStyle: 'none' as const,
+      isMemorial: false,
+    };
+  }
+
+  if (s === 'Dismissed') {
+    return {
+      label: 'Dismissed',
+      badge: '🚫 Dismissed',
+      bg: '#f1f5f9',
+      color: '#64748b',
+      border: '#cbd5e1',
+      memorialStyle: 'none' as const,
+      isMemorial: false,
+    };
+  }
+
+  if (s === 'Archived Roll') {
+    return {
+      label: 'Archived Roll Book Record',
+      badge: '📜 Roll Book',
+      bg: '#fef3c7',
+      color: '#92400e',
+      border: '#fde68a',
+      memorialStyle: 'none' as const,
+      isMemorial: false,
+    };
+  }
+
+  return {
+    label: 'Active Member',
+    badge: '🟢 Active',
+    bg: '#dcfce7',
+    color: '#15803d',
+    border: '#86efac',
+    memorialStyle: 'none' as const,
+    isMemorial: false,
+  };
+}
+
+/**
+ * 3. BILLING, DUES & AUTOMATED COMMUNICATION EXCLUSIONS:
+ * - Billing and dues assessment MUST explicitly filter out members who are:
+ *   Deceased, Dismissed, or Transferred-Out.
+ * - Deceased members remain archived forever, but should NEVER receive annual dues bills,
+ *   welfare arrears warnings, or automated broadcast reminders.
+ */
+export function isBillableMember(m: {
+  status?: string | null;
+  is_deceased?: boolean | null;
+  first_name?: string | null;
+  surname?: string | null;
+}): boolean {
+  if (m.is_deceased === true) return false;
+  const s = String(m.status || '').trim().toLowerCase();
+  if (['deceased', 'dismissed', 'transfer-out', 'system'].includes(s)) return false;
+  if (isSystemMember(m)) return false;
+  return true;
+}
+
+/**
+ * 4. INITIATION COHORT TRUTHS:
+ * - A member's cohort is determined STRICTLY by their 1st Degree Initiation Date.
+ * - Standing (Active/Deceased/Dismissed/Transferred) does not remove a brother from his cohort.
+ * - Multiple cohorts can and do occur within the same calendar year.
+ */
+export function getCohortBadge(dateStr: string | null | undefined): {
+  label: string;
+  isPreCharter: boolean;
+  isCharterDay: boolean;
+} {
+  if (isPreCharterInitiation(dateStr)) {
+    return {
+      label: '🏛️ Charter Foundation (Pre-1995 Transferees)',
+      isPreCharter: true,
+      isCharterDay: false,
+    };
+  }
+  if (isCharterDayInitiation(dateStr)) {
+    return {
+      label: '🎉 Commandery #500 Charter Day Class (30-12-1995)',
+      isPreCharter: false,
+      isCharterDay: true,
+    };
+  }
+  return {
+    label: '⚔️ Commandery #500 Initiation Class',
+    isPreCharter: false,
+    isCharterDay: false,
+  };
+}
 
 /**
  * Identifies fictitious/system accounts (such as Operational Outflows accounts)
@@ -38,12 +231,92 @@ export function isSystemMember(member: any): boolean {
 }
 
 /**
- * Expands titles like 'N/B' to 'Noble Brother' and handles other honorifics
+ * 5. DEGREE PROGRESSION, ADDRESS & HONORIFIC TITLES (CANONICAL TRUTHS):
+ * - 1st Degree (Initiation): Addressed as Brother ("Bro.").
+ * - 2nd & 3rd Degrees: Addressed as Brother ("Bro.").
+ * - 4th Degree: Exemplified into the Fourth Degree; becomes a Chevalier
+ *   and member of the Chapter of Chevaliers (e.g., Archbishop William Thomas Porter Chapter).
+ *   IMPORTANT: Chevaliers are NOT addressed as "Chevalier" in everyday fraternal life;
+ *   they are still addressed and referred to as "Bro." / "Brother".
+ * - 5th Degree ("Noble Degree"): Exemplified into / Attained the Fifth Degree; becomes a Noble Brother
+ *   ("N/B") and member of the Nobles' Temple (e.g., Accra West Nobles' Temple).
+ *
+ * CANONICAL TRUTH & ADDRESS CONVENTIONS:
+ * 1. "Bro." is the universal, standard form of address for ALL members who are yet to attain the Noble Degree.
+ * 2. The title "Noble Brother" (N/B) is STRICTLY reserved for brothers who have achieved the 5th Degree.
+ * 3. Chevaliers (4th Degree) hold the rank and Chapter affiliation of Chevalier, but their fraternal title remains "Bro.".
+ * 4. Uniform Ranks Distinction: If a brother is in the uniform ranks (possesses a military uniform),
+ *    he can optionally be addressed by a military rank/title that sets him apart, but this distinction
+ *    is not rigidly enforced. Therefore, "Bro." remains standard and appropriate for all pre-Noble brothers.
  */
-export function formatMemberTitle(title: string | null) {
-  if (!title) return 'Brother';
-  if (title === 'N/B') return KSJI_TERMINOLOGY.NOBLE_BROTHER;
-  return title;
+export function hasAchieved5thDegree(degrees?: Array<{ degree_type?: string | null }> | null): boolean {
+  if (!degrees || !Array.isArray(degrees)) return false;
+  return degrees.some(d => {
+    const dt = String(d?.degree_type || '').toLowerCase();
+    return dt.includes('5th') || dt.includes('fifth') || dt.includes('noble');
+  });
+}
+
+export function hasAchieved4thDegree(degrees?: Array<{ degree_type?: string | null }> | null): boolean {
+  if (!degrees || !Array.isArray(degrees)) return false;
+  return degrees.some(d => {
+    const dt = String(d?.degree_type || '').toLowerCase();
+    return dt.includes('4th') || dt.includes('fourth') || dt.includes('chevalier');
+  });
+}
+
+/**
+ * Returns the fraternal rank/status of a member:
+ * - 5th Degree -> 'Noble Brother'
+ * - 4th Degree -> 'Chevalier' (institutionally in Chapter of Chevaliers)
+ * - 1st/2nd/3rd Degree -> 'Brother'
+ */
+export function getCanonicalDegreeRank(
+  degrees?: Array<{ degree_type?: string | null }> | null,
+  options?: { short?: boolean }
+): string {
+  if (hasAchieved5thDegree(degrees)) {
+    return options?.short ? 'N/B' : KSJI_TERMINOLOGY.NOBLE_BROTHER;
+  }
+  if (hasAchieved4thDegree(degrees)) {
+    return 'Chevalier';
+  }
+  return options?.short ? 'Bro.' : 'Brother';
+}
+
+/**
+ * Returns the fraternal form of address (prefix title) for a member.
+ * - 5th Degree: 'Noble Brother' (or 'N/B')
+ * - 1st to 4th Degree: 'Bro.' (Chevaliers are still addressed as 'Bro.')
+ * - Respects explicit military/clerical titles (e.g. 'Capt.', 'Col.', 'Rev. Fr.') if set.
+ */
+export function formatMemberTitle(
+  title?: string | null,
+  degrees?: Array<{ degree_type?: string | null }> | null
+): string {
+  // If member has attained 5th Degree, they are canonically Noble Brother
+  if (hasAchieved5thDegree(degrees)) {
+    return KSJI_TERMINOLOGY.NOBLE_BROTHER;
+  }
+
+  const raw = (title || '').trim();
+
+  // If a brother only has up to 4th degree (or degrees unknown), but was erroneously labelled N/B,
+  // revert to 'Bro.' because Noble Brother is strictly for 5th degree.
+  if (raw.toUpperCase() === 'N/B' || raw.toLowerCase() === 'noble brother') {
+    if (degrees && Array.isArray(degrees) && degrees.length > 0 && !hasAchieved5thDegree(degrees)) {
+      return 'Bro.';
+    }
+    return KSJI_TERMINOLOGY.NOBLE_BROTHER;
+  }
+
+  // Pre-noble degrees: Chevaliers and 1st-3rd degree brothers are addressed as 'Bro.'
+  if (!raw || raw.toLowerCase() === 'brother') {
+    return 'Bro.';
+  }
+
+  // Return any existing specific title (e.g. 'Bro.', 'Sir Kt.', 'Capt.', 'Col.', 'Rev. Fr.')
+  return raw;
 }
 
 /**
@@ -332,12 +605,8 @@ export function buildServiceNarrative(params: {
   }
 
   // --- 5. Honours / Degree Narrative -----------------------------------------
-  const has5th = degrees.some(
-    (d) => d.degree_type?.toLowerCase().includes('5th') || d.degree_type?.toLowerCase().includes('fifth')
-  );
-  const has4th = degrees.some(
-    (d) => d.degree_type?.toLowerCase().includes('4th') || d.degree_type?.toLowerCase().includes('fourth')
-  );
+  const has5th = hasAchieved5thDegree(degrees);
+  const has4th = hasAchieved4thDegree(degrees);
 
   if (has5th) {
     sentences.push(
@@ -367,8 +636,8 @@ export function buildFormalCitation(params: {
   const { displayTitle, firstName, surname, joinedDate, degrees, positions } = params;
   const fullName = `${displayTitle} ${firstName} ${surname}`;
 
-  const has5th = degrees.some(d => d.degree_type?.toLowerCase().includes('5th'));
-  const has4th = degrees.some(d => d.degree_type?.toLowerCase().includes('4th'));
+  const has5th = hasAchieved5thDegree(degrees);
+  const has4th = hasAchieved4thDegree(degrees);
 
   let rankTerm = 'distinguished brother';
   if (has5th) rankTerm = 'Noble Brother';

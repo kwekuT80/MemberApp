@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { formatMemberTitle, formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { formatMemberTitle, formatDisplayDate, getCanonicalDegreeRank } from '@/lib/utils/ksji-logic';
 
 export default function VerificationPage() {
   const { id } = useParams();
@@ -31,18 +31,13 @@ export default function VerificationPage() {
   if (loading) return <div style={container}><div style={card}>Loading Verification Data...</div></div>;
   if (!member) return <div style={container}><div style={card}><h3>Invalid ID</h3><p>This membership record could not be verified.</p></div></div>;
 
-  const displayTitle = formatMemberTitle(member.title);
+  const degrees = member.degrees || [];
+  const displayTitle = formatMemberTitle(member.title, degrees);
   const fullName = `${displayTitle} ${member.first_name} ${member.surname}`.toUpperCase();
   const isActive = member.status === 'Active';
   
   // Find highest degree
-  const degrees = member.degrees || [];
-  const has5th = degrees.some((d: any) => d.degree_type?.toLowerCase().includes('5th') || d.degree_type?.toLowerCase().includes('fifth'));
-  const has4th = degrees.some((d: any) => d.degree_type?.toLowerCase().includes('4th') || d.degree_type?.toLowerCase().includes('fourth'));
-  
-  let rank = 'Brother';
-  if (has5th) rank = 'Noble Brother';
-  else if (has4th) rank = 'Chevalier';
+  const rank = getCanonicalDegreeRank(degrees);
 
   return (
     <div style={container}>

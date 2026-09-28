@@ -5,6 +5,7 @@ import EmptyState from '@/components/shared/EmptyState';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getMyMember, getMyInitiationCohort } from '@/services/memberService';
 import BirthdaysWidget from '@/components/dashboard/BirthdaysWidget';
+import { formatMemberTitle } from '@/lib/utils/ksji-logic';
 
 export default async function MePage() {
   await requireUser();
@@ -21,7 +22,7 @@ export default async function MePage() {
     );
   }
 
-  const displayTitle = member?.title === 'N/B' ? 'Noble Brother' : member?.title;
+  const displayTitle = formatMemberTitle(member?.title, member?.degrees);
 
   return (
     <MemberShell title='My Record' subtitle='Overview of your current member information.'>

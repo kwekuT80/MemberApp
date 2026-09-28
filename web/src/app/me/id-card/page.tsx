@@ -4,9 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import MemberShell from '@/components/layout/MemberShell';
 import { Member } from '@/types/member';
+import { formatMemberTitle, getCanonicalDegreeRank } from '@/lib/utils/ksji-logic';
 
 export default function MyIDCardPage() {
-  const [member, setMember] = useState<Member | null>(null);
+  const [member, setMember] = useState<(Member & { degrees?: any[] }) | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
@@ -22,10 +23,10 @@ export default function MyIDCardPage() {
             .maybeSingle();
 
           if (profile?.member_id) {
-            const { data } = await supabase.from('members').select('*').eq('id', profile.member_id).maybeSingle();
+            const { data } = await supabase.from('members').select('*, degrees(*)').eq('id', profile.member_id).maybeSingle();
             if (data) setMember(data);
           } else {
-            const { data } = await supabase.from('members').select('*').eq('user_id', user.id).limit(1);
+            const { data } = await supabase.from('members').select('*, degrees(*)').eq('user_id', user.id).limit(1);
             if (data && data.length > 0) setMember(data[0]);
           }
         }
@@ -96,10 +97,10 @@ export default function MyIDCardPage() {
             </div>
 
             <div>
-              <div style={{ color: '#D4AF37', fontSize: 12, fontWeight: 700 }}>{member.title || 'Noble Brother'}</div>
+              <div style={{ color: '#D4AF37', fontSize: 12, fontWeight: 700 }}>{formatMemberTitle(member.title, member.degrees)}</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: '#f8fafc', lineHeight: 1.2 }}>{member.first_name} {member.surname}</div>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>ID: <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{member.member_number || member.id?.substring(0, 8)}</span></div>
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Rank: {member.rank || 'Member'}</div>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Rank: {getCanonicalDegreeRank(member.degrees) || member.rank || 'Member'}</div>
             </div>
           </div>
 

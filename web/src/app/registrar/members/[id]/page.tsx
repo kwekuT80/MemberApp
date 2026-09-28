@@ -6,13 +6,14 @@ import RegistrarMemberActions from '@/components/members/RegistrarMemberActions'
 import { requireRegistrar } from '@/lib/auth/requireRegistrar';
 import { getMemberById, getMemberPersonalReport } from '@/services/memberService';
 import EmptyState from '@/components/shared/EmptyState';
+import { formatMemberTitle } from '@/lib/utils/ksji-logic';
 
 export default async function RegistrarMemberDetailPage({ params }: { params: Promise<{ id: string }> }) { 
   const { profile } = await requireRegistrar(); 
   const { id } = await params; 
   const member = await getMemberById(id); 
   const reportData = member ? await getMemberPersonalReport(id) : null;
-  const displayTitle = member?.title === 'N/B' ? 'Noble Brother' : member?.title; 
+  const displayTitle = formatMemberTitle(member?.title, member?.degrees); 
 
   const role = profile?.role;
   const isSuperAdmin = role === 'super_admin';
