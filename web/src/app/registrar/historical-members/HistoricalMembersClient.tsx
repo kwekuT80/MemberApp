@@ -11,6 +11,7 @@ import {
   deleteRollBookEntry,
   batchBackfillAndClearLinkedEntries
 } from '@/services/memberService';
+import { stripFraternalPrefix } from '@/lib/utils/ksji-logic';
 
 export interface LedgerItem {
   id?: string;
@@ -904,8 +905,8 @@ filteredUnregistered.map(({ item, candidateMatches }, idx) => (
                       </td>
                       <td style={{ padding: '8px 12px' }}>
                         <div style={{ fontWeight: 700, color: '#0f172a' }}>
-                          <span style={{ fontSize: '11px', color: '#800020', background: '#fdf2f2', padding: '2px 6px', borderRadius: '4px', marginRight: '6px' }}>{item.title}</span>
-                          {item.rawName}
+                          <span style={{ fontSize: '11px', color: '#800020', background: '#fdf2f2', padding: '2px 6px', borderRadius: '4px', marginRight: '6px' }}>{item.title || 'Bro.'}</span>
+                          {stripFraternalPrefix(item.rawName)}
                         </div>
                         <div style={{ fontSize: '11px', color: '#64748b' }}>
                           Parsed: {item.surname}, {item.firstName}
@@ -959,7 +960,7 @@ filteredUnregistered.map(({ item, candidateMatches }, idx) => (
                           {candidateMatches.length > 0 && (
                             <button
                               onClick={() => {
-                                if (confirm(`Link "${item.rawName}" to ${candidateMatches[0].first_name} ${candidateMatches[0].surname}?\n\nThis will backfill missing profile info (initiation date, occupation, residence, notes) and clear this entry from the unassigned roll book queue.`)) {
+                                if (confirm(`Link "${stripFraternalPrefix(item.rawName)}" to ${candidateMatches[0].first_name} ${candidateMatches[0].surname}?\n\nThis will backfill missing profile info (initiation date, occupation, residence, notes) and clear this entry from the unassigned roll book queue.`)) {
                                   handleLinkMember(item.id!, candidateMatches[0].id);
                                 }
                               }}
@@ -1125,8 +1126,8 @@ matchedLedger.map(({ item, linkedMember }, idx) => (
                     <tr key={item.ledgerId} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
                       <td style={{ padding: '8px 12px' }}>
                         <div style={{ fontWeight: 700, color: '#0f172a' }}>
-                          <span style={{ fontSize: '11px', color: '#800020', background: '#fdf2f2', padding: '2px 6px', borderRadius: '4px', marginRight: '6px' }}>{item.title}</span>
-                          {item.rawName}
+                          <span style={{ fontSize: '11px', color: '#800020', background: '#fdf2f2', padding: '2px 6px', borderRadius: '4px', marginRight: '6px' }}>{item.title || 'Bro.'}</span>
+                          {stripFraternalPrefix(item.rawName)}
                         </div>
                         <div style={{ fontSize: '11px', color: '#64748b' }}>
                           Entry #{item.entryNo || '—'} ({item.source})
@@ -1209,7 +1210,7 @@ matchedLedger.map(({ item, linkedMember }, idx) => (
                           </button>
                           {item.enrolledMemberId && (
                             <button
-                              onClick={() => { if (confirm(`Unlink "${item.rawName}" from this member?`)) handleUnlink(item.id!); }}
+                              onClick={() => { if (confirm(`Unlink "${stripFraternalPrefix(item.rawName)}" from this member?`)) handleUnlink(item.id!); }}
                               title="Disconnect this roll book record from the linked member"
                               style={{
                                 background: '#fff',

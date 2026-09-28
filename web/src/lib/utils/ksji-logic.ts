@@ -320,6 +320,15 @@ export function formatMemberTitle(
 }
 
 /**
+ * Strips leading fraternal honorifics (e.g. 'Bro.', 'Brother', 'N/B', 'Noble Brother')
+ * from raw transcribed names so they do not duplicate when displayed next to a title badge.
+ */
+export function stripFraternalPrefix(name: string | null | undefined): string {
+  if (!name) return '';
+  return name.replace(/^(bro\.|brother|n\/b|noble\s+brother|capt\.|col\.|sir\s+kt\.?)\s+/i, '').trim();
+}
+
+/**
  * Formats a degree entry using official KSJI language
  */
 export function formatExemplification(degreeType: string, date?: string | null, place?: string | null) {
