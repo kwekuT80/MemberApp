@@ -12,6 +12,34 @@ export const KSJI_COMMANDERY_CONSTANTS = {
   GENESIS_WELFARE_YEAR: 2022,
 };
 
+/**
+ * Canonical Meeting Venue & Geofence Coordinates
+ * Venue: St. Bernadette Soubirous School, Dansoman
+ * Google Maps: 5°33'33.3"N 0°16'16.2"W (Plus code: HP5H+MGX Accra)
+ * Decimal: Lat 5.55925, Lon -0.271167
+ */
+export const KSJI_MEETING_LOCATION = {
+  VENUE_NAME: 'St. Bernadette Soubirous School',
+  FULL_VENUE: 'St. Bernadette Soubirous School, Dansoman',
+  ADDRESS: 'Sorghum St / Fancy Rd, Dansoman, Accra',
+  PLUS_CODE: 'HP5H+MGX Accra',
+  DMS: `5°33'33.3"N 0°16'16.2"W`,
+  LATITUDE: 5.55925,
+  LONGITUDE: -0.271167,
+  DEFAULT_RADIUS_METERS: 150, // 150m ensures full school grounds coverage without GPS satellite drift failures
+};
+
+/**
+ * Checks if a given longitude appears to have the common mistyped extra zero
+ * (e.g. -0.027... instead of -0.271...).
+ */
+export function hasMistypedAccraLongitude(lon: number | string): boolean {
+  const n = typeof lon === 'string' ? parseFloat(lon) : lon;
+  if (isNaN(n)) return false;
+  // If between -0.08 and 0, user likely missed the 2 or typed -0.027 instead of -0.271
+  return n > -0.1 && n < 0;
+}
+
 export const KSJI_TERMINOLOGY = {
   DEGREE_SECTION: 'Exemplification',
   EXEMPLIFIED: 'Exemplified into the',

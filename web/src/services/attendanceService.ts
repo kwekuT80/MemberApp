@@ -44,6 +44,27 @@ export async function createMeeting(payload: {
   return data;
 }
 
+export async function updateMeeting(
+  meetingId: string,
+  payload: {
+    title?: string;
+    date?: string;
+    latitude?: number;
+    longitude?: number;
+    radius_meters?: number;
+  }
+) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('meetings')
+    .update(payload)
+    .eq('id', meetingId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteMeeting(meetingId: string, isTestMeeting: boolean = false) {
   const supabase = await createClient();
 

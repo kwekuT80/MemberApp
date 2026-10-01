@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { createMeeting, checkInMember, getAbsenceRequests, reviewAbsenceRequest, getAttendanceReport, registrarGrantExcuse, deleteMeeting, rejectCheckIn } from '@/services/attendanceService';
-import { formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { createMeeting, updateMeeting, checkInMember, getAbsenceRequests, reviewAbsenceRequest, getAttendanceReport, registrarGrantExcuse, deleteMeeting, rejectCheckIn } from '@/services/attendanceService';
+import { formatDisplayDate, KSJI_MEETING_LOCATION, hasMistypedAccraLongitude } from '@/lib/utils/ksji-logic';
 import MeetingNoticeModal from '@/components/meetings/MeetingNoticeModal';
 
 interface Props {
@@ -78,13 +78,80 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const excusedPct = totalRoster > 0 ? Math.round((excusedCount / totalRoster) * 100) : 0;
   const absentPct = totalRoster > 0 ? Math.round((absentCount / totalRoster) * 100) : 0;
 
-  // New Meeting Form States
+  // New Meeting Form States - Pre-populated with canonical Commandery meeting venue (St. Bernadette Soubirous School)
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
-  const [radiusMeters, setRadiusMeters] = useState(100);
-  const [latitude, setLatitude] = useState('');
-  const [longitude, setLongitude] = useState('');
+  const [radiusMeters, setRadiusMeters] = useState(KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS);
+  const [latitude, setLatitude] = useState(KSJI_MEETING_LOCATION.LATITUDE.toString());
+  const [longitude, setLongitude] = useState(KSJI_MEETING_LOCATION.LONGITUDE.toString());
   const [submittingMeeting, setSubmittingMeeting] = useState(false);
+
+  // Edit Meeting Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editLatitude, setEditLatitude] = useState('');
+  const [editLongitude, setEditLongitude] = useState('');
+  const [editRadiusMeters, setEditRadiusMeters] = useState(KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  function formatForDateTimeLocal(isoDateStr: string) {
+    if (!isoDateStr) return '';
+    const d = new Date(isoDateStr);
+    if (isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
+  function resetToCanonicalLocation() {
+    setLatitude(KSJI_MEETING_LOCATION.LATITUDE.toString());
+    setLongitude(KSJI_MEETING_LOCATION.LONGITUDE.toString());
+    setRadiusMeters(KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS);
+  }
+
+  function openEditModal(meeting: any) {
+    if (!meeting) return;
+    setEditingMeetingId(meeting.id);
+    setEditTitle(meeting.title || '');
+    setEditDate(formatForDateTimeLocal(meeting.date));
+    setEditLatitude(meeting.latitude !== undefined && meeting.latitude !== null ? meeting.latitude.toString() : KSJI_MEETING_LOCATION.LATITUDE.toString());
+    setEditLongitude(meeting.longitude !== undefined && meeting.longitude !== null ? meeting.longitude.toString() : KSJI_MEETING_LOCATION.LONGITUDE.toString());
+    setEditRadiusMeters(meeting.radius_meters || KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS);
+    setIsEditModalOpen(true);
+  }
+
+  async function handleSaveEditMeeting(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingMeetingId) return;
+    setSavingEdit(true);
+    try {
+      const latNum = parseFloat(editLatitude);
+      const lonNum = parseFloat(editLongitude);
+      const updated = await updateMeeting(editingMeetingId, {
+        title: editTitle.trim(),
+        date: editDate ? new Date(editDate).toISOString() : undefined,
+        latitude: latNum,
+        longitude: lonNum,
+        radius_meters: editRadiusMeters,
+      });
+
+      setMeetings(prev => prev.map(m => m.id === editingMeetingId ? { ...m, ...updated } : m));
+      if (selectedMeeting?.id === editingMeetingId) {
+        setSelectedMeeting((prev: any) => ({ ...prev, ...updated }));
+      }
+      setIsEditModalOpen(false);
+      alert('✅ Meeting details amended and updated successfully!');
+    } catch (err: any) {
+      alert(`⚠️ Failed to update meeting: ${err.message}`);
+    } finally {
+      setSavingEdit(false);
+    }
+  }
   
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -460,12 +527,51 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
         <form onSubmit={handleCreateMeeting} className="card" style={{ display: 'grid', gap: 14 }}>
           <div>
             <h3 style={{ margin: '0 0 4px', fontSize: 16, color: 'var(--navy)', fontWeight: 800 }}>Schedule Meeting</h3>
-            <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Configure geofenced parameters.</p>
+            <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Configure geofenced meeting parameters.</p>
+          </div>
+
+          {/* Default Venue Preset Card */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(10,22,40,0.04) 100%)',
+            border: '1px solid rgba(201,168,76,0.35)',
+            borderRadius: 10,
+            padding: '10px 12px',
+            fontSize: 12,
+            display: 'grid',
+            gap: 6
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+              <strong style={{ color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>🏫</span> {KSJI_MEETING_LOCATION.VENUE_NAME}
+              </strong>
+              <button
+                type="button"
+                onClick={resetToCanonicalLocation}
+                style={{
+                  background: '#fff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 6,
+                  padding: '3px 8px',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: 'var(--navy)',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}
+                title="Reset to St. Bernadette Soubirous School coordinates"
+              >
+                ↺ Reset to Venue
+              </button>
+            </div>
+            <div style={{ color: '#64748b', fontSize: 11, lineHeight: 1.4 }}>
+              📍 <em>{KSJI_MEETING_LOCATION.ADDRESS}</em><br/>
+              🗺️ DMS: <code>{KSJI_MEETING_LOCATION.DMS}</code> ({KSJI_MEETING_LOCATION.PLUS_CODE})
+            </div>
           </div>
 
           <label style={label}>
             <span>Meeting Title</span>
-            <input value={title} onChange={e => setTitle(e.target.value)} required style={input} placeholder="e.g. May Monthly Plenary" />
+            <input value={title} onChange={e => setTitle(e.target.value)} required style={input} placeholder="e.g. October 2026 General Meeting" />
           </label>
 
           <label style={label}>
@@ -476,27 +582,42 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <label style={label}>
               <span>Latitude</span>
-              <input value={latitude} onChange={e => setLatitude(e.target.value)} required type="number" step="0.000001" style={input} placeholder="5.6037" />
+              <input value={latitude} onChange={e => setLatitude(e.target.value)} required type="number" step="0.000001" style={input} placeholder="5.55925" />
             </label>
             <label style={label}>
               <span>Longitude</span>
-              <input value={longitude} onChange={e => setLongitude(e.target.value)} required type="number" step="0.000001" style={input} placeholder="-0.1870" />
+              <input value={longitude} onChange={e => setLongitude(e.target.value)} required type="number" step="0.000001" style={input} placeholder="-0.271167" />
             </label>
           </div>
 
+          {/* Typo warning if extra zero detected */}
+          {hasMistypedAccraLongitude(longitude) && (
+            <div style={{
+              background: '#fef2f2',
+              border: '1px solid #f87171',
+              borderRadius: 8,
+              padding: '8px 10px',
+              fontSize: 11,
+              color: '#991b1b',
+              lineHeight: 1.4
+            }}>
+              ⚠️ <strong>Longitude Typo:</strong> You entered <code>{longitude}</code>. In Dansoman/Accra, the longitude is <code>-0.271...</code> (one zero). Entering <code>-0.027...</code> (extra zero) moves the meeting location <strong>27 km away</strong> into the ocean! Click <strong>"↺ Reset to Venue"</strong> above to auto-correct.
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 10 }}>
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={handlePinLocation}
               style={{ flex: 1, padding: '8px 12px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
             >
               📌 Pin Current Location
             </button>
-            <label style={{ ...label, width: 90 }}>
-              <input value={radiusMeters} onChange={e => setRadiusMeters(parseInt(e.target.value))} required type="number" style={input} placeholder="100" />
+            <label style={{ ...label, width: 100 }}>
+              <input value={radiusMeters} onChange={e => setRadiusMeters(parseInt(e.target.value) || 150)} required type="number" style={input} placeholder="150" />
             </label>
           </div>
-          <span style={{ fontSize: 10, color: 'var(--gold)', fontWeight: 700, marginTop: -4 }}>* Radius in meters (Defaults to 100m)</span>
+          <span style={{ fontSize: 10, color: 'var(--gold)', fontWeight: 700, marginTop: -4 }}>* Radius in meters (Recommended: 150m for full campus)</span>
 
           <button type="submit" disabled={submittingMeeting} style={button}>
             {submittingMeeting ? 'Scheduling…' : 'Schedule Meeting'}
@@ -513,40 +634,74 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             <span style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>No meetings scheduled.</span>
           ) : (
             <div style={{ display: 'grid', gap: 8 }}>
-              {meetings.map((m) => (
-                <div
-                  key={m.id}
-                  onClick={() => setSelectedMeeting(m)}
-                  style={{
-                    padding: 12,
-                    borderRadius: 10,
-                    cursor: 'pointer',
-                    border: selectedMeeting?.id === m.id ? '1.5px solid var(--gold)' : '1px solid #e2e8f0',
-                    background: selectedMeeting?.id === m.id ? 'rgba(212, 175, 55, 0.04)' : '#fff',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: 8
-                  }}
-                >
-                  <div>
-                    <strong style={{ fontSize: 13, color: 'var(--navy)', display: 'block' }}>{m.title}</strong>
-                    <span style={{ fontSize: 11, color: '#64748b', display: 'block', marginTop: 4 }}>
-                      📅 {formatDisplayDate(m.date)}
-                    </span>
-                    <Link
-                      href={`/registrar/meetings/${m.id}/scan`}
-                      onClick={(e) => e.stopPropagation()}
-                      style={{ fontSize: 12, color: 'var(--gold)', fontWeight: 700, display: 'block', marginTop: 8 }}
-                    >
-                      📱 Scan QR Check-In →
-                    </Link>
+              {meetings.map((m) => {
+                const isUpcoming = new Date().getTime() < new Date(m.date).getTime();
+                return (
+                  <div
+                    key={m.id}
+                    onClick={() => setSelectedMeeting(m)}
+                    style={{
+                      padding: 12,
+                      borderRadius: 10,
+                      cursor: 'pointer',
+                      border: selectedMeeting?.id === m.id ? '1.5px solid var(--gold)' : '1px solid #e2e8f0',
+                      background: selectedMeeting?.id === m.id ? 'rgba(212, 175, 55, 0.04)' : '#fff',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: 8
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <strong style={{ fontSize: 13, color: 'var(--navy)' }}>{m.title}</strong>
+                        {isUpcoming ? (
+                          <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: '#dbeafe', color: '#1e40af' }}>
+                            ⏳ Upcoming
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#f1f5f9', color: '#64748b' }}>
+                            ✓ Past
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 11, color: '#64748b', display: 'block', marginTop: 4 }}>
+                        📅 {formatDisplayDate(m.date)}
+                      </span>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditModal(m);
+                          }}
+                          style={{
+                            fontSize: 11,
+                            color: 'var(--navy)',
+                            background: '#f8fafc',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: 6,
+                            padding: '4px 8px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                          title="Amend details before meeting starts"
+                        >
+                          ✏️ Amend Details
+                        </button>
+                        <Link
+                          href={`/registrar/meetings/${m.id}/scan`}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ fontSize: 11, color: 'var(--gold)', fontWeight: 700 }}
+                        >
+                          📱 Scan QR →
+                        </Link>
+                      </div>
+                    </div>
                   </div>
-
-                  
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -560,8 +715,46 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             <div className="card" style={{ borderLeft: '4px solid var(--gold)', background: 'linear-gradient(135deg, #ffffff 0%, #fffdf9 100%)' }}>
               <h2 style={{ margin: '0 0 4px', color: 'var(--navy)', fontWeight: 800 }}>{selectedMeeting.title}</h2>
               <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
-                📆 <strong>Date:</strong> {formatDisplayDate(selectedMeeting.date)} | 🎯 <strong>Geofence:</strong> {selectedMeeting.radius_meters}m radius
+                📆 <strong>Date:</strong> {formatDisplayDate(selectedMeeting.date)} | 🎯 <strong>Geofence:</strong> {selectedMeeting.radius_meters}m radius | 📍 Lat: {selectedMeeting.latitude}, Lon: {selectedMeeting.longitude}
               </p>
+              {hasMistypedAccraLongitude(selectedMeeting.longitude) && (
+                <div style={{
+                  marginTop: 10,
+                  background: '#fef2f2',
+                  border: '1.5px solid #ef4444',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 10
+                }}>
+                  <div>
+                    <strong style={{ color: '#991b1b', fontSize: 13, display: 'block' }}>
+                      ⚠️ Critical Geofence Misconfiguration Detected
+                    </strong>
+                    <span style={{ color: '#7f1d1d', fontSize: 12 }}>
+                      This meeting has longitude <code>{selectedMeeting.longitude}</code> (extra zero), placing it 27 km away into the sea! All GPS check-ins will fail.
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => openEditModal(selectedMeeting)}
+                    style={{
+                      background: '#b91c1c',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 8,
+                      padding: '8px 14px',
+                      fontWeight: 800,
+                      fontSize: 12,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Fix Geofence Now
+                  </button>
+                </div>
+              )}
               {/* QR Scan Quick Action & Delete Meeting */}
               <div style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Link
@@ -599,6 +792,26 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                   }}
                 >
                   📢 Send Notice (SMS / Email)
+                </button>
+
+                <button
+                  onClick={() => openEditModal(selectedMeeting)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '12px 18px',
+                    background: '#ffffff',
+                    color: 'var(--navy)',
+                    border: '1.5px solid #cbd5e1',
+                    borderRadius: 12,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+                  }}
+                >
+                  ✏️ Amend Meeting Details
                 </button>
 
                 
@@ -1112,6 +1325,207 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             📅 Select or create a meeting to manage live attendance.
           </div>
         )}
+
+      {/* ── Amend Meeting Details Modal (Editable Till Meeting Starts) ───────── */}
+      {isEditModalOpen && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(10, 20, 40, 0.65)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(3px)',
+            padding: 24,
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setIsEditModalOpen(false); }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 16,
+              padding: 32,
+              maxWidth: 540,
+              width: '100%',
+              boxShadow: '0 24px 64px rgba(10,20,40,0.25)',
+              display: 'grid',
+              gap: 18,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 18, color: 'var(--navy)', fontWeight: 800 }}>
+                  ✏️ Amend Meeting Details
+                </h2>
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: '#64748b' }}>
+                  Amend meeting title, date, time, venue, or geofence parameters before meeting starts.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#64748b', lineHeight: 1 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Default Venue Preset Banner */}
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 10,
+              padding: '12px 14px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 10,
+              flexWrap: 'wrap'
+            }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--navy)' }}>
+                  🏫 {KSJI_MEETING_LOCATION.VENUE_NAME}
+                </div>
+                <div style={{ fontSize: 11, color: '#64748b' }}>
+                  Lat: {KSJI_MEETING_LOCATION.LATITUDE}, Lon: {KSJI_MEETING_LOCATION.LONGITUDE} (Radius: {KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS}m)
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditLatitude(KSJI_MEETING_LOCATION.LATITUDE.toString());
+                  setEditLongitude(KSJI_MEETING_LOCATION.LONGITUDE.toString());
+                  setEditRadiusMeters(KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS);
+                }}
+                style={{
+                  background: 'var(--navy)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '6px 12px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Apply St. Bernadette Preset
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditMeeting} style={{ display: 'grid', gap: 14 }}>
+              <label style={label}>
+                <span>Meeting Title</span>
+                <input
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  required
+                  style={input}
+                  placeholder="e.g. October 2026 General Meeting"
+                />
+              </label>
+
+              <label style={label}>
+                <span>Date & Time</span>
+                <input
+                  type="datetime-local"
+                  value={editDate}
+                  onChange={e => setEditDate(e.target.value)}
+                  required
+                  style={input}
+                />
+              </label>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <label style={label}>
+                  <span>Latitude</span>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    value={editLatitude}
+                    onChange={e => setEditLatitude(e.target.value)}
+                    required
+                    style={input}
+                  />
+                </label>
+                <label style={label}>
+                  <span>Longitude</span>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    value={editLongitude}
+                    onChange={e => setEditLongitude(e.target.value)}
+                    required
+                    style={input}
+                  />
+                </label>
+              </div>
+
+              {hasMistypedAccraLongitude(editLongitude) && (
+                <div style={{
+                  background: '#fef2f2',
+                  border: '1px solid #f87171',
+                  borderRadius: 8,
+                  padding: '8px 10px',
+                  fontSize: 11,
+                  color: '#991b1b',
+                  lineHeight: 1.4
+                }}>
+                  ⚠️ <strong>Longitude Typo Warning:</strong> You entered <code>{editLongitude}</code>. In Dansoman/Accra, the longitude is approx <code>-0.271...</code>. Typing <code>-0.027...</code> (extra zero) moves the meeting location <strong>27 km away</strong> into the ocean! Click <strong>"Apply St. Bernadette Preset"</strong> above to auto-correct.
+                </div>
+              )}
+
+              <label style={label}>
+                <span>Geofence Radius (meters)</span>
+                <input
+                  type="number"
+                  value={editRadiusMeters}
+                  onChange={e => setEditRadiusMeters(parseInt(e.target.value) || 150)}
+                  required
+                  style={input}
+                />
+                <span style={{ fontSize: 11, color: '#64748b' }}>
+                  Recommended: 150m for full coverage of school campus and halls.
+                </span>
+              </label>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={savingEdit}
+                  style={{
+                    padding: '10px 18px',
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  style={{
+                    padding: '10px 24px',
+                    background: 'var(--navy)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: savingEdit ? 'not-allowed' : 'pointer',
+                    minWidth: 140
+                  }}
+                >
+                  {savingEdit ? '⏳ Saving...' : '💾 Save Amendments'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ── Manual Permission Modal ─────────────────────────────────────────── */}
       {activeModal && (
