@@ -563,7 +563,14 @@ export default function CommanderyOfficersClient({
                       }}
                     >
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: '#C9A84C' }}>{role.title}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: '#C9A84C' }}>{role.title}</span>
+                          {role.isAppointive && (
+                            <span style={{ fontSize: 9, fontWeight: 800, background: '#fef3c7', color: '#92400e', padding: '1px 5px', borderRadius: 4 }}>
+                              Appointive
+                            </span>
+                          )}
+                        </div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8' }}>
                           ○ Vacant / Unassigned
                         </div>
@@ -593,8 +600,13 @@ export default function CommanderyOfficersClient({
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 11, fontWeight: 800, color: '#C9A84C' }}>{role.title}</span>
-                          {isSuccession && (
+                          {role.isAppointive && (
                             <span style={{ fontSize: 9, fontWeight: 800, background: '#fef3c7', color: '#92400e', padding: '1px 5px', borderRadius: 4 }}>
+                              Appointive
+                            </span>
+                          )}
+                          {isSuccession && (
+                            <span style={{ fontSize: 9, fontWeight: 800, background: '#e0f2fe', color: '#0369a1', padding: '1px 5px', borderRadius: 4 }}>
                               {idx === 0 ? 'Predecessor' : 'Successor'}
                             </span>
                           )}

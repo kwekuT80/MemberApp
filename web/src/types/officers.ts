@@ -52,6 +52,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     title: 'Assistant Recording Secretary',
     category: 'commandery',
     categoryLabel: 'Commandery Officers',
+    isAppointive: true,
     order: 5,
     aliases: [
       'Assistant Recording Secretary',
