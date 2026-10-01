@@ -101,15 +101,18 @@ export default function CommanderyOfficersClient({
   // Map standard roles to their assigned officers in this term
   const roleSlots = useMemo(() => {
     const slots = STANDARD_OFFICER_ROLES.map((role) => {
-      // Find matching position in this term
-      const matched = termPositions.find((p) => {
-        const norm = normalizePositionTitle(p.position_title);
-        return norm.toLowerCase() === role.title.toLowerCase();
-      });
+      // Find matching positions in this term
+      const matches = termPositions
+        .filter((p) => {
+          const norm = normalizePositionTitle(p.position_title);
+          return norm.toLowerCase() === role.title.toLowerCase();
+        })
+        .sort((a, b) => (a.date_from || '').localeCompare(b.date_from || ''));
 
       return {
         role,
-        assigned: matched || null,
+        assigned: matches[matches.length - 1] || null,
+        allAssigned: matches,
       };
     });
 
@@ -119,9 +122,12 @@ export default function CommanderyOfficersClient({
   // Additional positions for this term that aren't part of standard roles
   const additionalOfficers = useMemo(() => {
     const standardTitlesLower = new Set(STANDARD_OFFICER_ROLES.map((r) => r.title.toLowerCase()));
+    STANDARD_OFFICER_ROLES.forEach((r) => {
+      r.aliases.forEach((a) => standardTitlesLower.add(a.toLowerCase()));
+    });
     return termPositions.filter((p) => {
       const norm = normalizePositionTitle(p.position_title);
-      return !standardTitlesLower.has(norm.toLowerCase());
+      return !standardTitlesLower.has(norm.toLowerCase()) && !standardTitlesLower.has((p.position_title || '').trim().toLowerCase());
     });
   }, [termPositions]);
 
@@ -184,10 +190,12 @@ export default function CommanderyOfficersClient({
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const roleMatches = slot.role.title.toLowerCase().includes(q);
-        const member = slot.assigned?.members;
-        const nameMatches = member
-          ? `${member.first_name || ''} ${member.surname || ''} ${member.title || ''}`.toLowerCase().includes(q)
-          : false;
+        const nameMatches = slot.allAssigned.some((pos) => {
+          const member = pos.members;
+          return member
+            ? `${member.title || ''} ${member.first_name || ''} ${member.surname || ''} ${member.other_names || ''}`.toLowerCase().includes(q)
+            : false;
+        });
         return roleMatches || nameMatches;
       }
 
@@ -259,19 +267,21 @@ export default function CommanderyOfficersClient({
       const enriched = res.data;
 
       setPositions((prev) => {
+        if (modalPositionId) {
+          return prev.map((p) => (p.id === modalPositionId ? enriched : p));
+        }
         const normTarget = normalizePositionTitle(modalRole).toLowerCase();
-        // Remove any prior conflicting record for this role & term
-        const withoutConflicting = prev.filter((p) => {
-          if (p.id === modalPositionId || p.id === enriched.id) return false;
-          if (normalizePositionTitle(p.position_title).toLowerCase() === normTarget) {
-            const pFromYear = p.date_from ? parseInt(p.date_from.substring(0, 4), 10) : null;
-            if (pFromYear && pFromYear >= termStartYear && pFromYear <= termEndYear) {
-              return false;
-            }
+        const withoutExactDuplicate = prev.filter((p) => {
+          if (p.id === enriched.id) return false;
+          if (
+            normalizePositionTitle(p.position_title).toLowerCase() === normTarget &&
+            p.date_from === enriched.date_from
+          ) {
+            return false;
           }
           return true;
         });
-        return [enriched, ...withoutConflicting];
+        return [enriched, ...withoutExactDuplicate];
       });
 
       setIsModalOpen(false);
@@ -520,42 +530,84 @@ export default function CommanderyOfficersClient({
                 </p>
               </div>
               <span style={{ fontSize: 12, fontWeight: 700, color: '#0A1628', background: '#f1f5f9', padding: '4px 10px', borderRadius: 8 }}>
-                {roleSlots.filter(s => s.assigned).length} Officers Recorded
+                {roleSlots.filter((s) => s.allAssigned.length > 0).length} of {roleSlots.length} Roles Filled ({roleSlots.reduce((acc, s) => acc + s.allAssigned.length, 0)} Officers Recorded)
               </span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-              {roleSlots.map(({ role, assigned }) => {
-                const member = assigned?.members;
-                return (
-                  <div
-                    key={role.id}
-                    style={{
-                      padding: 10,
-                      borderRadius: 8,
-                      border: '1px solid #e2e8f0',
-                      background: member ? '#f8fafc' : '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 11, fontWeight: 800, color: '#C9A84C' }}>{role.title}</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: member ? '#0A1628' : '#94a3b8' }}>
-                        {member ? `${member.title ? `${member.title} ` : ''}${member.first_name} ${member.surname}` : '○ Vacant / Unassigned'}
+              {roleSlots.flatMap(({ role, allAssigned }) => {
+                if (allAssigned.length === 0) {
+                  return [
+                    <div
+                      key={role.id}
+                      style={{
+                        padding: 10,
+                        borderRadius: 8,
+                        border: '1px solid #e2e8f0',
+                        background: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: '#C9A84C' }}>{role.title}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8' }}>
+                          ○ Vacant / Unassigned
+                        </div>
                       </div>
+                    </div>,
+                  ];
+                }
+
+                return allAssigned.map((pos, idx) => {
+                  const member = pos.members;
+                  const isDeceased = member?.is_deceased || member?.status === 'Deceased';
+                  const isSuccession = allAssigned.length > 1;
+
+                  return (
+                    <div
+                      key={pos.id}
+                      style={{
+                        padding: 10,
+                        borderRadius: 8,
+                        border: '1px solid #e2e8f0',
+                        background: isDeceased ? '#fcfbf7' : '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: '#C9A84C' }}>{role.title}</span>
+                          {isSuccession && (
+                            <span style={{ fontSize: 9, fontWeight: 800, background: '#fef3c7', color: '#92400e', padding: '1px 5px', borderRadius: 4 }}>
+                              {idx === 0 ? 'Predecessor' : 'Successor'}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#0A1628' }}>
+                          {member ? `${member.title ? `${member.title} ` : ''}${member.first_name} ${member.surname}` : '○ Vacant'}
+                          {isDeceased && <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}> (🕊️ Deceased)</span>}
+                        </div>
+                        {pos.date_from && (
+                          <div style={{ fontSize: 10, color: '#64748b' }}>
+                            Tenure: {pos.date_from.substring(0, 4)} – {pos.date_to ? pos.date_to.substring(0, 4) : 'Present'}
+                          </div>
+                        )}
+                      </div>
+                      {member && (
+                        <Link
+                          href={isRegistrar ? `/registrar/members/${member.id}` : `/me`}
+                          style={{ fontSize: 11, fontWeight: 700, color: '#0A1628', textDecoration: 'none' }}
+                        >
+                          Profile →
+                        </Link>
+                      )}
                     </div>
-                    {member && (
-                      <Link
-                        href={isRegistrar ? `/registrar/members/${member.id}` : `/me`}
-                        style={{ fontSize: 11, fontWeight: 700, color: '#0A1628', textDecoration: 'none' }}
-                      >
-                        Profile →
-                      </Link>
-                    )}
-                  </div>
-                );
+                  );
+                });
               })}
             </div>
           </div>
@@ -651,13 +703,277 @@ export default function CommanderyOfficersClient({
                   </p>
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: 12 }}>
-                  {groupSlots.filter((s) => s.assigned).length} of {groupSlots.length} filled
+                  {groupSlots.filter((s) => s.allAssigned.length > 0).length} of {groupSlots.length} filled
                 </span>
               </div>
 
               {/* Neat List Table / Rows */}
               <div style={{ display: 'grid', gap: 10 }}>
-                {groupSlots.map(({ role, assigned }) => {
+                {groupSlots.map(({ role, assigned, allAssigned }) => {
+                  // Case 1: Mid-Term Succession (multiple incumbents in one term)
+                  if (allAssigned.length > 1) {
+                    return (
+                      <div
+                        key={role.id}
+                        style={{
+                          background: '#ffffff',
+                          border: '1.5px solid #e2e8f0',
+                          borderRadius: 14,
+                          padding: '16px 20px',
+                          display: 'grid',
+                          gap: 14,
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                        }}
+                      >
+                        {/* Header: Role & Mid-Term Succession Tag */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, borderBottom: '1px solid #f1f5f9', paddingBottom: 10 }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 15, fontWeight: 900, color: '#0A1628' }}>
+                                {role.title}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                                  color: '#92400e',
+                                  padding: '2px 8px',
+                                  borderRadius: 6,
+                                  border: '1px solid #fcd34d',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                }}
+                              >
+                                <span>⚡ Mid-Term Succession</span>
+                                <span>({allAssigned.length} Incumbents)</span>
+                              </span>
+                              {role.isAppointive && (
+                                <span style={{ fontSize: 10, fontWeight: 800, background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: 4 }}>
+                                  Appointive
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>
+                              Tenure: {selectedTerm} {selectedTerm === currentTermKey && '• Current'} — Officer stepped in to complete unexpired term
+                            </div>
+                          </div>
+
+                          {isRegistrar && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAssignModal(role.title)}
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: '#0A1628',
+                                background: '#f8fafc',
+                                border: '1px solid #cbd5e1',
+                                padding: '5px 10px',
+                                borderRadius: 6,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              ➕ Add Successor / Incumbent
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Chronological List of Incumbents */}
+                        <div style={{ display: 'grid', gap: 10 }}>
+                          {allAssigned.map((pos, idx) => {
+                            const member = pos.members;
+                            const isDeceased = member?.is_deceased || member?.status === 'Deceased';
+                            const isLatest = idx === allAssigned.length - 1;
+                            const pUrl = isRegistrar ? `/registrar/members/${member?.id}` : `/me`;
+
+                            return (
+                              <div key={pos.id} style={{ display: 'grid', gap: 6 }}>
+                                {idx > 0 && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 18, color: '#64748b', fontSize: 11, fontWeight: 700 }}>
+                                    <span style={{ color: '#C9A84C' }}>↳</span>
+                                    <span style={{ background: '#f1f5f9', padding: '1px 8px', borderRadius: 4, border: '1px solid #e2e8f0', color: '#475569', fontSize: 10 }}>
+                                      Succession • Succeeded for unexpired portion of the term
+                                    </span>
+                                  </div>
+                                )}
+
+                                <div
+                                  style={{
+                                    padding: '10px 14px',
+                                    borderRadius: 10,
+                                    border: isLatest ? '1.5px solid #C9A84C' : '1px solid #e2e8f0',
+                                    background: isDeceased ? '#fcfbf7' : isLatest ? '#faf8f2' : '#f8fafc',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: 14,
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
+                                  {/* Left: Avatar & Details */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '1 1 260px', minWidth: 240 }}>
+                                    <div
+                                      style={{
+                                        width: 40,
+                                        height: 40,
+                                        borderRadius: '50%',
+                                        background: member?.photo_url
+                                          ? `url(${member.photo_url}) center/cover no-repeat`
+                                          : 'linear-gradient(135deg, #0A1628 0%, #1e293b 100%)',
+                                        border: isLatest ? '2px solid #C9A84C' : '2px solid #94a3b8',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#C9A84C',
+                                        fontWeight: 800,
+                                        fontSize: 13,
+                                        flexShrink: 0,
+                                        position: 'relative',
+                                      }}
+                                    >
+                                      {!member?.photo_url && (
+                                        `${(member?.first_name || '')[0] || ''}${(member?.surname || '')[0] || ''}`
+                                      )}
+                                      {isDeceased && (
+                                        <span
+                                          title="Deceased"
+                                          style={{
+                                            position: 'absolute',
+                                            bottom: -3,
+                                            right: -3,
+                                            fontSize: 11,
+                                            background: '#ffffff',
+                                            borderRadius: '50%',
+                                            padding: '0 2px',
+                                            boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                                          }}
+                                        >
+                                          🕊️
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div style={{ minWidth: 0 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                        <Link
+                                          href={pUrl}
+                                          style={{ fontSize: 13, fontWeight: 800, color: '#0A1628', textDecoration: 'none' }}
+                                          className="hover:underline"
+                                        >
+                                          {member?.title ? `${member.title} ` : ''}{member?.first_name} {member?.surname}
+                                        </Link>
+
+                                        {isDeceased ? (
+                                          <span style={{ fontSize: 10, fontWeight: 800, background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: 4, border: '1px solid #fde68a' }}>
+                                            🕊️ In Memoriam • Passed in Office
+                                          </span>
+                                        ) : isLatest ? (
+                                          <span style={{ fontSize: 10, fontWeight: 800, background: '#dbeafe', color: '#1e40af', padding: '1px 6px', borderRadius: 4, border: '1px solid #bfdbfe' }}>
+                                            ⚡ Successor (Unexpired Term)
+                                          </span>
+                                        ) : null}
+
+                                        {member?.status && (
+                                          <span
+                                            style={{
+                                              fontSize: 9,
+                                              fontWeight: 700,
+                                              padding: '1px 5px',
+                                              borderRadius: 4,
+                                              background: member.status === 'Active' ? '#f0fdf4' : '#f1f5f9',
+                                              color: member.status === 'Active' ? '#16a34a' : '#64748b',
+                                            }}
+                                          >
+                                            ● {member.status}
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div style={{ fontSize: 11, color: '#0A1628', fontWeight: 600, marginTop: 2 }}>
+                                        Served: <span style={{ color: '#0369a1', fontWeight: 700 }}>{pos.date_from ? formatDisplayDate(pos.date_from) : '—'}</span> to <span style={{ color: '#0369a1', fontWeight: 700 }}>{pos.date_to ? formatDisplayDate(pos.date_to) : 'Present'}</span>
+                                      </div>
+
+                                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 1, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                                        {member?.phone && (
+                                          <a href={`tel:${member.phone}`} style={{ color: '#0284c7', textDecoration: 'none' }}>
+                                            📞 {member.phone}
+                                          </a>
+                                        )}
+                                        {member?.email && (
+                                          <a href={`mailto:${member.email}`} style={{ color: '#64748b', textDecoration: 'none' }}>
+                                            ✉️ {member.email}
+                                          </a>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Right: Actions */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                                    <Link
+                                      href={pUrl}
+                                      style={{
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        color: '#0A1628',
+                                        background: '#f1f5f9',
+                                        padding: '5px 10px',
+                                        borderRadius: 6,
+                                        textDecoration: 'none',
+                                      }}
+                                    >
+                                      Profile →
+                                    </Link>
+
+                                    {isRegistrar && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOpenAssignModal(role.title, pos)}
+                                          style={{
+                                            fontSize: 11,
+                                            fontWeight: 700,
+                                            color: '#0A1628',
+                                            background: '#ffffff',
+                                            border: '1px solid #cbd5e1',
+                                            padding: '5px 8px',
+                                            borderRadius: 6,
+                                            cursor: 'pointer',
+                                          }}
+                                          title="Edit tenure details"
+                                        >
+                                          ✏️ Edit
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteAssignment(pos.id, role.title)}
+                                          style={{
+                                            fontSize: 11,
+                                            color: '#ef4444',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            padding: '5px 4px',
+                                          }}
+                                          title="Remove record"
+                                        >
+                                          🗑️
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Case 2: Single incumbent or Vacant
                   const member = assigned?.members;
                   const profileUrl = isRegistrar
                     ? `/registrar/members/${member?.id}`
@@ -726,10 +1042,28 @@ export default function CommanderyOfficersClient({
                                 fontWeight: 800,
                                 fontSize: 14,
                                 flexShrink: 0,
+                                position: 'relative',
                               }}
                             >
                               {!member.photo_url && (
                                 `${(member.first_name || '')[0] || ''}${(member.surname || '')[0] || ''}`
+                              )}
+                              {(member.is_deceased || member.status === 'Deceased') && (
+                                <span
+                                  title="Deceased"
+                                  style={{
+                                    position: 'absolute',
+                                    bottom: -4,
+                                    right: -4,
+                                    fontSize: 12,
+                                    background: '#ffffff',
+                                    borderRadius: '50%',
+                                    padding: '0 2px',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                                  }}
+                                >
+                                  🕊️
+                                </span>
                               )}
                             </div>
 
@@ -760,7 +1094,7 @@ export default function CommanderyOfficersClient({
                                       color: member.status === 'Active' ? '#16a34a' : '#64748b',
                                     }}
                                   >
-                                    ● {member.status}
+                                    ● {member.status} {member.is_deceased ? '• 🕊️ Deceased' : ''}
                                   </span>
                                 )}
                               </div>
@@ -827,23 +1161,42 @@ export default function CommanderyOfficersClient({
                         {isRegistrar && (
                           <>
                             {member ? (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenAssignModal(role.title, assigned)}
-                                style={{
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                  color: '#0A1628',
-                                  background: '#ffffff',
-                                  border: '1px solid #cbd5e1',
-                                  padding: '6px 10px',
-                                  borderRadius: 6,
-                                  cursor: 'pointer',
-                                }}
-                                title="Change or reassign officer"
-                              >
-                                ✏️ Change
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAssignModal(role.title, assigned)}
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color: '#0A1628',
+                                    background: '#ffffff',
+                                    border: '1px solid #cbd5e1',
+                                    padding: '6px 10px',
+                                    borderRadius: 6,
+                                    cursor: 'pointer',
+                                  }}
+                                  title="Change or reassign officer"
+                                >
+                                  ✏️ Change
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAssignModal(role.title)}
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    color: '#0284c7',
+                                    background: '#f0f9ff',
+                                    border: '1px solid #bae6fd',
+                                    padding: '6px 10px',
+                                    borderRadius: 6,
+                                    cursor: 'pointer',
+                                  }}
+                                  title="Record a successor who stepped in mid-term"
+                                >
+                                  + Add Successor
+                                </button>
+                              </>
                             ) : (
                               <button
                                 type="button"

@@ -45,7 +45,20 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
       'Recording Secretary',
       'Corresponding & Rec. Secretary',
       'Secretary',
+    ],
+  },
+  {
+    id: 'assistant_recording_secretary',
+    title: 'Assistant Recording Secretary',
+    category: 'commandery',
+    categoryLabel: 'Commandery Officers',
+    order: 5,
+    aliases: [
       'Assistant Recording Secretary',
+      'Assistant Secretary',
+      'Asst. Recording Secretary',
+      'Asst. Secretary',
+      'Assistant Rec. Secretary',
     ],
   },
   {
@@ -53,7 +66,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     title: 'Financial Secretary',
     category: 'commandery',
     categoryLabel: 'Commandery Officers',
-    order: 5,
+    order: 6,
     aliases: ['Financial Secretary'],
   },
   {
@@ -61,7 +74,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     title: 'Treasurer',
     category: 'commandery',
     categoryLabel: 'Commandery Officers',
-    order: 6,
+    order: 7,
     aliases: ['Treasurer'],
   },
 
@@ -71,7 +84,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     title: '1st Trustee',
     category: 'trustees',
     categoryLabel: 'Trustees',
-    order: 7,
+    order: 8,
     aliases: ['1st Trustee', 'First Trustee'],
   },
   {
@@ -79,7 +92,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     title: '2nd Trustee',
     category: 'trustees',
     categoryLabel: 'Trustees',
-    order: 8,
+    order: 9,
     aliases: ['2nd Trustee', 'Second Trustee'],
   },
   {
@@ -87,7 +100,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     title: '3rd Trustee',
     category: 'trustees',
     categoryLabel: 'Trustees',
-    order: 9,
+    order: 10,
     aliases: ['3rd Trustee', 'Third Trustee', '3rd Trustee St. MM Com 500'],
   },
 
@@ -97,7 +110,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     title: 'Commander',
     category: 'military',
     categoryLabel: 'Military Officers',
-    order: 10,
+    order: 11,
     aliases: ['Commander'],
   },
   {
@@ -105,7 +118,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     title: '1st Vice Commander',
     category: 'military',
     categoryLabel: 'Military Officers',
-    order: 11,
+    order: 12,
     aliases: ['1st Vice Commander', 'First Vice Commander'],
   },
   {
@@ -113,7 +126,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     title: '2nd Vice Commander',
     category: 'military',
     categoryLabel: 'Military Officers',
-    order: 12,
+    order: 13,
     aliases: ['2nd Vice Commander', 'Second Vice Commander'],
   },
   {
@@ -121,7 +134,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     title: 'Seargent-At-Arms',
     category: 'military',
     categoryLabel: 'Military Officers',
-    order: 13,
+    order: 14,
     aliases: [
       'Seargent-At-Arms',
       'Sergeant-At-Arms',
@@ -136,7 +149,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     title: 'Messenger',
     category: 'military',
     categoryLabel: 'Military Officers',
-    order: 14,
+    order: 15,
     aliases: ['Messenger'],
   },
   {
@@ -144,7 +157,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     title: 'Guard',
     category: 'military',
     categoryLabel: 'Military Officers',
-    order: 15,
+    order: 16,
     aliases: ['Guard'],
   },
 
@@ -155,7 +168,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     category: 'appointed',
     categoryLabel: 'Appointed Officers',
     isAppointive: true,
-    order: 16,
+    order: 17,
     aliases: ['Cadet Organiser', 'Cadet Organizer'],
   },
 ];
