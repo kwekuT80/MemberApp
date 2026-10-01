@@ -1731,6 +1731,19 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
           </div>
         </div>
       )}
+
+      {/* Meeting Notice Broadcast Modal */}
+      <MeetingNoticeModal
+        isOpen={isNoticeModalOpen}
+        onClose={() => setIsNoticeModalOpen(false)}
+        meeting={selectedMeeting}
+        activeCount={members?.length || attendanceReport.length}
+        unconfirmedCount={Math.max(
+          0,
+          (members?.length || attendanceReport.length) -
+            attendanceReport.filter((m: any) => m.status?.startsWith('Present')).length
+        )}
+      />
     </div>
   );
 }

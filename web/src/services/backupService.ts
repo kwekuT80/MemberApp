@@ -212,8 +212,8 @@ export async function sendBackupEmail(recipientEmail: string): Promise<{
 
   let signedDownloadUrl: string | null = null;
 
-  // If using Supabase Edge Function fallback, store archive in secure bucket and generate signed URL
-  if (!resendApiKey && supabaseUrl && serviceKey) {
+  // Store archive in secure Supabase Storage bucket and generate signed direct-download URL (valid for 30 days)
+  if (supabaseUrl && serviceKey) {
     try {
       const admin = await createAdminClient();
       const { error: upErr } = await admin.storage
@@ -226,7 +226,9 @@ export async function sendBackupEmail(recipientEmail: string): Promise<{
       if (!upErr) {
         const { data: signData } = await admin.storage
           .from('database-backups')
-          .createSignedUrl(attachmentFilename, 60 * 60 * 24 * 30); // 30 days expiry
+          .createSignedUrl(attachmentFilename, 60 * 60 * 24 * 30, {
+            download: attachmentFilename,
+          }); // 30 days expiry with attachment disposition
 
         if (signData?.signedUrl) {
           signedDownloadUrl = signData.signedUrl;
