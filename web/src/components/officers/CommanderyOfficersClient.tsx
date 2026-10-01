@@ -126,8 +126,20 @@ export default function CommanderyOfficersClient({
       r.aliases.forEach((a) => standardTitlesLower.add(a.toLowerCase()));
     });
     return termPositions.filter((p) => {
+      const raw = (p.position_title || '').trim();
+      if (!raw) return false;
+      const lower = raw.toLowerCase();
+      // Omit non-local / grand / district / committee positions from the commandery officers roster
+      if (
+        lower.includes('grandmaster') ||
+        lower.includes('grand') ||
+        lower.includes('welfare') ||
+        lower.includes('committee')
+      ) {
+        return false;
+      }
       const norm = normalizePositionTitle(p.position_title);
-      return !standardTitlesLower.has(norm.toLowerCase()) && !standardTitlesLower.has((p.position_title || '').trim().toLowerCase());
+      return !standardTitlesLower.has(norm.toLowerCase()) && !standardTitlesLower.has(lower);
     });
   }, [termPositions]);
 
