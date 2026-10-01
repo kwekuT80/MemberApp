@@ -483,7 +483,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 340px) 1fr', gap: 24, flexWrap: 'wrap' }}>
+    <div className="meetings-page-grid">
       {/* Top Banner: Meeting Metrics & Turnout Analytics */}
       <div
         style={{
@@ -532,10 +532,10 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
         </Link>
       </div>
       {/* Left Column: Create Form & List */}
-      <div style={{ display: 'grid', gap: 24, alignContent: 'start' }}>
+      <div style={{ minWidth: 0, display: 'grid', gap: 24, alignContent: 'start' }}>
         
         {/* Schedule Form */}
-        <form onSubmit={handleCreateMeeting} className="card" style={{ display: 'grid', gap: 14 }}>
+        <form onSubmit={handleCreateMeeting} className="card" style={{ minWidth: 0, display: 'grid', gap: 14 }}>
           <div>
             <h3 style={{ margin: '0 0 4px', fontSize: 16, color: 'var(--navy)', fontWeight: 800 }}>Schedule Meeting</h3>
             <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Configure geofenced meeting parameters.</p>
@@ -578,15 +578,16 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                       boxShadow: isSelected ? '0 2px 4px rgba(10,22,40,0.1)' : 'none',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 6
+                      gap: 6,
+                      minWidth: 0
                     }}
                   >
-                    <span style={{ fontSize: 16 }}>{p.icon}</span>
-                    <div style={{ minWidth: 0 }}>
+                    <span style={{ fontSize: 16, flexShrink: 0 }}>{p.icon}</span>
+                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
                       <div style={{ fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {p.short_name}
                       </div>
-                      <div style={{ fontSize: 10, color: '#64748b' }}>{p.default_radius_meters}m radius</div>
+                      <div style={{ fontSize: 10, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.default_radius_meters}m radius</div>
                     </div>
                   </button>
                 );
@@ -621,7 +622,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             <input value={date} onChange={e => setDate(e.target.value)} type="datetime-local" required style={input} />
           </label>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, minWidth: 0 }}>
             <label style={label}>
               <span>Latitude</span>
               <input value={latitude} onChange={e => setLatitude(e.target.value)} required type="number" step="0.000001" style={input} placeholder="5.55925" />
@@ -647,15 +648,16 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', minWidth: 0 }}>
             <button
               type="button"
               onClick={handlePinLocation}
-              style={{ flex: 1, padding: '8px 12px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+              style={{ flex: 1, minWidth: 0, padding: '9px 12px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
             >
               📌 Pin Current Location
             </button>
-            <label style={{ ...label, width: 100 }}>
+            <label style={{ ...label, width: 85, flexShrink: 0 }}>
+              <span style={{ fontSize: 11 }}>Radius (m)</span>
               <input value={radiusMeters} onChange={e => setRadiusMeters(parseInt(e.target.value) || 150)} required type="number" style={input} placeholder="150" />
             </label>
           </div>
@@ -709,7 +711,6 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                           </span>
                         )}
                       </div>
-                      <span style={{ fontSize: 11, color: '#64748b', display: 'block', marginTop: 4 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
                         <span style={{ fontSize: 11, color: '#64748b' }}>📅 {formatDisplayDate(m.date)}</span>
                         {matchedVenue && (
@@ -718,7 +719,6 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                           </span>
                         )}
                       </div>
-                      </span>
                       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
                         <button
                           type="button"
@@ -758,13 +758,12 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
       </div>
 
       {/* Right Column: Details & Manual Overrides */}
-      <div style={{ display: 'grid', gap: 24, alignContent: 'start' }}>
+      <div style={{ minWidth: 0, display: 'grid', gap: 24, alignContent: 'start' }}>
         {selectedMeeting ? (
           <>
             {/* Header Detail Card */}
             <div className="card" style={{ borderLeft: '4px solid var(--gold)', background: 'linear-gradient(135deg, #ffffff 0%, #fffdf9 100%)' }}>
               <h2 style={{ margin: '0 0 4px', color: 'var(--navy)', fontWeight: 800 }}>{selectedMeeting.title}</h2>
-              <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
               {(() => {
                 const matched = getMatchingVenuePreset(selectedMeeting.latitude, selectedMeeting.longitude);
                 return (
@@ -777,7 +776,6 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                   </p>
                 );
               })()}
-              </p>
               {hasMistypedAccraLongitude(selectedMeeting.longitude) && (
                 <div style={{
                   marginTop: 10,
@@ -1386,6 +1384,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             📅 Select or create a meeting to manage live attendance.
           </div>
         )}
+      </div>
 
       {/* ── Amend Meeting Details Modal (Editable Till Meeting Starts) ───────── */}
       {isEditModalOpen && (
@@ -1732,7 +1731,6 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }
