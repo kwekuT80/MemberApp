@@ -13,21 +13,69 @@ export const KSJI_COMMANDERY_CONSTANTS = {
 };
 
 /**
- * Canonical Meeting Venue & Geofence Coordinates
- * Venue: St. Bernadette Soubirous School, Dansoman
- * Google Maps: 5°33'33.3"N 0°16'16.2"W (Plus code: HP5H+MGX Accra)
- * Decimal: Lat 5.55925, Lon -0.271167
+ * Canonical Meeting Venue Presets & Geofence Coordinates
+ * 1. St. Bernadette Soubirous School, Dansoman (Regular plenary / meeting grounds)
+ * 2. St. Margaret Mary Hall, Dansoman (Parish Hall & Church compound)
  */
+export const KSJI_VENUE_PRESETS = [
+  {
+    id: 'st_bernadette',
+    name: 'St. Bernadette Soubirous School',
+    full_name: 'St. Bernadette Soubirous School, Dansoman',
+    short_name: 'St. Bernadette School',
+    address: 'Sorghum St / Fancy Rd, Dansoman, Accra',
+    plus_code: 'HP5H+MGX Accra',
+    dms: `5°33'33.3"N 0°16'16.2"W`,
+    latitude: 5.55925,
+    longitude: -0.271167,
+    default_radius_meters: 150, // 150m covers the full school grounds and hall
+    icon: '🏫',
+    description: 'Regular Plenary Meeting Grounds',
+    is_default: true,
+  },
+  {
+    id: 'st_margaret_mary_hall',
+    name: 'St. Margaret Mary Hall',
+    full_name: 'St. Margaret-Mary Parish Hall, Dansoman',
+    short_name: 'St. Margaret Mary Hall',
+    address: 'St. Margaret-Mary Catholic Parish Compound, Dansoman',
+    plus_code: 'HP6J+955 Accra',
+    dms: `5°33'37.7"N 0°16'11.5"W`,
+    latitude: 5.560486,
+    longitude: -0.269855,
+    default_radius_meters: 120, // 120m covers the parish hall, church grounds, and parking
+    icon: '🏛️',
+    description: 'Parish Hall & Church Compound',
+    is_default: false,
+  },
+] as const;
+
 export const KSJI_MEETING_LOCATION = {
-  VENUE_NAME: 'St. Bernadette Soubirous School',
-  FULL_VENUE: 'St. Bernadette Soubirous School, Dansoman',
-  ADDRESS: 'Sorghum St / Fancy Rd, Dansoman, Accra',
-  PLUS_CODE: 'HP5H+MGX Accra',
-  DMS: `5°33'33.3"N 0°16'16.2"W`,
-  LATITUDE: 5.55925,
-  LONGITUDE: -0.271167,
-  DEFAULT_RADIUS_METERS: 150, // 150m ensures full school grounds coverage without GPS satellite drift failures
+  VENUE_NAME: KSJI_VENUE_PRESETS[0].name,
+  FULL_VENUE: KSJI_VENUE_PRESETS[0].full_name,
+  ADDRESS: KSJI_VENUE_PRESETS[0].address,
+  PLUS_CODE: KSJI_VENUE_PRESETS[0].plus_code,
+  DMS: KSJI_VENUE_PRESETS[0].dms,
+  LATITUDE: KSJI_VENUE_PRESETS[0].latitude,
+  LONGITUDE: KSJI_VENUE_PRESETS[0].longitude,
+  DEFAULT_RADIUS_METERS: KSJI_VENUE_PRESETS[0].default_radius_meters,
 };
+
+/**
+ * Identifies if a coordinate matches one of our known venue presets within 100 meters.
+ */
+export function getMatchingVenuePreset(lat?: number | null, lon?: number | null) {
+  if (lat == null || lon == null || isNaN(lat) || isNaN(lon)) return null;
+  for (const preset of KSJI_VENUE_PRESETS) {
+    const dLat = (lat - preset.latitude) * 111000;
+    const dLon = (lon - preset.longitude) * 111000 * Math.cos((lat * Math.PI) / 180);
+    const dist = Math.sqrt(dLat * dLat + dLon * dLon);
+    if (dist <= 100) {
+      return preset;
+    }
+  }
+  return null;
+}
 
 /**
  * Checks if a given longitude appears to have the common mistyped extra zero

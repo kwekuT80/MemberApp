@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createMeeting, updateMeeting, checkInMember, getAbsenceRequests, reviewAbsenceRequest, getAttendanceReport, registrarGrantExcuse, deleteMeeting, rejectCheckIn } from '@/services/attendanceService';
-import { formatDisplayDate, KSJI_MEETING_LOCATION, hasMistypedAccraLongitude } from '@/lib/utils/ksji-logic';
+import { formatDisplayDate, KSJI_MEETING_LOCATION, KSJI_VENUE_PRESETS, getMatchingVenuePreset, hasMistypedAccraLongitude } from '@/lib/utils/ksji-logic';
 import MeetingNoticeModal from '@/components/meetings/MeetingNoticeModal';
 
 interface Props {
@@ -81,7 +81,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   // New Meeting Form States - Pre-populated with canonical Commandery meeting venue (St. Bernadette Soubirous School)
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
-  const [radiusMeters, setRadiusMeters] = useState(KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS);
+  const [radiusMeters, setRadiusMeters] = useState<number>(KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS);
   const [latitude, setLatitude] = useState(KSJI_MEETING_LOCATION.LATITUDE.toString());
   const [longitude, setLongitude] = useState(KSJI_MEETING_LOCATION.LONGITUDE.toString());
   const [submittingMeeting, setSubmittingMeeting] = useState(false);
@@ -93,7 +93,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const [editDate, setEditDate] = useState('');
   const [editLatitude, setEditLatitude] = useState('');
   const [editLongitude, setEditLongitude] = useState('');
-  const [editRadiusMeters, setEditRadiusMeters] = useState(KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS);
+  const [editRadiusMeters, setEditRadiusMeters] = useState<number>(KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS);
   const [savingEdit, setSavingEdit] = useState(false);
 
   function formatForDateTimeLocal(isoDateStr: string) {
@@ -108,6 +108,17 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 
+  function applyVenuePreset(preset: typeof KSJI_VENUE_PRESETS[number]) {
+    setLatitude(preset.latitude.toString());
+    setLongitude(preset.longitude.toString());
+    setRadiusMeters(preset.default_radius_meters);
+  }
+
+  function applyEditVenuePreset(preset: typeof KSJI_VENUE_PRESETS[number]) {
+    setEditLatitude(preset.latitude.toString());
+    setEditLongitude(preset.longitude.toString());
+    setEditRadiusMeters(preset.default_radius_meters);
+  }
   function resetToCanonicalLocation() {
     setLatitude(KSJI_MEETING_LOCATION.LATITUDE.toString());
     setLongitude(KSJI_MEETING_LOCATION.LONGITUDE.toString());
@@ -530,43 +541,74 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Configure geofenced meeting parameters.</p>
           </div>
 
-          {/* Default Venue Preset Card */}
+          {/* Venue Preset Selector */}
           <div style={{
             background: 'linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(10,22,40,0.04) 100%)',
             border: '1px solid rgba(201,168,76,0.35)',
-            borderRadius: 10,
-            padding: '10px 12px',
+            borderRadius: 12,
+            padding: '12px',
             fontSize: 12,
             display: 'grid',
-            gap: 6
+            gap: 10
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-              <strong style={{ color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>🏫</span> {KSJI_MEETING_LOCATION.VENUE_NAME}
-              </strong>
-              <button
-                type="button"
-                onClick={resetToCanonicalLocation}
-                style={{
-                  background: '#fff',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: 6,
-                  padding: '3px 8px',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: 'var(--navy)',
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                }}
-                title="Reset to St. Bernadette Soubirous School coordinates"
-              >
-                ↺ Reset to Venue
-              </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 12 }}>
+                📍 Commandery Meeting Venues (Dansoman)
+              </span>
+              <span style={{ fontSize: 10, color: 'var(--gold)', fontWeight: 700 }}>1-Click Presets</span>
             </div>
-            <div style={{ color: '#64748b', fontSize: 11, lineHeight: 1.4 }}>
-              📍 <em>{KSJI_MEETING_LOCATION.ADDRESS}</em><br/>
-              🗺️ DMS: <code>{KSJI_MEETING_LOCATION.DMS}</code> ({KSJI_MEETING_LOCATION.PLUS_CODE})
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {KSJI_VENUE_PRESETS.map((p) => {
+                const isSelected = Math.abs(parseFloat(latitude) - p.latitude) < 0.0002 && Math.abs(parseFloat(longitude) - p.longitude) < 0.0002;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => applyVenuePreset(p)}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      border: isSelected ? '2px solid var(--navy)' : '1px solid #cbd5e1',
+                      background: isSelected ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                      color: isSelected ? 'var(--navy)' : '#475569',
+                      fontWeight: isSelected ? 800 : 600,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      boxShadow: isSelected ? '0 2px 4px rgba(10,22,40,0.1)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <span style={{ fontSize: 16 }}>{p.icon}</span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {p.short_name}
+                      </div>
+                      <div style={{ fontSize: 10, color: '#64748b' }}>{p.default_radius_meters}m radius</div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
+
+            {(() => {
+              const matched = getMatchingVenuePreset(parseFloat(latitude), parseFloat(longitude));
+              if (matched) {
+                return (
+                  <div style={{ fontSize: 11, color: '#475569', lineHeight: 1.4, borderTop: '1px dashed rgba(201,168,76,0.35)', paddingTop: 8 }}>
+                    <strong>{matched.icon} {matched.full_name}</strong><br/>
+                    📍 <em>{matched.address}</em> • Plus Code: <code>{matched.plus_code}</code>
+                  </div>
+                );
+              }
+              return (
+                <div style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic', borderTop: '1px dashed #cbd5e1', paddingTop: 8 }}>
+                  📍 Custom Location Coordinates entered.
+                </div>
+              );
+            })()}
           </div>
 
           <label style={label}>
@@ -636,6 +678,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             <div style={{ display: 'grid', gap: 8 }}>
               {meetings.map((m) => {
                 const isUpcoming = new Date().getTime() < new Date(m.date).getTime();
+                const matchedVenue = getMatchingVenuePreset(m.latitude, m.longitude);
                 return (
                   <div
                     key={m.id}
@@ -667,7 +710,14 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                         )}
                       </div>
                       <span style={{ fontSize: 11, color: '#64748b', display: 'block', marginTop: 4 }}>
-                        📅 {formatDisplayDate(m.date)}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                        <span style={{ fontSize: 11, color: '#64748b' }}>📅 {formatDisplayDate(m.date)}</span>
+                        {matchedVenue && (
+                          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--navy)', background: '#f1f5f9', padding: '1px 6px', borderRadius: 4 }}>
+                            {matchedVenue.icon} {matchedVenue.short_name}
+                          </span>
+                        )}
+                      </div>
                       </span>
                       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
                         <button
@@ -715,7 +765,18 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             <div className="card" style={{ borderLeft: '4px solid var(--gold)', background: 'linear-gradient(135deg, #ffffff 0%, #fffdf9 100%)' }}>
               <h2 style={{ margin: '0 0 4px', color: 'var(--navy)', fontWeight: 800 }}>{selectedMeeting.title}</h2>
               <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
-                📆 <strong>Date:</strong> {formatDisplayDate(selectedMeeting.date)} | 🎯 <strong>Geofence:</strong> {selectedMeeting.radius_meters}m radius | 📍 Lat: {selectedMeeting.latitude}, Lon: {selectedMeeting.longitude}
+              {(() => {
+                const matched = getMatchingVenuePreset(selectedMeeting.latitude, selectedMeeting.longitude);
+                return (
+                  <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+                    📆 <strong>Date:</strong> {formatDisplayDate(selectedMeeting.date)} | 🎯 <strong>Geofence:</strong> {selectedMeeting.radius_meters}m radius
+                    {matched && (
+                      <span> | {matched.icon} <strong>Venue:</strong> {matched.full_name}</span>
+                    )}
+                    <span> | 📍 Lat: {selectedMeeting.latitude}, Lon: {selectedMeeting.longitude}</span>
+                  </p>
+                );
+              })()}
               </p>
               {hasMistypedAccraLongitude(selectedMeeting.longitude) && (
                 <div style={{
@@ -1368,46 +1429,53 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
               </button>
             </div>
 
-            {/* Default Venue Preset Banner */}
+            {/* Quick Apply Venue Presets */}
             <div style={{
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
-              borderRadius: 10,
+              borderRadius: 12,
               padding: '12px 14px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: 10,
-              flexWrap: 'wrap'
+              display: 'grid',
+              gap: 8,
             }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--navy)' }}>
-                  🏫 {KSJI_MEETING_LOCATION.VENUE_NAME}
-                </div>
-                <div style={{ fontSize: 11, color: '#64748b' }}>
-                  Lat: {KSJI_MEETING_LOCATION.LATITUDE}, Lon: {KSJI_MEETING_LOCATION.LONGITUDE} (Radius: {KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS}m)
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 800, fontSize: 12, color: 'var(--navy)' }}>
+                  📍 Quick Apply Venue Preset
+                </span>
+                <span style={{ fontSize: 11, color: '#64748b' }}>1-Click Location Coordinates</span>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setEditLatitude(KSJI_MEETING_LOCATION.LATITUDE.toString());
-                  setEditLongitude(KSJI_MEETING_LOCATION.LONGITUDE.toString());
-                  setEditRadiusMeters(KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS);
-                }}
-                style={{
-                  background: 'var(--navy)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: '6px 12px',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                Apply St. Bernadette Preset
-              </button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {KSJI_VENUE_PRESETS.map((p) => {
+                  const isSelected = Math.abs(parseFloat(editLatitude) - p.latitude) < 0.0002 && Math.abs(parseFloat(editLongitude) - p.longitude) < 0.0002;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => applyEditVenuePreset(p)}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: 8,
+                        border: isSelected ? '2px solid var(--navy)' : '1px solid #cbd5e1',
+                        background: isSelected ? '#ffffff' : '#fff',
+                        color: isSelected ? 'var(--navy)' : '#475569',
+                        fontWeight: isSelected ? 800 : 600,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        boxShadow: isSelected ? '0 2px 4px rgba(10,22,40,0.1)' : 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6
+                      }}
+                    >
+                      <span style={{ fontSize: 16 }}>{p.icon}</span>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 800 }}>{p.short_name}</div>
+                        <div style={{ fontSize: 10, color: '#64748b' }}>Radius: {p.default_radius_meters}m</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <form onSubmit={handleSaveEditMeeting} style={{ display: 'grid', gap: 14 }}>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { checkInMember, submitAbsenceRequest } from '@/services/attendanceService';
-import { formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { formatDisplayDate, getMatchingVenuePreset } from '@/lib/utils/ksji-logic';
 
 interface Props {
   member: any;
@@ -365,11 +365,23 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
                 <div key={meeting.id} className="card" style={{ display: 'grid', gap: 16, border: '1px solid #f1f5f9' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: 16 }}>
                     <div>
-                      <h4 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>{meeting.title}</h4>
-                      <p style={{ margin: '0 0 8px', fontSize: 13, color: '#64748b' }}>📅 {formattedDate}</p>
-                      <p style={{ margin: 0, fontSize: 12, color: 'var(--gold)', fontWeight: 700 }}>
-                        📍 Required Proximity: Within {meeting.radius_meters} meters
-                      </p>
+                      {(() => {
+                        const matchedVenue = getMatchingVenuePreset(meeting.latitude, meeting.longitude);
+                        return (
+                          <>
+                            <h4 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>{meeting.title}</h4>
+                            <p style={{ margin: '0 0 4px', fontSize: 13, color: '#64748b' }}>📅 {formattedDate}</p>
+                            {matchedVenue && (
+                              <p style={{ margin: '0 0 6px', fontSize: 13, color: 'var(--navy)', fontWeight: 700 }}>
+                                {matchedVenue.icon} Venue: {matchedVenue.full_name}
+                              </p>
+                            )}
+                            <p style={{ margin: 0, fontSize: 12, color: 'var(--gold)', fontWeight: 700 }}>
+                              📍 Required Proximity: Within {meeting.radius_meters} meters
+                            </p>
+                          </>
+                        );
+                      })()}
                     </div>
 
                     {/* Badge Actions */}
