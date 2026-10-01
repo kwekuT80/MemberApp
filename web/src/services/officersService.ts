@@ -59,7 +59,7 @@ export async function getCommanderyOfficersData() {
   // 2. Fetch all real members for assignment picker (excludes operational/system accounts)
   const { data: members, error: memErr } = await admin
     .from('members')
-    .select('id, title, first_name, surname, other_names, phone, email, photo_url, status, is_deceased, is_system, is_fictitious, member_type')
+    .select('id, title, first_name, surname, other_names, phone, email, photo_url, status, is_deceased, membership_type')
     .order('surname', { ascending: true })
     .order('first_name', { ascending: true });
 
