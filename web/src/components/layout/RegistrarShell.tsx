@@ -78,12 +78,15 @@ export default function RegistrarShell({
         { href: '/registrar/reports', label: '📊 Reporting Hub' },
       ]
     },
-    ...(isFinancial ? [{
-      title: 'GOVERNANCE & SYSTEM',
+    {
+      title: 'GOVERNANCE & VAULT',
       items: [
-        { href: '/registrar/financials/audit', label: '📋 Audit Trail' }
+        { href: '/registrar/backup', label: '🛡️ Database Vault & Backup' },
+        ...(isFinancial ? [
+          { href: '/registrar/financials/audit', label: '📋 Financial Audit Trail' }
+        ] : []),
       ]
-    }] : []),
+    },
     ...(isSuperAdmin ? [{
       title: 'SUPER ADMIN ARCHIVES',
       items: [

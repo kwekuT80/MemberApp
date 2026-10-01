@@ -119,11 +119,12 @@ export default async function RegistrarPage() {
         </div>
       )}
 
-      <div className="grid-cols-3" style={{ marginBottom: 32 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
         <SummaryCard title='Total Registry' value={String(memberCount)} icon="👥" />
         <SummaryCard title='Onboarding' value='Bulk Import' link='/registrar/import' icon="📥" />
         <SummaryCard title='Registration' value='Create New' link='/registrar/members/new' icon="➕" />
         <SummaryCard title='Financial Ledger' value='Manage Dues' link='/registrar/financials' icon="💰" />
+        <SummaryCard title='Disaster Recovery' value='Database Vault' link='/registrar/backup' icon="🛡️" />
       </div>
 
       {/* Upcoming Birthdays Section */}
