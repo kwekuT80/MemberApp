@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   STANDARD_OFFICER_ROLES,
   OfficerRoleDefinition,
@@ -24,6 +25,7 @@ export default function CommanderyOfficersClient({
   allMembers,
   isRegistrar = false,
 }: Props) {
+  const router = useRouter();
   const [positions, setPositions] = useState<any[]>(initialPositions);
   
   // Available biennial terms
@@ -77,7 +79,7 @@ export default function CommanderyOfficersClient({
     return [parseInt(parts[0], 10), parseInt(parts[1], 10)];
   }, [selectedTerm]);
 
-  // Positions matching the selected term
+  // Positions matching the selected term (allowing any assigned brother, living or deceased)
   const termPositions = useMemo(() => {
     return positions.filter((p) => {
       const fromYear = p.date_from ? parseInt(p.date_from.substring(0, 4), 10) : null;
@@ -196,14 +198,18 @@ export default function CommanderyOfficersClient({
   // Filter active members for assignment picker
   const filteredMembersForPicker = useMemo(() => {
     if (!memberSearchTerm.trim()) {
-      return allMembers.slice(0, 50);
+      return allMembers;
     }
     const q = memberSearchTerm.toLowerCase().trim();
     return allMembers.filter((m) => {
-      const full = `${m.first_name || ''} ${m.surname || ''} ${m.title || ''}`.toLowerCase();
+      const full = `${m.title || ''} ${m.first_name || ''} ${m.other_names || ''} ${m.surname || ''}`.toLowerCase();
       return full.includes(q);
     });
   }, [allMembers, memberSearchTerm]);
+
+  const selectedMember = useMemo(() => {
+    return allMembers.find((m) => m.id === modalMemberId) || null;
+  }, [allMembers, modalMemberId]);
 
   // Open modal for a specific role
   function handleOpenAssignModal(roleTitle: string, existingAssignment?: any) {
@@ -220,8 +226,20 @@ export default function CommanderyOfficersClient({
   // Handle saving the assignment
   async function handleSaveAssignment(e: React.FormEvent) {
     e.preventDefault();
-    if (!modalMemberId) {
-      setModalError('Please select a brother for this position.');
+    let targetMemberId = modalMemberId;
+
+    // If user searched for a name, ensure we pick from the search results
+    if (memberSearchTerm.trim()) {
+      const matchExists = filteredMembersForPicker.some((m) => m.id === modalMemberId);
+      if (!matchExists && filteredMembersForPicker.length >= 1) {
+        targetMemberId = filteredMembersForPicker[0].id;
+      }
+    } else if (!targetMemberId && filteredMembersForPicker.length >= 1) {
+      targetMemberId = filteredMembersForPicker[0].id;
+    }
+
+    if (!targetMemberId) {
+      setModalError('Please select a brother from the list below.');
       return;
     }
 
@@ -231,31 +249,34 @@ export default function CommanderyOfficersClient({
     try {
       const res = await assignOfficerPosition({
         positionId: modalPositionId,
-        memberId: modalMemberId,
+        memberId: targetMemberId,
         positionTitle: modalRole,
         dateFrom: modalDateFrom,
         dateTo: modalDateTo || null,
       });
 
-      // Update local state
-      const savedRecord = res.data;
-      const memberObj = allMembers.find((m) => m.id === modalMemberId);
-
-      const enriched = {
-        ...savedRecord,
-        members: memberObj || null,
-      };
+      // res.data includes the joined members relation
+      const enriched = res.data;
 
       setPositions((prev) => {
-        if (modalPositionId) {
-          return prev.map((p) => (p.id === modalPositionId ? enriched : p));
-        } else {
-          return [enriched, ...prev];
-        }
+        const normTarget = normalizePositionTitle(modalRole).toLowerCase();
+        // Remove any prior conflicting record for this role & term
+        const withoutConflicting = prev.filter((p) => {
+          if (p.id === modalPositionId || p.id === enriched.id) return false;
+          if (normalizePositionTitle(p.position_title).toLowerCase() === normTarget) {
+            const pFromYear = p.date_from ? parseInt(p.date_from.substring(0, 4), 10) : null;
+            if (pFromYear && pFromYear >= termStartYear && pFromYear <= termEndYear) {
+              return false;
+            }
+          }
+          return true;
+        });
+        return [enriched, ...withoutConflicting];
       });
 
       setIsModalOpen(false);
       setActionSuccess(`Officer assigned successfully for ${modalRole}.`);
+      router.refresh();
       setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: any) {
       setModalError(err.message || 'Failed to save officer assignment.');
@@ -1029,44 +1050,119 @@ export default function CommanderyOfficersClient({
 
               {/* Member Picker */}
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
-                  Select Brother to Assign
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>
+                    Select Brother to Assign
+                  </label>
+                  {selectedMember ? (
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#166534', background: '#dcfce7', padding: '3px 10px', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      ✓ Selected: {selectedMember.title ? `${selectedMember.title} ` : ''}{selectedMember.surname}, {selectedMember.first_name} {selectedMember.is_deceased ? '(Deceased)' : ''}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '3px 10px', borderRadius: 10 }}>
+                      ⚠️ None selected yet
+                    </span>
+                  )}
+                </div>
+
                 <input
                   type="text"
                   value={memberSearchTerm}
-                  onChange={(e) => setMemberSearchTerm(e.target.value)}
-                  placeholder="Filter by name to search..."
+                  onChange={(e) => {
+                    const term = e.target.value;
+                    setMemberSearchTerm(term);
+                    const q = term.toLowerCase().trim();
+                    if (q) {
+                      const matches = allMembers.filter((m) => {
+                        const full = `${m.title || ''} ${m.first_name || ''} ${m.other_names || ''} ${m.surname || ''}`.toLowerCase();
+                        return full.includes(q);
+                      });
+                      // If current selected member is not in the filtered matches, select the first match immediately!
+                      if (matches.length > 0 && !matches.some(m => m.id === modalMemberId)) {
+                        setModalMemberId(matches[0].id);
+                        setModalError(null);
+                      }
+                    }
+                  }}
+                  placeholder="Type to filter brothers by name..."
                   style={{
                     width: '100%',
                     padding: '8px 12px',
                     borderRadius: 8,
-                    border: '1px solid #cbd5e1',
-                    fontSize: 12,
-                    marginBottom: 8,
-                    outline: 'none',
-                  }}
-                />
-                <select
-                  value={modalMemberId}
-                  onChange={(e) => setModalMemberId(e.target.value)}
-                  required
-                  size={5}
-                  style={{
-                    width: '100%',
-                    padding: '6px',
-                    borderRadius: 8,
                     border: '1.5px solid #cbd5e1',
                     fontSize: 13,
+                    marginBottom: 8,
                     outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+
+                {/* Helper instruction */}
+                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontWeight: 600 }}>
+                  👉 Click on a brother from the list below to select:
+                </div>
+
+                {/* Interactive Member Selection List */}
+                <div
+                  style={{
+                    maxHeight: 180,
+                    overflowY: 'auto',
+                    border: '1.5px solid #cbd5e1',
+                    borderRadius: 8,
+                    background: '#ffffff',
                   }}
                 >
-                  {filteredMembersForPicker.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.title ? `${m.title} ` : ''}{m.surname}, {m.first_name} ({m.status})
-                    </option>
-                  ))}
-                </select>
+                  {filteredMembersForPicker.length === 0 ? (
+                    <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                      No brother found matching &quot;{memberSearchTerm}&quot;
+                    </div>
+                  ) : (
+                    filteredMembersForPicker.map((m) => {
+                      const isSelected = modalMemberId === m.id;
+                      return (
+                        <div
+                          key={m.id}
+                          onClick={() => {
+                            setModalMemberId(m.id);
+                            setModalError(null);
+                          }}
+                          style={{
+                            padding: '10px 14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            borderBottom: '1px solid #f1f5f9',
+                            cursor: 'pointer',
+                            background: isSelected ? 'rgba(201, 168, 76, 0.15)' : '#ffffff',
+                            borderLeft: isSelected ? '4px solid #C9A84C' : '4px solid transparent',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ fontSize: 16 }}>{isSelected ? '🔘' : '⚪'}</span>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: isSelected ? 800 : 600, color: '#0A1628' }}>
+                                {m.title ? `${m.title} ` : ''}{m.surname}, {m.first_name}
+                              </div>
+                              <div style={{ fontSize: 11, color: '#64748b' }}>
+                                Status: {m.status || (m.is_deceased ? 'Deceased' : 'Active')} {m.is_deceased ? '• 🕊️ Deceased' : ''} {m.phone ? `• 📞 ${m.phone}` : ''}
+                              </div>
+                            </div>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 800,
+                              color: isSelected ? '#C9A84C' : '#94a3b8',
+                            }}
+                          >
+                            {isSelected ? '✓ Selected' : 'Select'}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
 
               {/* Tenure Dates */}
@@ -1110,40 +1206,71 @@ export default function CommanderyOfficersClient({
               </div>
 
               {/* Modal Buttons */}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={modalSubmitting}
-                  style={{
-                    padding: '9px 16px',
-                    borderRadius: 8,
-                    border: '1px solid #cbd5e1',
-                    background: '#ffffff',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={modalSubmitting}
-                  style={{
-                    padding: '9px 20px',
-                    borderRadius: 8,
-                    border: 'none',
-                    background: '#0A1628',
-                    color: '#C9A84C',
-                    fontSize: 13,
-                    fontWeight: 800,
-                    cursor: modalSubmitting ? 'not-allowed' : 'pointer',
-                    opacity: modalSubmitting ? 0.7 : 1,
-                  }}
-                >
-                  {modalSubmitting ? '⏳ Saving...' : 'Confirm Assignment'}
-                </button>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+                {modalPositionId ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (confirm(`Remove this officer assignment for ${modalRole}?`)) {
+                        await handleDeleteAssignment(modalPositionId, modalRole);
+                        setIsModalOpen(false);
+                      }
+                    }}
+                    disabled={modalSubmitting}
+                    style={{
+                      padding: '9px 14px',
+                      borderRadius: 8,
+                      border: '1px solid #fecaca',
+                      background: '#fff1f2',
+                      color: '#b91c1c',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🗑️ Vacate / Remove
+                  </button>
+                ) : <div />}
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    disabled={modalSubmitting}
+                    style={{
+                      padding: '9px 16px',
+                      borderRadius: 8,
+                      border: '1px solid #cbd5e1',
+                      background: '#ffffff',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={modalSubmitting}
+                    style={{
+                      padding: '9px 20px',
+                      borderRadius: 8,
+                      border: 'none',
+                      background: '#0A1628',
+                      color: '#C9A84C',
+                      fontSize: 13,
+                      fontWeight: 800,
+                      cursor: modalSubmitting ? 'not-allowed' : 'pointer',
+                      opacity: modalSubmitting ? 0.7 : 1,
+                    }}
+                  >
+                    {modalSubmitting
+                      ? '⏳ Saving...'
+                      : selectedMember
+                      ? `Confirm: Assign ${selectedMember.surname}`
+                      : 'Confirm Assignment'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

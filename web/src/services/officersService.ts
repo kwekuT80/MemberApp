@@ -22,6 +22,8 @@ export type {
 /**
  * Fetch all local commandery positions & active members for the officers roster
  */
+import { isSystemMember } from '@/lib/utils/ksji-logic';
+
 export async function getCommanderyOfficersData() {
   const admin = await createAdminClient();
 
@@ -54,10 +56,10 @@ export async function getCommanderyOfficersData() {
     console.error('Error fetching officers positions:', posErr);
   }
 
-  // 2. Fetch all members for assignment picker
+  // 2. Fetch all real members for assignment picker (excludes operational/system accounts)
   const { data: members, error: memErr } = await admin
     .from('members')
-    .select('id, title, first_name, surname, phone, email, photo_url, status, is_deceased')
+    .select('id, title, first_name, surname, other_names, phone, email, photo_url, status, is_deceased, is_system, is_fictitious, member_type')
     .order('surname', { ascending: true })
     .order('first_name', { ascending: true });
 
@@ -65,9 +67,12 @@ export async function getCommanderyOfficersData() {
     console.error('Error fetching members list:', memErr);
   }
 
+  // Filter out system accounts & operational outflows only
+  const eligibleMembers = (members || []).filter((m) => !isSystemMember(m));
+
   return {
     positions: positions || [],
-    members: members || [],
+    members: eligibleMembers,
   };
 }
 
@@ -92,32 +97,65 @@ export async function assignOfficerPosition(payload: {
     date_to: payload.dateTo ? payload.dateTo.trim() : null,
   };
 
+  const selectFields = `
+    id,
+    position_title,
+    level,
+    date_from,
+    date_to,
+    member_id,
+    members (
+      id,
+      first_name,
+      surname,
+      title,
+      status,
+      phone,
+      email,
+      photo_url,
+      is_deceased
+    )
+  `;
+
+  let resultData: any = null;
+
   if (payload.positionId) {
     // Update existing record
     const { data, error } = await admin
       .from('positions')
       .update(record)
       .eq('id', payload.positionId)
-      .select()
+      .select(selectFields)
       .single();
 
     if (error) throw new Error(error.message);
-    revalidatePath('/registrar/officers');
-    revalidatePath('/me/officers');
-    return { success: true, data };
+    resultData = data;
   } else {
     // Insert new record
     const { data, error } = await admin
       .from('positions')
       .insert(record)
-      .select()
+      .select(selectFields)
       .single();
 
     if (error) throw new Error(error.message);
-    revalidatePath('/registrar/officers');
-    revalidatePath('/me/officers');
-    return { success: true, data };
+    resultData = data;
   }
+
+  // Prevent conflicting duplicate rows for the same office in the same term
+  if (resultData && record.date_from) {
+    await admin
+      .from('positions')
+      .delete()
+      .eq('position_title', record.position_title)
+      .eq('date_from', record.date_from)
+      .eq('level', 'Local')
+      .neq('id', resultData.id);
+  }
+
+  revalidatePath('/registrar/officers');
+  revalidatePath('/me/officers');
+  return { success: true, data: resultData };
 }
 
 /**
