@@ -51,6 +51,7 @@ export default function RegistrarShell({
       title: 'MEMBERSHIP',
       items: [
         { href: '/registrar/members', label: '👥 Members' },
+        { href: '/registrar/officers', label: '⚔️ Commandery Officers' },
         { href: '/registrar/presidents', label: '👑 Worthy Presidents' },
         { href: '/registrar/meetings', label: '📅 Meetings' },
         { href: '/registrar/communications', label: '📣 Communications' },
