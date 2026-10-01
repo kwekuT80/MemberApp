@@ -117,11 +117,26 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     aliases: ['2nd Vice Commander', 'Second Vice Commander'],
   },
   {
+    id: 'seargent_at_arms',
+    title: 'Seargent-At-Arms',
+    category: 'military',
+    categoryLabel: 'Military Officers',
+    order: 13,
+    aliases: [
+      'Seargent-At-Arms',
+      'Sergeant-At-Arms',
+      'Seargent at Arms',
+      'Sergeant at Arms',
+      'Seargent-at-Arms',
+      'Sergeant-at-Arms',
+    ],
+  },
+  {
     id: 'messenger',
     title: 'Messenger',
     category: 'military',
     categoryLabel: 'Military Officers',
-    order: 13,
+    order: 14,
     aliases: ['Messenger'],
   },
   {
@@ -129,7 +144,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     title: 'Guard',
     category: 'military',
     categoryLabel: 'Military Officers',
-    order: 14,
+    order: 15,
     aliases: ['Guard'],
   },
 
@@ -140,7 +155,7 @@ export const STANDARD_OFFICER_ROLES: OfficerRoleDefinition[] = [
     category: 'appointed',
     categoryLabel: 'Appointed Officers',
     isAppointive: true,
-    order: 15,
+    order: 16,
     aliases: ['Cadet Organiser', 'Cadet Organizer'],
   },
 ];
