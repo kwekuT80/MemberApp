@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createMeeting, updateMeeting, checkInMember, getAbsenceRequests, reviewAbsenceRequest, getAttendanceReport, registrarGrantExcuse, deleteMeeting, rejectCheckIn } from '@/services/attendanceService';
-import { formatDisplayDate, KSJI_MEETING_LOCATION, KSJI_VENUE_PRESETS, getMatchingVenuePreset, hasMistypedAccraLongitude } from '@/lib/utils/ksji-logic';
+import { formatDisplayDate, formatDisplayTime, formatDisplayDateTime, KSJI_MEETING_LOCATION, KSJI_VENUE_PRESETS, getMatchingVenuePreset, hasMistypedAccraLongitude } from '@/lib/utils/ksji-logic';
 import MeetingNoticeModal from '@/components/meetings/MeetingNoticeModal';
 
 interface Props {
@@ -712,7 +712,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                         )}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-                        <span style={{ fontSize: 11, color: '#64748b' }}>📅 {formatDisplayDate(m.date)}</span>
+                        <span style={{ fontSize: 11, color: '#64748b' }}>📅 {formatDisplayDateTime(m.date)}</span>
                         {matchedVenue && (
                           <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--navy)', background: '#f1f5f9', padding: '1px 6px', borderRadius: 4 }}>
                             {matchedVenue.icon} {matchedVenue.short_name}
@@ -768,7 +768,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                 const matched = getMatchingVenuePreset(selectedMeeting.latitude, selectedMeeting.longitude);
                 return (
                   <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
-                    📆 <strong>Date:</strong> {formatDisplayDate(selectedMeeting.date)} | 🎯 <strong>Geofence:</strong> {selectedMeeting.radius_meters}m radius
+                    📆 <strong>Date & Time:</strong> {formatDisplayDateTime(selectedMeeting.date)} | 🎯 <strong>Geofence:</strong> {selectedMeeting.radius_meters}m radius
                     {matched && (
                       <span> | {matched.icon} <strong>Venue:</strong> {matched.full_name}</span>
                     )}

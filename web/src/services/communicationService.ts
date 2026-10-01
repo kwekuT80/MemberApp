@@ -8,7 +8,7 @@ import {
   DeliveryResult,
 } from '@/services/messaging';
 import { getAllMemberSummaries } from '@/services/financialService';
-import { isSystemMember, formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { isSystemMember, formatDisplayDate, formatDisplayTime, formatDisplayDateTime } from '@/lib/utils/ksji-logic';
 
 // Communication template types and renderers
 export type CommunicationType = 'email' | 'sms';
@@ -83,28 +83,31 @@ function renderTemplate(
     case 'meeting_notice': {
       const title = variables.meetingTitle || 'Commandery Monthly Meeting';
       const date = variables.meetingDate || 'Upcoming Meeting';
+      const time = variables.meetingTime ? `${variables.meetingTime}` : '';
       const location = variables.meetingLocation || 'Commandery Hall';
-      const uniform = variables.uniform ? `\nUniform: ${variables.uniform}` : '';
+      const dateTimeStr = time ? `${date} at ${time}` : date;
+      const uniform = variables.uniform ? `\nUniform: ${variables.uniform}.` : '';
       const specialNote = variables.note ? `\nNote: ${variables.note}` : '';
 
       return {
-        subject: `Notice of Meeting: ${title} - ${date}`,
+        subject: `Notice of Meeting: ${title} - ${dateTimeStr}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
             <h2 style="color: #800020; margin-top: 0;">${title}</h2>
             <p>Dear <strong>${name}</strong>,</p>
-            <p>You are fraternally summoned to attend the following Commandery session:</p>
+            <p>You are fraternally invited to attend the following Commandery session:</p>
             <ul>
-              <li><strong>Date & Time:</strong> ${date}</li>
+              <li><strong>Date:</strong> ${date}</li>
+              ${time ? `<li><strong>Time:</strong> ${time}</li>` : ''}
               <li><strong>Venue:</strong> ${location}</li>
               ${variables.uniform ? `<li><strong>Uniform:</strong> ${variables.uniform}</li>` : ''}
-              ${variables.note ? `<li><strong>Special Instructions:</strong> ${variables.note}</li>` : ''}
+              ${variables.note ? `<li><strong>Note:</strong> ${variables.note}</li>` : ''}
             </ul>
-            <p>Your punctual attendance and active participation are requested.</p>
+            <p>Brothers are kindly requested to be punctual.</p>
             <p>Fraternally in St. John,<br/><strong>Registrar</strong><br/>KSJI Commandery No. 500</p>
           </div>
         `,
-        text: `KSJI Notice: Dear ${name}, you are summoned to ${title} on ${date} at ${location}.${uniform}${specialNote}\nPunctuality is expected. Fraternally, KSJI 500.`,
+        text: `KSJI Notice: Dear ${name}, you are invited to ${title} on ${dateTimeStr} at ${location}.${uniform}${specialNote}\nFraternally, KSJI 500.`,
       };
     }
 
@@ -345,12 +348,14 @@ export async function broadcastMeetingNotice({
   meetingId,
   channel = 'both',
   target = 'all_active',
+  meetingTime,
   uniform,
   specialNote,
 }: {
   meetingId: string;
   channel: 'sms' | 'email' | 'both';
   target?: 'all_active' | 'unconfirmed_only';
+  meetingTime?: string;
   uniform?: string;
   specialNote?: string;
 }): Promise<{ success: boolean; totalQueued: number; message: string }> {
@@ -393,6 +398,7 @@ export async function broadcastMeetingNotice({
 
   const memberIds = targetMembers.map(m => m.id);
   const mDateStr = formatDisplayDate(meeting.date);
+  const mTimeStr = (meetingTime && meetingTime.trim()) || formatDisplayTime(meeting.date) || '';
 
   const variablesMap: Record<string, TemplateVariables> = {};
   targetMembers.forEach(m => {
@@ -400,6 +406,7 @@ export async function broadcastMeetingNotice({
       memberName: `${m.first_name || ''} ${m.surname}`.trim(),
       meetingTitle: meeting.title,
       meetingDate: mDateStr,
+      meetingTime: mTimeStr,
       meetingLocation: meeting.location_name || 'Commandery Hall',
       uniform: uniform || '',
       note: specialNote || '',

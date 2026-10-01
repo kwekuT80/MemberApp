@@ -522,6 +522,67 @@ export function formatDisplayDate(
   return '—';
 }
 
+/**
+ * Formats time from an ISO timestamp, datetime-local, or time string.
+ * Example inputs:
+ *  - '2026-10-10T08:00:00+00:00' -> '8:00 AM'
+ *  - '2026-10-10T14:30:00' -> '2:30 PM'
+ *  - '16:00' -> '4:00 PM'
+ */
+export function formatDisplayTime(dateStr: string | null | undefined): string {
+  if (!dateStr || typeof dateStr !== 'string') return '';
+  const trimmed = dateStr.trim();
+  if (!trimmed) return '';
+
+  let timePart = '';
+  if (trimmed.includes('T')) {
+    timePart = trimmed.split('T')[1];
+  } else if (trimmed.includes(' ')) {
+    const parts = trimmed.split(' ');
+    timePart = parts[1] || '';
+  } else if (/^\d{1,2}:\d{2}/.test(trimmed)) {
+    timePart = trimmed;
+  }
+
+  if (timePart) {
+    const match = timePart.match(/^(\d{1,2}):(\d{2})/);
+    if (match) {
+      let hour = parseInt(match[1], 10);
+      const min = match[2];
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      hour = hour % 12;
+      if (hour === 0) hour = 12;
+      return `${hour}:${min} ${ampm}`;
+    }
+  }
+
+  const d = new Date(trimmed);
+  if (!isNaN(d.getTime())) {
+    let hour = d.getHours();
+    const min = d.getMinutes();
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12;
+    if (hour === 0) hour = 12;
+    const padMin = min < 10 ? `0${min}` : `${min}`;
+    return `${hour}:${padMin} ${ampm}`;
+  }
+
+  return '';
+}
+
+/**
+ * Formats both Date and Time together, e.g. "10th Oct 2026 at 8:00 AM"
+ */
+export function formatDisplayDateTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—';
+  const dateFormatted = formatDisplayDate(dateStr);
+  const timeFormatted = formatDisplayTime(dateStr);
+  if (timeFormatted) {
+    return `${dateFormatted} at ${timeFormatted}`;
+  }
+  return dateFormatted;
+}
+
 // Level hierarchy order (lowest → highest) for comparing service levels
 const LEVEL_ORDER = [
   'Local',

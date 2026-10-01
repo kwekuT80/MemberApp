@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { broadcastMeetingNotice } from '@/services/communicationService';
-import { formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { formatDisplayDate, formatDisplayTime } from '@/lib/utils/ksji-logic';
 
 interface MeetingNoticeModalProps {
   isOpen: boolean;
@@ -21,10 +21,17 @@ export default function MeetingNoticeModal({
 }: MeetingNoticeModalProps) {
   const [channel, setChannel] = useState<'sms' | 'email' | 'both'>('sms');
   const [target, setTarget] = useState<'all_active' | 'unconfirmed_only'>('all_active');
-  const [uniform, setUniform] = useState('Full Dress Uniform with Baldric & Sword');
-  const [specialNote, setSpecialNote] = useState('Please arrive and be seated 15 minutes before inspection.');
+  const [time, setTime] = useState(() => formatDisplayTime(meeting?.date) || '8:00 AM');
+  const [uniform, setUniform] = useState('Meeting Uniform');
+  const [specialNote, setSpecialNote] = useState('Brothers are kindly requested to be punctual.');
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; totalQueued?: number } | null>(null);
+
+  useEffect(() => {
+    if (meeting?.date) {
+      setTime(formatDisplayTime(meeting.date) || '8:00 AM');
+    }
+  }, [meeting?.date]);
 
   if (!isOpen || !meeting) return null;
 
@@ -41,6 +48,7 @@ export default function MeetingNoticeModal({
         meetingId: meeting.id,
         channel,
         target,
+        meetingTime: time.trim() || undefined,
         uniform: uniform.trim() || undefined,
         specialNote: specialNote.trim() || undefined,
       });
@@ -106,7 +114,7 @@ export default function MeetingNoticeModal({
               📢 Dispatch Meeting Notice & Reminders
             </h3>
             <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#94a3b8' }}>
-              {meeting.title} • {formatDisplayDate(meeting.date)}
+              {meeting.title} • {formatDisplayDate(meeting.date)}{time ? ` at ${time}` : ''}
             </p>
           </div>
           <button
@@ -209,23 +217,111 @@ export default function MeetingNoticeModal({
             </div>
           </div>
 
+          {/* Meeting Schedule & Time */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
+                📅 Scheduled Date
+              </label>
+              <div
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  border: '1px solid #e2e8f0',
+                  background: '#f8fafc',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#0A1628',
+                }}
+              >
+                {formatDisplayDate(meeting.date)}
+              </div>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
+                ⏰ Meeting Time
+              </label>
+              <input
+                type="text"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                placeholder="e.g. 8:00 AM or 8:00 AM Prompt"
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  border: '1px solid #cbd5e1',
+                  fontSize: 13,
+                  outline: 'none',
+                  color: '#0A1628',
+                  fontWeight: 600,
+                }}
+              />
+            </div>
+          </div>
+
           {/* Uniform Specification */}
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
-              Required Uniform (Optional)
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
+                Prescribed Uniform
+              </label>
+              <span style={{ fontSize: 11, color: '#64748b' }}>Select option</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 8 }}>
+              {[
+                { label: 'Meeting Uniform', desc: 'Standard Attire (Default)' },
+                { label: 'Sash & Cap', desc: 'Prescribed Ceremonial' },
+                { label: 'Full Military', desc: 'Full Military Turnout' },
+              ].map((opt) => {
+                const isSelected = uniform === opt.label;
+                return (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={() => setUniform(opt.label)}
+                    style={{
+                      padding: '10px 8px',
+                      borderRadius: 8,
+                      border: isSelected ? '2px solid #C9A84C' : '1px solid #cbd5e1',
+                      background: isSelected ? 'rgba(201, 168, 76, 0.12)' : '#ffffff',
+                      color: isSelected ? '#0A1628' : '#475569',
+                      fontWeight: isSelected ? 700 : 500,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 2,
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? '0 1px 4px rgba(201, 168, 76, 0.2)' : 'none',
+                    }}
+                  >
+                    <span style={{ fontWeight: 700, fontSize: 12.5 }}>
+                      {isSelected ? '✓ ' : ''}{opt.label}
+                    </span>
+                    <span style={{ fontSize: 10, color: isSelected ? '#856404' : '#94a3b8', textAlign: 'center' }}>
+                      {opt.desc}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
             <input
               type="text"
               value={uniform}
               onChange={(e) => setUniform(e.target.value)}
-              placeholder="e.g. Full Dress Uniform with Baldric & Sword"
+              placeholder="Or specify custom uniform requirements"
               style={{
                 width: '100%',
-                padding: '10px 12px',
+                padding: '8px 12px',
                 borderRadius: 8,
                 border: '1px solid #cbd5e1',
-                fontSize: 13,
+                fontSize: 12.5,
                 outline: 'none',
+                color: '#334155',
               }}
             />
           </div>
@@ -233,13 +329,13 @@ export default function MeetingNoticeModal({
           {/* Special Instructions / Note */}
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
-              Special Instructions / Note (Optional)
+              Special Note / Instructions (Optional)
             </label>
             <textarea
               rows={2}
               value={specialNote}
               onChange={(e) => setSpecialNote(e.target.value)}
-              placeholder="e.g. Punctuality is required. Important welfare deliberation will take place."
+              placeholder="e.g. Brothers are kindly requested to be punctual."
               style={{
                 width: '100%',
                 padding: '10px 12px',
@@ -293,7 +389,7 @@ export default function MeetingNoticeModal({
               Preview Snippet (SMS / Email)
             </div>
             <div>
-              &ldquo;KSJI Notice: Dear [Brother Name], you are summoned to {meeting.title} on {formatDisplayDate(meeting.date)} at {meeting.location_name || 'Commandery Hall'}.
+              &ldquo;KSJI Notice: Dear [Brother Name], you are invited to {meeting.title} on {formatDisplayDate(meeting.date)}{time ? ` at ${time}` : ''} at {meeting.location_name || 'Commandery Hall'}.
               {uniform ? ` Uniform: ${uniform}.` : ''}
               {specialNote ? ` Note: ${specialNote}` : ''} Fraternally, KSJI 500.&rdquo;
             </div>
