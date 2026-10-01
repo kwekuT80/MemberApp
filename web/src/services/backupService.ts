@@ -182,27 +182,62 @@ export async function sendBackupEmail(recipientEmail: string): Promise<{
   const compressedKb = Math.round(compressedBuffer.length / 1024);
 
   const resendApiKey = process.env.RESEND_API_KEY;
-  const senderEmail =
-    process.env.RESEND_SENDER_EMAIL ||
-    process.env.RESENDER_SENDER_EMAIL ||
-    'onboarding@resend.dev';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!resendApiKey) {
+  if (!resendApiKey && (!supabaseUrl || !serviceKey)) {
     return {
       success: false,
       message:
-        'Resend API key is not configured in .env.local (RESEND_API_KEY). Please add your API key to dispatch backup emails. Alternatively, use the Instant Download button to save the vault directly to your computer.',
+        'Neither RESEND_API_KEY nor Supabase service credentials are configured. Please check your environment variables.',
       totalRecords: vault.metadata.total_records,
       uncompressedKb,
       compressedKb,
     };
   }
 
+  const senderEmail =
+    process.env.RESEND_SENDER_EMAIL ||
+    process.env.RESENDER_SENDER_EMAIL ||
+    'onboarding@resend.dev';
+
   // 2. Format HTML email with summary table
   const formattedDate = new Date(vault.metadata.generated_at).toLocaleString('en-US', {
     dateStyle: 'full',
     timeStyle: 'medium',
   });
+
+  const dateSlug = new Date().toISOString().slice(0, 10);
+  const attachmentFilename = `ksji-commandery-500-vault-${dateSlug}-${Date.now()}.json.gz`;
+
+  let signedDownloadUrl: string | null = null;
+
+  // If using Supabase Edge Function fallback, store archive in secure bucket and generate signed URL
+  if (!resendApiKey && supabaseUrl && serviceKey) {
+    try {
+      const admin = await createAdminClient();
+      const { error: upErr } = await admin.storage
+        .from('database-backups')
+        .upload(attachmentFilename, compressedBuffer, {
+          contentType: 'application/gzip',
+          upsert: true,
+        });
+
+      if (!upErr) {
+        const { data: signData } = await admin.storage
+          .from('database-backups')
+          .createSignedUrl(attachmentFilename, 60 * 60 * 24 * 30); // 30 days expiry
+
+        if (signData?.signedUrl) {
+          signedDownloadUrl = signData.signedUrl;
+        }
+      } else {
+        console.warn('[backupService] Warning: Failed to upload to database-backups bucket:', upErr);
+      }
+    } catch (storageErr) {
+      console.warn('[backupService] Warning: Storage upload exception:', storageErr);
+    }
+  }
 
   const tableSummaryRows = Object.entries(vault.metadata.table_summary)
     .filter(([_, count]) => count > 0)
@@ -216,7 +251,7 @@ export async function sendBackupEmail(recipientEmail: string): Promise<{
     .join('');
 
   const htmlBody = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; color: #1e293b; background: #ffffff; border: 1px solid #e2e8f0; borderRadius: 12px;">
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; color: #1e293b; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
       <div style="background: #0A1628; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 24px;">
         <h1 style="color: #C9A84C; margin: 0; font-size: 20px; letter-spacing: 0.5px;">KSJI COMMANDERY #500</h1>
         <p style="color: #94a3b8; margin: 6px 0 0; font-size: 13px;">Master Database Disaster Recovery Vault</p>
@@ -227,9 +262,26 @@ export async function sendBackupEmail(recipientEmail: string): Promise<{
       </p>
 
       <p style="font-size: 14px; line-height: 1.6;">
-        Attached to this email is your <strong>Official Disaster Recovery Database Vault</strong> for 
+        Below is your <strong>Official Disaster Recovery Database Vault</strong> for 
         <strong>St. Margaret-Mary Commandery #500</strong>, generated on <strong>${formattedDate}</strong>.
       </p>
+
+      ${
+        signedDownloadUrl
+          ? `
+      <div style="background: linear-gradient(135deg, #0A1628 0%, #1e293b 100%); border: 1.5px solid #C9A84C; border-radius: 10px; padding: 20px; text-align: center; margin: 24px 0;">
+        <div style="color: #C9A84C; font-size: 15px; font-weight: 800; margin-bottom: 6px;">
+          📥 Secure Disaster Recovery Snapshot Ready
+        </div>
+        <p style="color: #cbd5e1; font-size: 12px; margin: 0 0 16px;">
+          Click the button below to retrieve the encrypted vault archive (Gzip compressed: ${compressedKb} KB). Direct download link valid for 30 days.
+        </p>
+        <a href="${signedDownloadUrl}" target="_blank" style="background: linear-gradient(135deg, #C9A84C 0%, #b3923b 100%); color: #0A1628; padding: 12px 28px; border-radius: 8px; font-weight: 800; font-size: 13px; text-decoration: none; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+          ⬇️ Download Master Vault Snapshot (.json.gz)
+        </a>
+      </div>`
+          : ''
+      }
 
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
         <h3 style="margin: 0 0 12px; font-size: 14px; color: #0A1628;">📊 Backup Snapshot Summary</h3>
@@ -247,7 +299,7 @@ export async function sendBackupEmail(recipientEmail: string): Promise<{
             <td style="padding: 4px 0; text-align: right;">${uncompressedKb} KB</td>
           </tr>
           <tr>
-            <td style="padding: 4px 0; color: #64748b;">Gzip Compressed Attachment:</td>
+            <td style="padding: 4px 0; color: #64748b;">Gzip Compressed Size:</td>
             <td style="padding: 4px 0; text-align: right; font-weight: bold;">${compressedKb} KB</td>
           </tr>
           <tr>
@@ -271,58 +323,94 @@ export async function sendBackupEmail(recipientEmail: string): Promise<{
       </table>
 
       <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 14px; font-size: 12px; color: #92400e; line-height: 1.5;">
-        🔒 <strong>Disaster Recovery Guarantee:</strong> In the unlikely event that your web app or Supabase database experiences a catastrophic collapse, this attached <code>.json.gz</code> file contains 100% of your raw data. It can be decompressed and re-imported into any PostgreSQL database or new Supabase project in minutes.
+        🔒 <strong>Disaster Recovery Guarantee:</strong> In the unlikely event that your web app or Supabase database experiences a collapse, this backup contains 100% of your raw relational data. It can be decompressed and re-imported into any PostgreSQL database or new Supabase project in minutes.
       </div>
 
       <p style="margin-top: 24px; font-size: 11px; color: #94a3b8; text-align: center;">
-        Knight St. John International • Commandery #500 • Confidential & Archival
+        Knights of St. John International • Commandery #500 • Confidential & Archival
       </p>
     </div>
   `;
 
-  const dateSlug = new Date().toISOString().slice(0, 10);
-  const attachmentFilename = `ksji-commandery-500-vault-${dateSlug}.json.gz`;
-
   try {
-    const response = await fetch('https://api.resend.com/emails', {
+    // Mode A: Direct Resend API (if RESEND_API_KEY is defined in .env.local)
+    if (resendApiKey) {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: `KSJI Database Vault <${senderEmail}>`,
+          to: [recipientEmail],
+          subject: `🛡️ Master Database Backup Archive — KSJI Commandery #500 (${dateSlug})`,
+          html: htmlBody,
+          attachments: [
+            {
+              filename: `ksji-commandery-500-vault-${dateSlug}.json.gz`,
+              content: compressedBuffer.toString('base64'),
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({ message: response.statusText }));
+        return {
+          success: false,
+          message: `Resend error: ${errData.message || response.statusText}`,
+          totalRecords: vault.metadata.total_records,
+          uncompressedKb,
+          compressedKb,
+        };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        message: `Database vault (${vault.metadata.total_records.toLocaleString()} records, ${compressedKb} KB) successfully dispatched with attachment to ${recipientEmail}!`,
+        totalRecords: vault.metadata.total_records,
+        uncompressedKb,
+        compressedKb,
+        messageId: data.id,
+      };
+    }
+
+    // Mode B: Supabase Edge Function (Uses the RESEND_API_KEY configured in Supabase Secrets)
+    const edgeResponse = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${serviceKey}`,
       },
       body: JSON.stringify({
-        from: `KSJI Database Vault <${senderEmail}>`,
-        to: [recipientEmail],
+        to: recipientEmail,
         subject: `🛡️ Master Database Backup Archive — KSJI Commandery #500 (${dateSlug})`,
         html: htmlBody,
-        attachments: [
-          {
-            filename: attachmentFilename,
-            content: compressedBuffer.toString('base64'),
-          },
-        ],
+        from_name: 'KSJI Commandery Database Vault',
       }),
     });
 
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({ message: response.statusText }));
+    const edgeData = await edgeResponse.json().catch(() => ({}));
+
+    if (!edgeResponse.ok || !edgeData.success) {
       return {
         success: false,
-        message: `Resend error: ${errData.message || response.statusText}`,
+        message: `Email dispatch failed: ${edgeData.error || `HTTP ${edgeResponse.status}`}`,
         totalRecords: vault.metadata.total_records,
         uncompressedKb,
         compressedKb,
       };
     }
 
-    const data = await response.json();
     return {
       success: true,
-      message: `Database vault (${vault.metadata.total_records.toLocaleString()} records, ${compressedKb} KB) successfully dispatched to ${recipientEmail}!`,
+      message: `Database vault (${vault.metadata.total_records.toLocaleString()} records, ${compressedKb} KB) successfully dispatched via Resend to ${recipientEmail}!`,
       totalRecords: vault.metadata.total_records,
       uncompressedKb,
       compressedKb,
-      messageId: data.id,
+      messageId: edgeData.messageId,
     };
   } catch (err: any) {
     return {

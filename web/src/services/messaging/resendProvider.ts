@@ -16,6 +16,46 @@ export class ResendProvider extends MessagingProvider {
 
   async sendEmail(payload: MessagePayload): Promise<DeliveryResult> {
     if (!this.apiKey) {
+      // Fallback to Supabase Edge Function where RESEND_API_KEY is configured in Supabase Secrets
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+      if (supabaseUrl && serviceKey) {
+        try {
+          const edgeRes = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${serviceKey}`,
+            },
+            body: JSON.stringify({
+              to: payload.to,
+              subject: payload.subject || 'Communication from KSJI Commandery',
+              html: payload.html || '',
+              text: payload.text || '',
+              from_name: payload.name || 'KSJI Commandery',
+            }),
+          });
+
+          const edgeData = await edgeRes.json().catch(() => ({}));
+          if (!edgeRes.ok) {
+            return {
+              providerId: 'resend',
+              status: 'failed',
+              error: edgeData.error || `Edge function HTTP ${edgeRes.status}`,
+            };
+          }
+
+          return {
+            providerId: 'resend',
+            status: 'sent',
+            messageId: edgeData.messageId || `edge_${Date.now()}`,
+          };
+        } catch (edgeErr: any) {
+          return { providerId: 'resend', status: 'failed', error: edgeErr.message };
+        }
+      }
+
       return { providerId: 'resend', status: 'failed', error: 'Resend API key not configured' };
     }
 
