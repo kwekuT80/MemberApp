@@ -46,7 +46,8 @@ export async function getCommanderyOfficersData() {
         phone,
         email,
         photo_url,
-        is_deceased
+        is_deceased,
+        date_of_death
       )
     `)
     .eq('level', 'Local')
@@ -113,7 +114,8 @@ export async function assignOfficerPosition(payload: {
       phone,
       email,
       photo_url,
-      is_deceased
+      is_deceased,
+      date_of_death
     )
   `;
 

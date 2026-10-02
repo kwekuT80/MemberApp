@@ -20,6 +20,27 @@ interface Props {
   isRegistrar?: boolean;
 }
 
+/**
+ * Determines if an officer passed away while actively holding office.
+ * Specifically checks if member's recorded date_of_death falls within
+ * their service tenure (with a 60-day buffer to account for death date vs tenure cut-off).
+ */
+function didDieInOffice(
+  pos?: { date_from?: string | null; date_to?: string | null } | null,
+  member?: { date_of_death?: string | null; is_deceased?: boolean; status?: string | null } | null
+): boolean {
+  if (!pos || !member?.date_of_death || !pos.date_from) return false;
+  const dod = member.date_of_death.substring(0, 10);
+  const from = pos.date_from.substring(0, 10);
+  let endThreshold = '9999-12-31';
+  if (pos.date_to) {
+    const d = new Date(pos.date_to);
+    d.setDate(d.getDate() + 60);
+    endThreshold = d.toISOString().substring(0, 10);
+  }
+  return dod >= from && dod <= endThreshold;
+}
+
 export default function CommanderyOfficersClient({
   initialPositions,
   allMembers,
@@ -606,8 +627,17 @@ export default function CommanderyOfficersClient({
                             </span>
                           )}
                           {isSuccession && (
-                            <span style={{ fontSize: 9, fontWeight: 800, background: '#e0f2fe', color: '#0369a1', padding: '1px 5px', borderRadius: 4 }}>
-                              {idx === 0 ? 'Predecessor' : 'Successor'}
+                            <span
+                              style={{
+                                fontSize: 9,
+                                fontWeight: 800,
+                                background: didDieInOffice(pos, member) ? '#fef3c7' : '#e0f2fe',
+                                color: didDieInOffice(pos, member) ? '#92400e' : '#0369a1',
+                                padding: '1px 5px',
+                                borderRadius: 4,
+                              }}
+                            >
+                              {didDieInOffice(pos, member) ? '🕊️ Passed in Office' : idx === 0 ? 'Predecessor' : 'Successor'}
                             </span>
                           )}
                         </div>
@@ -809,16 +839,25 @@ export default function CommanderyOfficersClient({
                           {allAssigned.map((pos, idx) => {
                             const member = pos.members;
                             const isDeceased = member?.is_deceased || member?.status === 'Deceased';
+                            const isSuccessor = idx > 0;
+                            const diedInOffice = didDieInOffice(pos, member);
                             const isLatest = idx === allAssigned.length - 1;
                             const pUrl = isRegistrar ? `/registrar/members/${member?.id}` : `/me`;
+
+                            // Predecessor for the succession transition indicator
+                            const prevIncumbent = idx > 0 ? allAssigned[idx - 1] : null;
+                            const prevMember = prevIncumbent?.members;
+                            const prevDiedInOffice = prevIncumbent ? didDieInOffice(prevIncumbent, prevMember) : false;
 
                             return (
                               <div key={pos.id} style={{ display: 'grid', gap: 6 }}>
                                 {idx > 0 && (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 18, color: '#64748b', fontSize: 11, fontWeight: 700 }}>
                                     <span style={{ color: '#C9A84C' }}>↳</span>
-                                    <span style={{ background: '#f1f5f9', padding: '1px 8px', borderRadius: 4, border: '1px solid #e2e8f0', color: '#475569', fontSize: 10 }}>
-                                      Succession • Succeeded for unexpired portion of the term
+                                    <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: 4, border: '1px solid #e2e8f0', color: '#475569', fontSize: 11 }}>
+                                      {prevDiedInOffice
+                                        ? `Succession • Succeeded following the passing of ${prevMember?.title ? `${prevMember.title} ` : ''}${prevMember?.first_name || ''} ${prevMember?.surname || ''}`
+                                        : `Succession • Succeeded for unexpired portion of the term of ${prevMember?.title ? `${prevMember.title} ` : ''}${prevMember?.first_name || ''} ${prevMember?.surname || ''}`}
                                     </span>
                                   </div>
                                 )}
@@ -828,7 +867,7 @@ export default function CommanderyOfficersClient({
                                     padding: '10px 14px',
                                     borderRadius: 10,
                                     border: isLatest ? '1.5px solid #C9A84C' : '1px solid #e2e8f0',
-                                    background: isDeceased ? '#fcfbf7' : isLatest ? '#faf8f2' : '#f8fafc',
+                                    background: diedInOffice ? '#fcfbf7' : isLatest ? '#faf8f2' : '#f8fafc',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
@@ -860,9 +899,9 @@ export default function CommanderyOfficersClient({
                                       {!member?.photo_url && (
                                         `${(member?.first_name || '')[0] || ''}${(member?.surname || '')[0] || ''}`
                                       )}
-                                      {isDeceased && (
+                                      {diedInOffice && (
                                         <span
-                                          title="Deceased"
+                                          title="Passed in Office"
                                           style={{
                                             position: 'absolute',
                                             bottom: -3,
@@ -889,15 +928,19 @@ export default function CommanderyOfficersClient({
                                           {member?.title ? `${member.title} ` : ''}{member?.first_name} {member?.surname}
                                         </Link>
 
-                                        {isDeceased ? (
-                                          <span style={{ fontSize: 10, fontWeight: 800, background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: 4, border: '1px solid #fde68a' }}>
+                                        {diedInOffice ? (
+                                          <span style={{ fontSize: 10, fontWeight: 800, background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: 4, border: '1px solid #fde68a' }}>
                                             🕊️ In Memoriam • Passed in Office
                                           </span>
-                                        ) : isLatest ? (
-                                          <span style={{ fontSize: 10, fontWeight: 800, background: '#dbeafe', color: '#1e40af', padding: '1px 6px', borderRadius: 4, border: '1px solid #bfdbfe' }}>
+                                        ) : isSuccessor ? (
+                                          <span style={{ fontSize: 10, fontWeight: 800, background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: 4, border: '1px solid #bfdbfe' }}>
                                             ⚡ Successor (Unexpired Term)
                                           </span>
-                                        ) : null}
+                                        ) : (
+                                          <span style={{ fontSize: 10, fontWeight: 800, background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: 4, border: '1px solid #cbd5e1' }}>
+                                            Initial Incumbent
+                                          </span>
+                                        )}
 
                                         {member?.status && (
                                           <span
@@ -910,7 +953,7 @@ export default function CommanderyOfficersClient({
                                               color: member.status === 'Active' ? '#16a34a' : '#64748b',
                                             }}
                                           >
-                                            ● {member.status}
+                                            ● {member.status} {isDeceased ? '• 🕊️ Deceased' : ''}
                                           </span>
                                         )}
                                       </div>
@@ -1072,9 +1115,9 @@ export default function CommanderyOfficersClient({
                               {!member.photo_url && (
                                 `${(member.first_name || '')[0] || ''}${(member.surname || '')[0] || ''}`
                               )}
-                              {(member.is_deceased || member.status === 'Deceased') && (
+                              {didDieInOffice(assigned, member) && (
                                 <span
-                                  title="Deceased"
+                                  title="Passed in Office"
                                   style={{
                                     position: 'absolute',
                                     bottom: -4,
@@ -1106,6 +1149,22 @@ export default function CommanderyOfficersClient({
                                 >
                                   {member.title ? `${member.title} ` : ''}{member.first_name} {member.surname}
                                 </Link>
+
+                                {didDieInOffice(assigned, member) && (
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 800,
+                                      background: '#fef3c7',
+                                      color: '#92400e',
+                                      padding: '2px 8px',
+                                      borderRadius: 4,
+                                      border: '1px solid #fde68a',
+                                    }}
+                                  >
+                                    🕊️ In Memoriam • Passed in Office
+                                  </span>
+                                )}
 
                                 {member.status && (
                                   <span
