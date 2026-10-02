@@ -37,69 +37,66 @@ export default function RegistrarShell({
   const isFinancial = role === 'financial_registrar' || isSuperAdmin;
   const isWelfare = role === 'welfare_treasurer' || isSuperAdmin;
 
+  // Build Treasury & Welfare items based on role
+  const treasuryWelfareItems = [
+    ...(isFinancial ? [
+      { href: '/registrar/financials', label: '💰 Financial Ledger' },
+      { href: '/registrar/financials/rates', label: '⚙️ Rates & Dues Engine' },
+      { href: '/registrar/financials/delinquency', label: '📉 Delinquency Tracker' },
+      { href: '/registrar/financials/audit', label: '📋 Financial Audit Trail' },
+    ] : []),
+    ...(isWelfare ? [
+      { href: '/registrar/welfare', label: '🤝 Welfare Scheme Hub' },
+      { href: '/registrar/welfare/contributions', label: '💳 Welfare Dues' },
+      { href: '/registrar/welfare/disbursements', label: '🛡️ Benefit Payouts' },
+    ] : []),
+  ];
+
   const navSections: SidebarSection[] = [
     {
-      title: 'OVERVIEW',
+      title: 'COMMANDERY DESK',
       items: [
-        { href: '/registrar', label: '🏠 Dashboard' },
+        { href: '/registrar', label: '🏠 Overview Dashboard' },
         ...(isFinancial ? [
-          { href: '/registrar/financials/dashboards', label: '🏥 Health Dashboard' }
+          { href: '/registrar/financials/dashboards', label: '🏥 Financial Health' }
         ] : []),
       ]
     },
     {
-      title: 'MEMBERSHIP',
+      title: '🏛️ GOVERNANCE & LEADERSHIP',
       items: [
-        { href: '/registrar/members', label: '👥 Members' },
         { href: '/registrar/officers', label: '⚔️ Commandery Officers' },
-        { href: '/registrar/presidents', label: '👑 Worthy Presidents' },
-        { href: '/registrar/meetings', label: '📅 Meetings' },
-        { href: '/registrar/communications', label: '📣 Communications' },
-      ]
-    },
-    ...(isFinancial ? [{
-      title: 'FINANCE',
-      items: [
-        { href: '/registrar/financials', label: '💰 Financial Dashboard' },
-        { href: '/registrar/financials/rates', label: '⚙️ Rates & Billing' },
-        { href: '/registrar/financials/delinquency', label: '📉 Delinquency Report' },
-      ]
-    }] : []),
-    ...(isWelfare ? [{
-      title: 'WELFARE',
-      items: [
-        { href: '/registrar/welfare', label: '🤝 Welfare Hub' },
-        { href: '/registrar/welfare/contributions', label: '💳 Welfare Dues' },
-        { href: '/registrar/welfare/disbursements', label: '🛡️ Benefit Payouts' },
-      ]
-    }] : []),
-    {
-      title: 'REPORTING',
-      items: [
-        { href: '/registrar/reports', label: '📊 Reporting Hub' },
+        { href: '/registrar/presidents', label: '👑 Worthy Presidents & Trustees' },
       ]
     },
     {
-      title: 'GOVERNANCE & VAULT',
+      title: '⚔️ FRATERNAL LIFE & OPERATIONS',
       items: [
-        { href: '/registrar/backup', label: '🛡️ Database Vault & Backup' },
-        ...(isFinancial ? [
-          { href: '/registrar/financials/audit', label: '📋 Financial Audit Trail' }
+        { href: '/registrar/members', label: '👥 Member Roll & Dossiers' },
+        { href: '/registrar/initiation-cohorts', label: '🏛️ Initiation Cohorts' },
+        { href: '/registrar/meetings', label: '📅 Meetings & Attendance' },
+        { href: '/registrar/communications', label: '📣 Broadcasts (SMS & Email)' },
+      ]
+    },
+    ...(treasuryWelfareItems.length > 0 ? [{
+      title: '💰 TREASURY & WELFARE',
+      items: treasuryWelfareItems,
+    }] : []),
+    {
+      title: '📜 ARCHIVES & SYSTEM VAULT',
+      items: [
+        { href: '/registrar/historical-members', label: '📜 Roll Book & Memorial Roll' },
+        ...(isSuperAdmin ? [
+          { href: '/registrar/transfers', label: '🔄 Member Transfers Out' },
         ] : []),
+        { href: '/registrar/reports', label: '📊 Executive Reports Hub' },
+        { href: '/registrar/backup', label: '🛡️ Database Vault & Backups' },
       ]
     },
-    ...(isSuperAdmin ? [{
-      title: 'SUPER ADMIN ARCHIVES',
-      items: [
-        { href: '/registrar/historical-members', label: '📜 Roll Book & Archives' },
-        { href: '/registrar/transfers', label: '🔄 Member Transfers Out' },
-        { href: '/registrar/initiation-cohorts', label: '🏛️ Initiation Cohorts' }
-      ]
-    }] : []),
     {
-      title: 'ACCOUNT',
+      title: 'MEMBER ACCESS',
       items: [
-        { href: '/me', label: '👤 Member Portal' }
+        { href: '/me', label: '👤 Personal Portal (/me)' }
       ]
     }
   ];

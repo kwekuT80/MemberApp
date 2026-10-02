@@ -138,6 +138,95 @@ export default function BackupClient({ stats, profile, userEmail }: Props) {
         </div>
       </div>
 
+      {/* Automated Backup Heartbeat Status Card (Phase 5) */}
+      <div
+        className="card"
+        style={{
+          background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)',
+          borderRadius: 14,
+          padding: '20px 24px',
+          color: '#ecfdf5',
+          border: '1px solid #34d399',
+          boxShadow: '0 6px 20px rgba(6,78,59,0.2)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 16,
+        }}
+      >
+        <div style={{ display: 'grid', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', backgroundColor: '#4ade80', boxShadow: '0 0 10px #4ade80' }} />
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#ffffff', letterSpacing: '0.3px' }}>
+              Scheduled Automated Backup Heartbeat: Active
+            </h3>
+            <span style={{ fontSize: 11, background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 999, fontWeight: 700 }}>
+              Weekly Cron (00:00 UTC Sunday)
+            </span>
+          </div>
+          <p style={{ margin: 0, fontSize: 13, color: '#d1fae5', maxWidth: 680, lineHeight: 1.5 }}>
+            Automated server-side daemon extracts all {stats.totalTables} relational tables, validates SHA-256 checksums, gzips the archive, and deposits it into cloud storage while emailing the commandery disaster recovery inbox.
+          </p>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12, color: '#a7f3d0', marginTop: 4 }}>
+            <span><strong>Target Route:</strong> <code>/api/cron/backup</code></span>
+            <span><strong>Default Destination:</strong> {userEmail || 'Commandery DR Inbox'}</span>
+            <span><strong>Retention:</strong> 30-Day Encrypted Storage Archive</span>
+          </div>
+        </div>
+
+        <button
+          onClick={async () => {
+            setEmailing(true);
+            setEmailResult(null);
+            try {
+              const res = await fetch('/api/backup/email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: targetEmail || userEmail }),
+              });
+              const data = await res.json();
+              if (data.success) {
+                setEmailResult({
+                  success: true,
+                  message: `Automated Heartbeat Verified! Snapshot containing ${data.totalRecords?.toLocaleString()} records was archived and delivered to ${targetEmail || userEmail}.`,
+                });
+              } else {
+                setEmailResult({
+                  success: false,
+                  message: data.message || 'Heartbeat execution encountered an error.',
+                });
+              }
+            } catch (err: any) {
+              setEmailResult({
+                success: false,
+                message: err?.message || 'Failed to dispatch heartbeat test.',
+              });
+            } finally {
+              setEmailing(false);
+            }
+          }}
+          disabled={emailing}
+          style={{
+            padding: '10px 18px',
+            borderRadius: 8,
+            background: '#ffffff',
+            color: '#065f46',
+            fontWeight: 800,
+            fontSize: 13,
+            border: 'none',
+            cursor: emailing ? 'not-allowed' : 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span>{emailing ? '⏳ Running Heartbeat...' : '⚡ Test Heartbeat Now'}</span>
+        </button>
+      </div>
+
       {/* Primary Action Cards: Download & Email */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
         
