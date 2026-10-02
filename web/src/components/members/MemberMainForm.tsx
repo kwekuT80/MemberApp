@@ -436,7 +436,7 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
                ) : <span style={{ fontSize: 12, fontStyle: 'italic' }}>Save member first to manage military.</span>}
             </div>
             <InputField label="Uniformed Position" value={form.uniform_positions} onChange={(v: string) => updateField('uniform_positions', v)} />
-            <InputField label="Date Joined KSJI" type="date" value={form.date_joined} onChange={(v: string) => updateField('date_joined', v)} />
+            <InputField label="Date Joined KSJI #500" type="date" value={form.date_joined} onChange={(v: string) => updateField('date_joined', v)} />
 
             {positionsList.length > 0 && (
               <div style={{ gridColumn: '1 / -1', marginTop: 12, padding: 16, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>

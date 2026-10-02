@@ -85,7 +85,7 @@ export default function MemberSummaryCard({ member, editHref='/me/edit', showOwn
         <Field label='Occupation' value={value(member.occupation)} />
         <Field label='Workplace' value={value(member.workplace)} />
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <Field label='Date joined' value={formatDisplayDate(member.date_joined)} />
+          <Field label='Date joined KSJI #500' value={formatDisplayDate(member.date_joined)} />
           {member.date_joined && (
             <Link 
               href={`/registrar/members?cohort=${member.date_joined}`}

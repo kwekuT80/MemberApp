@@ -129,7 +129,7 @@ export default function MemberDossierPage() {
                   <td style={td}>{member.home_town || 'N/A'} {member.home_region ? `(${member.home_region})` : ''}</td>
                 </tr>
                 <tr>
-                  <th style={th}>Date Joined KSJI</th>
+                  <th style={th}>Date Joined KSJI #500</th>
                   <td style={td}><strong>{formatDisplayDate(member.date_joined)}</strong></td>
                   <th style={th}>Membership Status</th>
                   <td style={td}>
