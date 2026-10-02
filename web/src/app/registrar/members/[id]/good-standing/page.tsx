@@ -69,11 +69,14 @@ export default function MemberGoodStandingPage() {
 
   const { member } = report;
   const displayTitle = formatMemberTitle(member.title);
+  const isDeceased = member.is_deceased || String(member.status || '').toLowerCase() === 'deceased';
 
   return (
     <RegistrarShell
-      title="Personal Good Standing Statement"
-      subtitle={`Official audit and standing record for ${displayTitle} ${member.first_name} ${member.surname}`}
+      title={isDeceased ? "Roll of Honor • Memorial Statement" : "Personal Good Standing Statement"}
+      subtitle={isDeceased
+        ? `Official Roll of Honor archival memorial record for ${displayTitle} ${member.first_name} ${member.surname}`
+        : `Official audit and standing record for ${displayTitle} ${member.first_name} ${member.surname}`}
     >
       <div style={{ maxWidth: 960, margin: '0 auto', paddingBottom: 60 }}>
         {/* Navigation & Action Bar */}

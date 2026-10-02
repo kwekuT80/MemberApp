@@ -339,14 +339,16 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   const voluntaryPayments = allPayments.filter(p => isVoluntaryPayment(p));
   const totalVoluntaryContributed = voluntaryPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
-  const lastYearArrears = currAss
-    ? Number(currAss.arrears_brought_forward || 0)
-    : (lastYearAss ? Math.max(0, (Number(lastYearAss.annual_assessment || 0) + Number(lastYearAss.arrears_brought_forward || 0))) : 0);
+  const isMemberDeceased = member.is_deceased === true || String(member.status || '').toLowerCase() === 'deceased';
 
-  const currentAssessment = currAss ? Number(currAss.annual_assessment || 0) : 0;
-  const totalAssessed = lastYearArrears + currentAssessment;
+  const lastYearArrears = isMemberDeceased ? 0 : (currAss
+    ? Number(currAss.arrears_brought_forward || 0)
+    : (lastYearAss ? Math.max(0, (Number(lastYearAss.annual_assessment || 0) + Number(lastYearAss.arrears_brought_forward || 0))) : 0));
+
+  const currentAssessment = isMemberDeceased ? 0 : (currAss ? Number(currAss.annual_assessment || 0) : 0);
+  const totalAssessed = isMemberDeceased ? 0 : (lastYearArrears + currentAssessment);
   const paymentsThisYear = currDuesPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
-  const netBalance = totalAssessed - paymentsThisYear; // positive = amount owed, negative = credit balance
+  const netBalance = isMemberDeceased ? 0 : (totalAssessed - paymentsThisYear); // positive = amount owed, negative = credit balance
   const outstandingThisYear = Math.max(0, netBalance);
   const creditBalance = netBalance < 0 ? Math.abs(netBalance) : 0;
 
@@ -354,12 +356,16 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   // Jan 1 - Aug 31 (months 1-8): Must pay 100% of prior arrears + at least 50% of current year assessment
   // Sep 1 - Dec 31 (months 9-12): Must pay 100% of total assessed dues (arrears + full current assessment)
   const isFirstHalf = currentMonth < 9;
-  const benchmarkName = isFirstHalf ? '1st Half Benchmark (50% current assessment + prior arrears due by Aug 31)' : '2nd Half Benchmark (100% full settlement required by Sept 1)';
-  const requiredDuesThreshold = isFirstHalf ? (lastYearArrears + (currentAssessment * 0.5)) : totalAssessed;
-  const hasAcceptableFinancialStanding = totalAssessed <= 0 || paymentsThisYear >= requiredDuesThreshold;
+  const benchmarkName = isMemberDeceased
+    ? 'Exempt (Roll of Honor)'
+    : (isFirstHalf ? '1st Half Benchmark (50% current assessment + prior arrears due by Aug 31)' : '2nd Half Benchmark (100% full settlement required by Sept 1)');
+  const requiredDuesThreshold = isMemberDeceased ? 0 : (isFirstHalf ? (lastYearArrears + (currentAssessment * 0.5)) : totalAssessed);
+  const hasAcceptableFinancialStanding = isMemberDeceased || totalAssessed <= 0 || paymentsThisYear >= requiredDuesThreshold;
 
   let yearStatus = 'Unpaid';
-  if (creditBalance > 0) {
+  if (isMemberDeceased) {
+    yearStatus = 'Exempt (Roll of Honor)';
+  } else if (creditBalance > 0) {
     yearStatus = 'Credit Balance';
   } else if (paymentsThisYear >= totalAssessed && totalAssessed > 0) {
     yearStatus = 'Fully Paid';
@@ -420,6 +426,7 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   const memberBirthYear = member.date_of_birth ? new Date(member.date_of_birth).getFullYear() : null;
   const memberAge = memberBirthYear ? currentYear - memberBirthYear : 0;
   const isSeniorExempt = memberAge >= 80;
+  const isWelfareExempt = isMemberDeceased || isSeniorExempt;
 
   // Members with historical contributions, prior assessments, or unrecorded join dates are treated as continuing members.
   // Missing date_joined should never falsely classify an existing member as a new recruit.
@@ -436,19 +443,19 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
     }
   }
 
-  // Welfare is billed monthly: calculate expected contributions up to the current month of the current year (0 for 80+ Seniors)
-  const lastYearWelfareAssessment = (isNewMemberThisYear || isSeniorExempt) ? 0 : lastMonthlyRate * 12;
-  const lastYearWelfareBalance = (isNewMemberThisYear || isSeniorExempt) ? 0 : Math.max(0, lastYearWelfareAssessment - lastYearWelfareContribs);
+  // Welfare is billed monthly: calculate expected contributions up to the current month of the current year (0 for 80+ Seniors & Deceased)
+  const lastYearWelfareAssessment = (isNewMemberThisYear || isWelfareExempt) ? 0 : lastMonthlyRate * 12;
+  const lastYearWelfareBalance = (isNewMemberThisYear || isWelfareExempt) ? 0 : Math.max(0, lastYearWelfareAssessment - lastYearWelfareContribs);
 
-  // If member is 80+ senior, welfare assessment is 0. If new member this year, pro-rate from join month to December.
-  const monthsActiveThisYear = (isNewMemberThisYear || isSeniorExempt) ? (isSeniorExempt ? 0 : Math.max(1, 12 - joinMonth + 1)) : 12;
-  const currentWelfareAssessment = isSeniorExempt ? 0 : currMonthlyRate * monthsActiveThisYear;
-  const proRataWelfareAssessment = isSeniorExempt ? 0 : (isNewMemberThisYear
+  // If member is 80+ senior or deceased, welfare assessment is 0. If new member this year, pro-rate from join month to December.
+  const monthsActiveThisYear = (isNewMemberThisYear || isWelfareExempt) ? (isWelfareExempt ? 0 : Math.max(1, 12 - joinMonth + 1)) : 12;
+  const currentWelfareAssessment = isWelfareExempt ? 0 : currMonthlyRate * monthsActiveThisYear;
+  const proRataWelfareAssessment = isWelfareExempt ? 0 : (isNewMemberThisYear
     ? currMonthlyRate * Math.max(1, currentMonth - joinMonth + 1)
     : currMonthlyRate * currentMonth);
 
-  const totalWelfareAssessed = isSeniorExempt ? 0 : (lastYearWelfareBalance + currentWelfareAssessment);
-  const netWelfareBalance = totalWelfareAssessed - currYearWelfareContribs;
+  const totalWelfareAssessed = isWelfareExempt ? 0 : (lastYearWelfareBalance + currentWelfareAssessment);
+  const netWelfareBalance = isMemberDeceased ? 0 : (totalWelfareAssessed - currYearWelfareContribs);
   const welfareOutstanding = Math.max(0, netWelfareBalance);
   const welfareCredit = netWelfareBalance < 0 ? Math.abs(netWelfareBalance) : 0;
 
@@ -457,11 +464,10 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   const maxAllowedWelfareArrears = currMonthlyRate * MAX_ALLOWED_WELFARE_ARREARS_MONTHS;
   
   // Pro-rata arrears up to current month plus prior year balance
-  const currentProRataArrears = isSeniorExempt ? 0 : Math.max(0, (lastYearWelfareBalance + proRataWelfareAssessment) - currYearWelfareContribs);
-  const hasAcceptableWelfareStanding = isSeniorExempt ? true : currentProRataArrears <= maxAllowedWelfareArrears;
+  const currentProRataArrears = isWelfareExempt ? 0 : Math.max(0, (lastYearWelfareBalance + proRataWelfareAssessment) - currYearWelfareContribs);
+  const hasAcceptableWelfareStanding = isWelfareExempt ? true : currentProRataArrears <= maxAllowedWelfareArrears;
 
   // 3. Binary Standing Calculation (Financial & Welfare & Overall)
-  const isMemberDeceased = member.is_deceased === true || String(member.status || '').toLowerCase() === 'deceased';
   const isMemberActive = member.status === 'Active' && !isMemberDeceased;
 
   let financialStanding: 'In Good Standing' | 'Not In Good Standing' | 'Exempt (Roll of Honor)' | 'Exempt' = (isSeniorExempt || (isMemberActive && hasAcceptableFinancialStanding))
@@ -479,10 +485,10 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   let standingReason = 'All financial dues, welfare contributions, and membership requirements are fully satisfied for the current period.';
 
   if (isMemberDeceased) {
-    financialStanding = 'Exempt';
-    welfareStanding = 'Exempt';
+    financialStanding = 'Exempt (Roll of Honor)';
+    welfareStanding = 'Exempt (Roll of Honor)';
     standing = 'Exempt (Roll of Honor)';
-    standingReason = 'Member is deceased and permanently archived on the Roll of Honor. Financial dues assessments, welfare contribution obligations, and standing evaluations are disengaged.';
+    standingReason = 'Member is deceased and permanently archived on the Roll of Honor. Financial dues assessments, welfare contribution obligations, and standing evaluations are permanently retired.';
   } else if (isSeniorExempt) {
     financialStanding = 'Exempt';
     welfareStanding = 'Exempt';
@@ -561,7 +567,7 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
       };
     });
 
-    complianceRate = totalMeetings > 0 ? Math.min(100, Math.round(((attendedCount + excusedCount) / totalMeetings) * 100)) : 100;
+    complianceRate = isMemberDeceased ? 100 : (totalMeetings > 0 ? Math.min(100, Math.round(((attendedCount + excusedCount) / totalMeetings) * 100)) : 100);
   }
 
   return {

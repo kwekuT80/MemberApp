@@ -15,6 +15,11 @@ export default async function RegistrarMemberDetailPage({ params }: { params: Pr
   const reportData = member ? await getMemberPersonalReport(id) : null;
   const displayTitle = formatMemberTitle(member?.title, member?.degrees); 
 
+  const isDeceased = member?.is_deceased === true || String(member?.status || '').toLowerCase() === 'deceased';
+  const formattedDateOfDeath = member?.date_of_death 
+    ? new Date(member.date_of_death).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+
   const role = profile?.role;
   const isSuperAdmin = role === 'super_admin';
   const isFinancialRegistrar = role === 'financial_registrar' || isSuperAdmin;
@@ -57,49 +62,112 @@ export default async function RegistrarMemberDetailPage({ params }: { params: Pr
               />
             )}
             
-            {/* SUPER ADMIN GOOD STANDING & ISSUES SUMMARY CARD */}
-            {isSuperAdmin && reportData && (
+            {/* IN MEMORIAM • ROLL OF HONOR CARD (DECEASED MEMBERS) */}
+            {isDeceased ? (
               <div className="card" style={{
-                borderLeft: `5px solid ${reportData.standing === 'In Good Standing' ? '#16a34a' : '#dc2626'}`,
-                background: reportData.standing === 'In Good Standing' ? '#f0fdf4' : '#fff5f5'
+                borderLeft: '5px solid #d4af37',
+                background: 'linear-gradient(135deg, #fdfbf7 0%, #f7f3e8 100%)',
+                boxShadow: '0 4px 16px rgba(212, 175, 55, 0.12)',
+                padding: '22px 24px',
+                borderRadius: '12px'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14 }}>
                   <div>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Super Admin Audit • Good Standing Evaluation
-                    </span>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: '#854d0e', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                      <span style={{ fontSize: 16 }}>🕊️</span> IN MEMORIAM • ROLL OF HONOR
+                    </div>
                     <h3 style={{
-                      margin: '4px 0 0',
-                      fontSize: 20,
+                      margin: '6px 0 0',
+                      fontSize: 22,
                       fontWeight: 900,
-                      color: reportData.standing === 'In Good Standing' ? '#15803d' : '#b91c1c'
+                      color: '#0f172a'
                     }}>
-                      {reportData.standing === 'In Good Standing' ? '✅ Member In Good Standing' : '⚠️ Member Not In Good Standing'}
+                      Called to Eternal Rest
                     </h3>
+                    {formattedDateOfDeath && (
+                      <div style={{ fontSize: 13, color: '#64748b', marginTop: 4, fontWeight: 600 }}>
+                        Date of Passing: <strong style={{ color: '#0f172a' }}>{formattedDateOfDeath}</strong>
+                      </div>
+                    )}
                   </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <span className={`badge ${reportData.financialStanding === 'In Good Standing' ? 'badge-green' : 'badge-red'}`}>
-                      Dues: {reportData.financialStanding}
-                    </span>
-                    <span className={`badge ${reportData.welfareStanding === 'In Good Standing' ? 'badge-green' : 'badge-red'}`}>
-                      Welfare: {reportData.welfareStanding}
+                  <div>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '6px 14px',
+                      borderRadius: 20,
+                      fontSize: 12,
+                      fontWeight: 800,
+                      background: '#fef3c7',
+                      color: '#92400e',
+                      border: '1px solid #fde68a'
+                    }}>
+                      <span>🕯️</span> Retired from Dues & Standing Audits
                     </span>
                   </div>
                 </div>
 
-                <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                  <span style={{ fontWeight: 800, fontSize: 13, color: '#334155', display: 'block', marginBottom: 4 }}>
-                    Standing & Compliance Issues:
+                <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(212, 175, 55, 0.25)' }}>
+                  <span style={{ fontWeight: 800, fontSize: 13, color: '#451a03', display: 'block', marginBottom: 4 }}>
+                    Archival & Reverence Notice:
                   </span>
-                  <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
-                    {reportData.standingReason}
+                  <p style={{ margin: 0, fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>
+                    This departed brother is permanently preserved on the Roll of Honor of Commandery #500. In accordance with fraternity principles, annual dues assessments, welfare contribution levies, meeting attendance requirements, and active good standing determinations are permanently retired.
                   </p>
                 </div>
               </div>
+            ) : (
+              /* SUPER ADMIN GOOD STANDING & ISSUES SUMMARY CARD (LIVING MEMBERS ONLY) */
+              isSuperAdmin && reportData && (
+                <div className="card" style={{
+                  borderLeft: `5px solid ${reportData.standing === 'In Good Standing' ? '#16a34a' : reportData.standing.includes('Exempt') ? '#3b82f6' : '#dc2626'}`,
+                  background: reportData.standing === 'In Good Standing' ? '#f0fdf4' : reportData.standing.includes('Exempt') ? '#eff6ff' : '#fff5f5'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                    <div>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Super Admin Audit • Good Standing Evaluation
+                      </span>
+                      <h3 style={{
+                        margin: '4px 0 0',
+                        fontSize: 20,
+                        fontWeight: 900,
+                        color: reportData.standing === 'In Good Standing' ? '#15803d' : reportData.standing.includes('Exempt') ? '#1d4ed8' : '#b91c1c'
+                      }}>
+                        {reportData.standing === 'In Good Standing' ? '✅ Member In Good Standing' : reportData.standing.includes('Exempt') ? 'ℹ️ Member Exempt from Standing' : '⚠️ Member Not In Good Standing'}
+                      </h3>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <span className={`badge ${
+                        reportData.financialStanding === 'In Good Standing' ? 'badge-green' :
+                        reportData.financialStanding.includes('Exempt') ? 'badge-blue' : 'badge-red'
+                      }`}>
+                        Dues: {reportData.financialStanding}
+                      </span>
+                      <span className={`badge ${
+                        reportData.welfareStanding === 'In Good Standing' ? 'badge-green' :
+                        reportData.welfareStanding.includes('Exempt') ? 'badge-blue' : 'badge-red'
+                      }`}>
+                        Welfare: {reportData.welfareStanding}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                    <span style={{ fontWeight: 800, fontSize: 13, color: '#334155', display: 'block', marginBottom: 4 }}>
+                      Standing & Compliance Issues:
+                    </span>
+                    <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
+                      {reportData.standingReason}
+                    </p>
+                  </div>
+                </div>
+              )
             )}
 
-            {/* ELEVATED FINANCIAL & WELFARE SUMMARY CARDS */}
-            {(isFinancialRegistrar || isWelfareTreasurer) && reportData && (
+            {/* ELEVATED FINANCIAL & WELFARE SUMMARY CARDS (ACTIVE/LIVING MEMBERS ONLY) */}
+            {!isDeceased && (isFinancialRegistrar || isWelfareTreasurer) && reportData && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
                 
                 {/* Financial Registrar Summary */}

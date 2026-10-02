@@ -177,40 +177,63 @@ export default function StandingCertificateCard({
         </div>
       )}
 
-      {/* Section 1: Financial Annual Dues Breakdown */}
-      <div style={{ marginBottom: 24 }}>
-        <h3 style={{ fontSize: 14, fontWeight: 900, color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #E2E8F0', paddingBottom: 6, marginBottom: 12 }}>
-          1. Annual Financial Dues ({financial.currentYear})
-        </h3>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-          <tbody>
-            <tr style={{ background: '#F8FAFC' }}>
-              <th style={{ ...thStyle, width: '25%' }}>Arrears Brought Forward</th>
-              <td style={{ ...tdStyle, width: '25%', fontFamily: 'monospace', fontWeight: 700 }}>{formatCurrency(financial.lastYearArrears)}</td>
-              <th style={{ ...thStyle, width: '25%' }}>Annual Assessment ({financial.currentYear})</th>
-              <td style={{ ...tdStyle, width: '25%', fontFamily: 'monospace', fontWeight: 700 }}>{formatCurrency(financial.currentAssessment)}</td>
-            </tr>
-            <tr>
-              <th style={thStyle}>Total Dues Assessed</th>
-              <td style={{ ...tdStyle, fontFamily: 'monospace', fontWeight: 800 }}>{formatCurrency(financial.totalAssessed)}</td>
-              <th style={thStyle}>Paid This Year</th>
-              <td style={{ ...tdStyle, fontFamily: 'monospace', fontWeight: 800, color: '#16A34A' }}>{formatCurrency(financial.paymentsThisYear)}</td>
-            </tr>
-            <tr style={{ background: '#F8FAFC' }}>
-              <th style={thStyle}>Year Standing Benchmark</th>
-              <td style={{ ...tdStyle, fontWeight: 700, color: isFinancialGood ? '#16A34A' : '#D97706' }}>{financial.yearStatus}</td>
-              <th style={thStyle}>Net Balance (Dues)</th>
-              <td style={{ ...tdStyle, fontFamily: 'monospace', fontWeight: 900, color: financial.outstandingThisYear > 0 ? '#DC2626' : '#16A34A' }}>
-                {financial.outstandingThisYear > 0
-                  ? `${formatCurrency(financial.outstandingThisYear)} (Owed)`
-                  : financial.creditBalance > 0
-                  ? `${formatCurrency(financial.creditBalance)} (Credit)`
-                  : 'GH₵ 0.00 (Settled)'}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      {/* Section 1: Financial Annual Dues Breakdown or Roll of Honor Notice */}
+      {isDeceased ? (
+        <div style={{
+          background: '#FEFCE8',
+          border: '1px solid #FEF08A',
+          borderRadius: 8,
+          padding: '16px 20px',
+          marginBottom: 24,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14
+        }}>
+          <span style={{ fontSize: 28 }}>🕊️</span>
+          <div>
+            <strong style={{ color: '#854D0E', fontSize: 14, display: 'block' }}>
+              Roll of Honor Memorial Record
+            </strong>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#713F12', lineHeight: 1.5 }}>
+              This departed brother has been called to higher service and is permanently memorialized on the Roll of Honor. In accordance with fraternity constitution and policy, annual dues assessments, welfare contributions, meeting attendance obligations, and active good standing determinations are permanently retired.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 900, color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #E2E8F0', paddingBottom: 6, marginBottom: 12 }}>
+            1. Annual Financial Dues ({financial.currentYear})
+          </h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+            <tbody>
+              <tr style={{ background: '#F8FAFC' }}>
+                <th style={{ ...thStyle, width: '25%' }}>Arrears Brought Forward</th>
+                <td style={{ ...tdStyle, width: '25%', fontFamily: 'monospace', fontWeight: 700 }}>{formatCurrency(financial.lastYearArrears)}</td>
+                <th style={{ ...thStyle, width: '25%' }}>Annual Assessment ({financial.currentYear})</th>
+                <td style={{ ...tdStyle, width: '25%', fontFamily: 'monospace', fontWeight: 700 }}>{formatCurrency(financial.currentAssessment)}</td>
+              </tr>
+              <tr>
+                <th style={thStyle}>Total Dues Assessed</th>
+                <td style={{ ...tdStyle, fontFamily: 'monospace', fontWeight: 800 }}>{formatCurrency(financial.totalAssessed)}</td>
+                <th style={thStyle}>Paid This Year</th>
+                <td style={{ ...tdStyle, fontFamily: 'monospace', fontWeight: 800, color: '#16A34A' }}>{formatCurrency(financial.paymentsThisYear)}</td>
+              </tr>
+              <tr style={{ background: '#F8FAFC' }}>
+                <th style={thStyle}>Year Standing Benchmark</th>
+                <td style={{ ...tdStyle, fontWeight: 700, color: isFinancialGood ? '#16A34A' : '#D97706' }}>{financial.yearStatus}</td>
+                <th style={thStyle}>Net Balance (Dues)</th>
+                <td style={{ ...tdStyle, fontFamily: 'monospace', fontWeight: 900, color: financial.outstandingThisYear > 0 ? '#DC2626' : '#16A34A' }}>
+                  {financial.outstandingThisYear > 0
+                    ? `${formatCurrency(financial.outstandingThisYear)} (Owed)`
+                    : financial.creditBalance > 0
+                    ? `${formatCurrency(financial.creditBalance)} (Credit)`
+                    : 'GH₵ 0.00 (Settled)'}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Section 2: Welfare Scheme Summary */}
       {!isDeceased && (
@@ -256,37 +279,39 @@ export default function StandingCertificateCard({
       )}
 
       {/* Section 3: Meeting Attendance Compliance */}
-      <div style={{ marginBottom: 24 }}>
-        <h3 style={{ fontSize: 14, fontWeight: 900, color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #E2E8F0', paddingBottom: 6, marginBottom: 12 }}>
-          3. Meeting Attendance & Roll Compliance
-        </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-          <div style={attBox}>
-            <div style={attLabel}>TOTAL MEETINGS</div>
-            <div style={attVal}>{attendance?.totalMeetings || 0}</div>
-          </div>
-          <div style={attBox}>
-            <div style={attLabel}>ATTENDED</div>
-            <div style={{ ...attVal, color: '#16A34A' }}>{attendance?.attendedCount || 0}</div>
-          </div>
-          <div style={attBox}>
-            <div style={attLabel}>EXCUSED</div>
-            <div style={{ ...attVal, color: '#2563EB' }}>{attendance?.excusedCount || 0}</div>
-          </div>
-          <div style={{ ...attBox, background: (attendance?.complianceRate ?? 100) >= 70 ? '#F0FDF4' : '#FEF2F2' }}>
-            <div style={{ ...attLabel, color: (attendance?.complianceRate ?? 100) >= 70 ? '#166534' : '#991B1B' }}>COMPLIANCE RATE</div>
-            <div style={{ ...attVal, color: (attendance?.complianceRate ?? 100) >= 70 ? '#166534' : '#DC2626' }}>
-              {attendance?.complianceRate ?? 100}%
+      {!isDeceased && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 900, color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #E2E8F0', paddingBottom: 6, marginBottom: 12 }}>
+            3. Meeting Attendance & Roll Compliance
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+            <div style={attBox}>
+              <div style={attLabel}>TOTAL MEETINGS</div>
+              <div style={attVal}>{attendance?.totalMeetings || 0}</div>
+            </div>
+            <div style={attBox}>
+              <div style={attLabel}>ATTENDED</div>
+              <div style={{ ...attVal, color: '#16A34A' }}>{attendance?.attendedCount || 0}</div>
+            </div>
+            <div style={attBox}>
+              <div style={attLabel}>EXCUSED</div>
+              <div style={{ ...attVal, color: '#2563EB' }}>{attendance?.excusedCount || 0}</div>
+            </div>
+            <div style={{ ...attBox, background: (attendance?.complianceRate ?? 100) >= 70 ? '#F0FDF4' : '#FEF2F2' }}>
+              <div style={{ ...attLabel, color: (attendance?.complianceRate ?? 100) >= 70 ? '#166534' : '#991B1B' }}>COMPLIANCE RATE</div>
+              <div style={{ ...attVal, color: (attendance?.complianceRate ?? 100) >= 70 ? '#166534' : '#DC2626' }}>
+                {attendance?.complianceRate ?? 100}%
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Section 4: Voluntary Relief Donations (if any) */}
       {financial.voluntaryPayments && financial.voluntaryPayments.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <h3 style={{ fontSize: 14, fontWeight: 900, color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #E2E8F0', paddingBottom: 6, marginBottom: 12 }}>
-            4. Voluntary Member Relief & Special Appeals
+            {isDeceased ? 'Voluntary Member Relief & Historical Donations' : '4. Voluntary Member Relief & Special Appeals'}
           </h3>
           <div style={{ fontSize: 12, color: '#64748B', marginBottom: 8 }}>
             Total Voluntary Relief Contributions on Record: <strong style={{ color: '#7C3AED' }}>{formatCurrency(financial.totalVoluntaryContributed || 0)}</strong>
@@ -295,7 +320,7 @@ export default function StandingCertificateCard({
       )}
 
       {/* Official Endorsement & Attestation Block */}
-      {showSignatureBlock && (
+      {showSignatureBlock && !isDeceased && (
         <div style={{ marginTop: 32, paddingTop: 18, borderTop: '1px solid #CBD5E1' }}>
           <div style={{ fontSize: 11, color: '#64748B', fontStyle: 'italic', marginBottom: 18, textAlign: 'center' }}>
             "We hereby attest and endorse that this official statement accurately reflects the standing and records of the above-named member in accordance with the Constitution and regulations of the Order."
