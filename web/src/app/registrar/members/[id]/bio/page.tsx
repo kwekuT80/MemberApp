@@ -10,8 +10,10 @@ import {
   formatDisplayDate, 
   buildServiceNarrative, 
   buildFormalCitation,
-  getMemberInitiationRecord
+  getMemberInitiationRecord,
+  getMemberHighestRank
 } from '@/lib/utils/ksji-logic';
+import MemberServiceJourneyTimeline from '@/components/members/MemberServiceJourneyTimeline';
 
 export default function MemberBioPage() {
   const { id } = useParams();
@@ -112,6 +114,8 @@ ${degrees.map(d => `• ${formatDisplayDate(d.degree_date)}: ${d.degree_type || 
 
   const transferDate = (member.transfer_date || member.date_joined) ? formatDisplayDate(member.transfer_date || member.date_joined) : undefined;
 
+  const highestRank = getMemberHighestRank(member.military, member.rank);
+
   const serviceNarrative = buildServiceNarrative({
     member,
     positions: sortedPositions,
@@ -122,6 +126,9 @@ ${degrees.map(d => `• ${formatDisplayDate(d.degree_date)}: ${d.degree_type || 
     firstName,
     surname,
     transferDate,
+    highestRank,
+    isDeceased,
+    dateOfDeath: member.date_of_death ? formatDisplayDate(member.date_of_death) : null,
   });
 
   const formalCitation = buildFormalCitation({
@@ -131,6 +138,8 @@ ${degrees.map(d => `• ${formatDisplayDate(d.degree_date)}: ${d.degree_type || 
     joinedDate,
     degrees,
     positions: sortedPositions,
+    highestRank,
+    isDeceased,
   });
 
   return (
@@ -242,6 +251,17 @@ ${degrees.map(d => `• ${formatDisplayDate(d.degree_date)}: ${d.degree_type || 
             <p style={signatureLine}>Official Registrar Summary</p>
             <p style={stamp}>Generated on {formatDisplayDate(new Date().toISOString())}</p>
           </div>
+        </div>
+
+        {/* LIFELONG FRATERNAL SERVICE JOURNEY TIMELINE */}
+        <div style={{ marginTop: 32 }}>
+          <MemberServiceJourneyTimeline
+            member={member}
+            degrees={degrees}
+            positions={sortedPositions}
+            military={member.military || []}
+            ranks={member.uniformed_rank_records || []}
+          />
         </div>
       </div>
     </RegistrarShell>

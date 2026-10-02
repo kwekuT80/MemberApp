@@ -6,6 +6,7 @@ import RegistrarShell from '@/components/layout/RegistrarShell';
 import { createClient } from '@/lib/supabase/client';
 import { formatMemberTitle, formatDisplayDate, getMemberInitiationRecord } from '@/lib/utils/ksji-logic';
 import { getMemberPersonalReport, PersonalReportData } from '@/services/memberService';
+import MemberServiceJourneyTimeline from '@/components/members/MemberServiceJourneyTimeline';
 
 export default function MemberDossierPage() {
   const { id } = useParams();
@@ -420,10 +421,25 @@ export default function MemberDossierPage() {
             </table>
           </section>
 
-          {/* SECTION V: KSJI UNIFORMED RANKS & COMMISSIONS */}
+          {/* SECTION V: LIFELONG FRATERNAL SERVICE JOURNEY */}
+          <section style={section}>
+            <h2 style={sectionLabel}>V. Lifelong Fraternal Service Journey</h2>
+            <div style={{ marginTop: 14 }}>
+              <MemberServiceJourneyTimeline
+                member={member}
+                degrees={safeDegrees}
+                positions={safePositions}
+                military={safeMilitary}
+                ranks={safeRanks}
+                showTitle={false}
+              />
+            </div>
+          </section>
+
+          {/* SECTION VI: KSJI UNIFORMED RANKS & COMMISSIONS */}
           {(safeMilitary.length > 0 || safeRanks.length > 0) && (
             <section style={section}>
-              <h2 style={sectionLabel}>V. KSJI Uniformed Ranks & Officer Commissions</h2>
+              <h2 style={sectionLabel}>VI. KSJI Uniformed Ranks & Officer Commissions</h2>
               {safeMilitary.some((m: any) => m.is_military || m.current_rank || m.commission || m.uniform_blessed_date || m.first_uniform_use_date) && (
                 <div style={{ marginBottom: 20 }}>
                   <h3 style={subSectionTitle}>KSJI Uniform Status & Current Officer Rank</h3>

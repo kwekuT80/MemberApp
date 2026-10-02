@@ -720,8 +720,117 @@ function leadershipLabel(pos: { position_title?: string | null; level?: string |
  * @param surname    - Surname
  * @param transferDate - Already-formatted transfer date string (optional)
  */
+/**
+ * Fraternal Jubilee Milestone interface
+ */
+export interface FraternalJubilee {
+  years: number;
+  title: string;
+  anniversaryDate: string; // YYYY-MM-DD
+  isReached: boolean;
+  badge: string;
+  icon: string;
+  description: string;
+}
+
+/**
+ * Calculates official KSJI Fraternal Service Jubilees based on initiation date.
+ * Recognizes 10, 20, 25 (Silver), 30, 40 (Ruby), and 50 (Golden) years of unbroken service.
+ */
+export function getFraternalJubileeMilestones(initiationDateStr: string | null | undefined): FraternalJubilee[] {
+  if (!initiationDateStr) return [];
+  const clean = initiationDateStr.split('T')[0];
+  const parts = clean.split('-');
+  if (parts.length < 3) return [];
+
+  const initYear = parseInt(parts[0], 10);
+  const month = parts[1];
+  const day = parts[2];
+  if (isNaN(initYear)) return [];
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  const milestones = [
+    { years: 10, title: '10-Year Bronze Milestone', icon: '🥉', badge: '10 Years of Service', desc: 'A decade of faithful commitment to the ideals of St. John the Baptist.' },
+    { years: 20, title: '20-Year Fraternal Milestone', icon: '🎖️', badge: '20 Years of Service', desc: 'Two decades of dedicated brotherly service and discipline.' },
+    { years: 25, title: 'Silver Jubilee (25 Years)', icon: '🥈', badge: 'Silver Jubilee Veteran', desc: 'A quarter-century of steadfast fraternal leadership and charity.' },
+    { years: 30, title: '30-Year Pearl Milestone', icon: '✨', badge: '30 Years of Service', desc: 'Three decades of unwavering loyalty to the altar and fraternal order.' },
+    { years: 40, title: 'Ruby Jubilee (40 Years)', icon: '🔴', badge: 'Ruby Jubilee Patriarch', desc: 'Four decades of exemplary devotion and patriarchal guidance.' },
+    { years: 50, title: 'Golden Jubilee (50 Years)', icon: '🥇', badge: 'Golden Jubilee Luminary', desc: 'A half-century of legendary fraternal stature and venerable wisdom.' },
+  ];
+
+  return milestones.map(m => {
+    const annivYear = initYear + m.years;
+    const annivDate = `${annivYear}-${month}-${day}`;
+    const isReached = currentYear > annivYear || (currentYear === annivYear && now >= new Date(annivDate));
+    return {
+      years: m.years,
+      title: m.title,
+      anniversaryDate: annivDate,
+      isReached,
+      badge: m.badge,
+      icon: m.icon,
+      description: m.desc
+    };
+  });
+}
+
+/**
+ * Returns the highest degree attained by a brother as a readable string
+ */
+export function getMemberHighestDegree(degrees?: Array<{ degree_type?: string | null }> | null): string {
+  if (!degrees || !Array.isArray(degrees) || degrees.length === 0) return '1st Degree (Initiate)';
+  if (hasAchieved5thDegree(degrees)) return '5th Degree (Noble Knight)';
+  if (hasAchieved4thDegree(degrees)) return '4th Degree (Chevalier)';
+  const has3rd = degrees.some(d => String(d?.degree_type || '').toLowerCase().includes('3rd') || String(d?.degree_type || '').toLowerCase().includes('third'));
+  if (has3rd) return '3rd Degree';
+  const has2nd = degrees.some(d => String(d?.degree_type || '').toLowerCase().includes('2nd') || String(d?.degree_type || '').toLowerCase().includes('second'));
+  if (has2nd) return '2nd Degree';
+  return '1st Degree';
+}
+
+/**
+ * Checks whether a member has served as Worthy President (Local Commandery)
+ */
+export function isPastWorthyPresident(positions?: Array<{ position_title?: string | null }> | null): boolean {
+  if (!positions || !Array.isArray(positions)) return false;
+  return positions.some(p => {
+    const title = String(p.position_title || '').trim().toLowerCase();
+    return title.includes('worthy president') || title === 'president' || title.includes('past worthy president');
+  });
+}
+
+/**
+ * Returns the highest military rank title held from military records or member record
+ */
+export function getMemberHighestRank(military?: any[] | null, defaultRank?: string | null): string | null {
+  if (defaultRank && defaultRank.trim()) return defaultRank.trim();
+  if (Array.isArray(military) && military.length > 0) {
+    const sorted = [...military].sort((a, b) => new Date(b.date_promoted || 0).getTime() - new Date(a.date_promoted || 0).getTime());
+    if (sorted[0]?.rank) return sorted[0].rank;
+  }
+  return null;
+}
+
+/**
+ * Builds the official KSJI service narrative paragraph for a member's testimonial.
+ *
+ * @param member  - The member record (including transfer_from, transfer_date, date_joined, is_deceased, date_of_death)
+ * @param positions - Array of the member's position records
+ * @param degrees - Array of the member's degree records
+ * @param joinedDate - Already-formatted joined date string (DD-MMM-YYYY or 'an unknown date')
+ * @param initiationPlace - Initiation Commandery venue
+ * @param displayTitle - The member's displayed title (e.g. 'Bro.', 'Noble Brother')
+ * @param firstName  - First name
+ * @param surname    - Surname
+ * @param transferDate - Already-formatted transfer date string (optional)
+ * @param highestRank - Military uniformed rank title (e.g. 'Captain', 'Major')
+ * @param isDeceased - Whether member is deceased
+ * @param dateOfDeath - Formatted date of passing (if deceased)
+ */
 export function buildServiceNarrative(params: {
-  member: { transfer_from?: string | null; date_joined?: string | null; transfer_date?: string | null };
+  member: { transfer_from?: string | null; date_joined?: string | null; transfer_date?: string | null; is_deceased?: boolean | null; date_of_death?: string | null; burial_place?: string | null };
   positions: Array<{ position_title?: string | null; level?: string | null; date_to?: string | null }>;
   degrees: Array<{ degree_type?: string | null }>;
   joinedDate: string;
@@ -730,8 +839,11 @@ export function buildServiceNarrative(params: {
   firstName: string;
   surname: string;
   transferDate?: string;
+  highestRank?: string | null;
+  isDeceased?: boolean | null;
+  dateOfDeath?: string | null;
 }): string {
-  const { member, positions, degrees, joinedDate, initiationPlace, displayTitle, firstName, surname, transferDate } = params;
+  const { member, positions, degrees, joinedDate, initiationPlace, displayTitle, firstName, surname, transferDate, highestRank, isDeceased, dateOfDeath } = params;
 
   const sentences: string[] = [];
 
@@ -749,7 +861,14 @@ export function buildServiceNarrative(params: {
   base += ' Since then, he has remained a committed member of the Order, embodying the virtues of Charity, Fraternity, and Service.';
   sentences.push(base);
 
-  // --- 2. Service Narrative ---------------------------------------------------
+  // --- 2. Military Uniformed Rank ---------------------------------------------
+  if (highestRank) {
+    sentences.push(
+      `In the Uniformed Ranks of the Order, he holds the commissioned rank of ${highestRank}, exemplifying military discipline and drill excellence.`
+    );
+  }
+
+  // --- 3. Service Narrative ---------------------------------------------------
   const hasPositions = positions.length > 0;
   if (hasPositions) {
     const levelsServed = positions.map((p) => p.level || 'Local');
@@ -758,29 +877,24 @@ export function buildServiceNarrative(params: {
       .find((lvl) => levelsServed.includes(lvl));
 
     if (highestAbove) {
-      // Case C â€” served above commandery level
       sentences.push(
         `Beginning at the Commandery level, he has extended his service through the ${LEVEL_NARRATIVE_LABEL[highestAbove]}, contributing to the work and leadership of the Order across multiple Commanderies.`
       );
     } else {
-      // Case B â€” commandery level only
       sentences.push(
         'His service has been rooted at the Commandery level, where he has contributed to the strength and vitality of his local Commandery.'
       );
     }
   }
-  // Case A â€” no positions: no service sentence appended
 
-  // --- 3. Leadership Recognition (President / Commander) --------------------
+  // --- 4. Leadership Recognition (President / Commander) --------------------
   const leaderRoles = positions.filter((p) => isHeadLeader(p.position_title));
 
   let presidencyAdded = false;
   if (leaderRoles.length > 0) {
-    // Prefer current (date_to is null/empty) over former; prefer highest level
     const current = leaderRoles.filter((p) => !p.date_to || p.date_to.trim() === '');
     const pool = current.length > 0 ? current : leaderRoles;
 
-    // Pick highest level
     const best = pool.reduce((acc, p) => {
       const aIdx = LEVEL_ORDER.indexOf(p.level || 'Local');
       const bIdx = LEVEL_ORDER.indexOf(acc.level || 'Local');
@@ -802,14 +916,14 @@ export function buildServiceNarrative(params: {
     presidencyAdded = true;
   }
 
-  // --- 4. Positions Emphasis (only if no presidency) -------------------------
+  // --- 5. Positions Emphasis (only if no presidency) -------------------------
   if (hasPositions && !presidencyAdded) {
     sentences.push(
       'The positions of trust he has held, outlined below, attest to the confidence reposed in him over the years.'
     );
   }
 
-  // --- 5. Honours / Degree Narrative -----------------------------------------
+  // --- 6. Honours / Degree Narrative -----------------------------------------
   const has5th = hasAchieved5thDegree(degrees);
   const has4th = hasAchieved4thDegree(degrees);
 
@@ -821,6 +935,31 @@ export function buildServiceNarrative(params: {
     sentences.push(
       'Having been exemplified into the Fourth Degree, he is a Chevalier and a member of the Archbishop William Thomas Porter Chapter of Chevaliers.'
     );
+  }
+
+  // --- 7. Jubilee Milestones -------------------------------------------------
+  const jubilees = getFraternalJubileeMilestones(member.date_joined);
+  const reachedJubilees = jubilees.filter(j => j.isReached);
+  if (reachedJubilees.length > 0) {
+    const highestJubilee = reachedJubilees[reachedJubilees.length - 1];
+    sentences.push(
+      `Celebrating his ${highestJubilee.title}, he stands as a ${highestJubilee.badge} with ${highestJubilee.years} years of steadfast fidelity to the altar and fraternity.`
+    );
+  }
+
+  // --- 8. In Memoriam Conclusion (Deceased Brothers) ------------------------
+  const isDec = Boolean(isDeceased || member.is_deceased);
+  if (isDec) {
+    const deathDateStr = dateOfDeath || (member.date_of_death ? formatDisplayDate(member.date_of_death) : null);
+    if (deathDateStr) {
+      sentences.push(
+        `Called to eternal rest on ${deathDateStr}, he is permanently preserved on the Roll of Honour of Commandery #500. May his soul rest in perfect peace.`
+      );
+    } else {
+      sentences.push(
+        'Now resting in eternity, his life of service and piety is permanently enshrined on the Commandery #500 Roll of Honour. Requiescat in pace.'
+      );
+    }
   }
 
   return sentences.join(' ');
@@ -837,8 +976,10 @@ export function buildFormalCitation(params: {
   joinedDate: string;
   degrees: Array<{ degree_type?: string | null }>;
   positions: Array<{ position_title?: string | null; level?: string | null }>;
+  highestRank?: string | null;
+  isDeceased?: boolean | null;
 }): string {
-  const { displayTitle, firstName, surname, joinedDate, degrees, positions } = params;
+  const { displayTitle, firstName, surname, joinedDate, degrees, positions, highestRank, isDeceased } = params;
   const fullName = `${displayTitle} ${firstName} ${surname}`;
 
   const has5th = hasAchieved5thDegree(degrees);
@@ -848,9 +989,13 @@ export function buildFormalCitation(params: {
   if (has5th) rankTerm = 'Noble Brother';
   else if (has4th) rankTerm = 'Chevalier';
 
-  const highestPos = positions[0]?.position_title || 'devoted member';
+  const highestPos = positions[0]?.position_title || (highestRank ? `${highestRank}` : 'devoted member');
 
-  return `This citation is proudly presented in recognition of ${fullName}, a ${rankTerm} of the Knights of St. John International. Having been initiated on ${joinedDate}, he has since exemplified the highest ideals of our Order through his dedicated service as ${highestPos} and beyond. His journey through the degrees of exemplification stands as a testament to his faith, fraternity, and unwavering commitment to the growth of the Commandery. In witness of his exemplary character and leadership, we hereby certify his standing as a true Knight of the Order.`;
+  const memorialPart = isDeceased 
+    ? ' Though he has answered the final roll call into eternity, his legacy of discipline and faith shines brightly upon the altar of Commandery #500.' 
+    : ' In witness of his exemplary character, steadfast fortitude, and faithful leadership, we hereby certify his standing as a true Knight of the Order.';
+
+  return `This citation is proudly presented in recognition of ${fullName}, a ${rankTerm} of the Knights of St. John International. Having been initiated on ${joinedDate}, he has since exemplified the highest ideals of our Order through his dedicated service as ${highestPos} and beyond. His journey through the sacred degrees of exemplification stands as an enduring testament to his faith, fraternity, and unwavering commitment to the growth of the Commandery.${memorialPart}`;
 }
 
 // ============================================================================

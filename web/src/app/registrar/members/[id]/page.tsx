@@ -7,6 +7,7 @@ import { requireRegistrar } from '@/lib/auth/requireRegistrar';
 import { getMemberById, getMemberPersonalReport } from '@/services/memberService';
 import EmptyState from '@/components/shared/EmptyState';
 import { formatMemberTitle } from '@/lib/utils/ksji-logic';
+import MemberServiceJourneyTimeline from '@/components/members/MemberServiceJourneyTimeline';
 
 export default async function RegistrarMemberDetailPage({ params }: { params: Promise<{ id: string }> }) { 
   const { profile } = await requireRegistrar(); 
@@ -269,6 +270,15 @@ export default async function RegistrarMemberDetailPage({ params }: { params: Pr
 
               </div>
             )}
+
+            {/* LIFELONG FRATERNAL SERVICE JOURNEY TIMELINE */}
+            <MemberServiceJourneyTimeline
+              member={member}
+              degrees={member.degrees || []}
+              positions={member.positions || []}
+              military={member.military || []}
+              ranks={member.uniformed_rank_records || []}
+            />
 
             <RegistrarMemberActions memberId={member.id!} />
           </>

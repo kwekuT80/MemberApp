@@ -31,6 +31,10 @@ export interface CohortMemberItem {
   photoUrl: string | null;
   rank: string | null;
   memberNumber: string | null;
+  highestDegree?: string | null;
+  isChevalier?: boolean;
+  isNoble?: boolean;
+  isPastPresident?: boolean;
 }
 
 interface CohortGroup {
@@ -46,6 +50,9 @@ interface CohortGroup {
   transferCount: number;
   dismissedCount: number;
   archivedCount: number;
+  chevalierCount: number;
+  nobleCount: number;
+  presidentCount: number;
 }
 
 interface YearGroup {
@@ -106,6 +113,7 @@ export default function InitiationCohortsClient({
   const [selectedYear, setSelectedYear] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [onlyMultipleCohorts, setOnlyMultipleCohorts] = useState<boolean>(false);
+  const [onlyElevatedCohorts, setOnlyElevatedCohorts] = useState<boolean>(false);
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [viewMode, setViewMode] = useState<'grouped' | 'timeline' | 'table'>('grouped');
   const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set());
@@ -174,6 +182,11 @@ export default function InitiationCohortsClient({
         if (!multiCohortYearsSet.has(m.cohortYear)) return false;
       }
 
+      // Only elevated cohorts filter (Nobles / Chevaliers / Presidents)
+      if (onlyElevatedCohorts) {
+        if (!m.isPastPresident && !m.isNoble && !m.isChevalier) return false;
+      }
+
       // Search query
       if (search.trim()) {
         const q = search.toLowerCase();
@@ -200,7 +213,7 @@ export default function InitiationCohortsClient({
 
       return true;
     });
-  }, [members, statusFilter, selectedEra, selectedYear, onlyMultipleCohorts, search, multiCohortYearsSet]);
+  }, [members, statusFilter, selectedEra, selectedYear, onlyMultipleCohorts, onlyElevatedCohorts, search, multiCohortYearsSet]);
 
   // 4. Group filtered members by Cohort Date and Year
   const yearGroups = useMemo(() => {
@@ -244,6 +257,9 @@ export default function InitiationCohortsClient({
         const transferCount = sortedMembers.filter(m => m.status === 'Transfer-Out').length;
         const dismissedCount = sortedMembers.filter(m => m.status === 'Dismissed').length;
         const archivedCount = sortedMembers.filter(m => m.status === 'Archived Roll').length;
+        const chevalierCount = sortedMembers.filter(m => m.isChevalier).length;
+        const nobleCount = sortedMembers.filter(m => m.isNoble).length;
+        const presidentCount = sortedMembers.filter(m => m.isPastPresident).length;
 
         return {
           dateKey: item.dateKey,
@@ -257,7 +273,10 @@ export default function InitiationCohortsClient({
           deceasedCount,
           transferCount,
           dismissedCount,
-          archivedCount
+          archivedCount,
+          chevalierCount,
+          nobleCount,
+          presidentCount
         };
       });
 
@@ -310,6 +329,9 @@ export default function InitiationCohortsClient({
     let totalArchived = members.filter(m => m.status === 'Archived Roll').length;
     let totalCohorts = allCohortsMap.size;
     let multiYearsCount = multiCohortYearsSet.size;
+    let totalChevaliers = members.filter(m => m.isChevalier).length;
+    let totalNobles = members.filter(m => m.isNoble).length;
+    let totalPresidents = members.filter(m => m.isPastPresident).length;
 
     return {
       totalBrothers,
@@ -320,7 +342,10 @@ export default function InitiationCohortsClient({
       totalDismissedDeceased,
       totalArchived,
       totalCohorts,
-      multiYearsCount
+      multiYearsCount,
+      totalChevaliers,
+      totalNobles,
+      totalPresidents
     };
   }, [members, allCohortsMap, multiCohortYearsSet]);
 
@@ -677,6 +702,83 @@ export default function InitiationCohortsClient({
         </div>
       </div>
 
+      {/* COHORT ELEVATIONS & LEADERSHIP BAR */}
+      <div style={{
+        background: 'linear-gradient(135deg, #10233f 0%, #1e3a5f 100%)',
+        borderRadius: '10px',
+        padding: '14px 20px',
+        color: '#ffffff',
+        marginBottom: '20px',
+        boxShadow: '0 2px 8px rgba(16,35,63,0.12)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '24px' }}>🎖️</span>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#d4af37', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+              Fraternal Elevations & Leadership Output
+            </div>
+            <div style={{ fontSize: '13.5px', color: '#e2e8f0', marginTop: '2px' }}>
+              Lifetime honors and leadership ranks achieved across all initiation cohorts
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.1)',
+            border: '1px solid rgba(254,240,138,0.4)',
+            borderRadius: '8px',
+            padding: '8px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '18px' }}>👑</span>
+            <div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#fef08a' }}>{stats.totalPresidents}</div>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: '#cbd5e1', textTransform: 'uppercase' }}>Worthy Presidents</div>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.1)',
+            border: '1px solid rgba(253,211,77,0.4)',
+            borderRadius: '8px',
+            padding: '8px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '18px' }}>👑</span>
+            <div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#fde047' }}>{stats.totalNobles}</div>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: '#cbd5e1', textTransform: 'uppercase' }}>Nobles (5th Deg)</div>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.1)',
+            border: '1px solid rgba(147,197,253,0.4)',
+            borderRadius: '8px',
+            padding: '8px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '18px' }}>🏅</span>
+            <div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#93c5fd' }}>{stats.totalChevaliers}</div>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: '#cbd5e1', textTransform: 'uppercase' }}>Chevaliers (4th Deg)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* FILTER & CONTROL TOOLBAR */}
       <div style={{
         background: '#fff',
@@ -832,6 +934,27 @@ export default function InitiationCohortsClient({
           >
             <span>⚡</span>
             <span>Multi-Cohort Years Only ({stats.multiYearsCount})</span>
+          </button>
+
+          {/* Elevated Brothers Toggle */}
+          <button
+            onClick={() => setOnlyElevatedCohorts(!onlyElevatedCohorts)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '6px',
+              fontSize: '12.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: onlyElevatedCohorts ? '1px solid #d4af37' : '1px solid #cbd5e1',
+              background: onlyElevatedCohorts ? '#fefce8' : '#f8fafc',
+              color: onlyElevatedCohorts ? '#854d0e' : '#475569',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>🎖️</span>
+            <span>Elevated Brothers Only</span>
           </button>
 
           {/* View Mode Toggle */}
@@ -1401,6 +1524,27 @@ function CohortCard({ cohort }: { cohort: CohortGroup }) {
               <span style={{ color: '#b45309', fontWeight: 600 }}>📜 {cohort.archivedCount} Roll Book</span>
             )}
           </div>
+
+          {/* Elevation Badges */}
+          {(cohort.presidentCount > 0 || cohort.nobleCount > 0 || cohort.chevalierCount > 0) && (
+            <div style={{ display: 'flex', gap: '8px', marginTop: '6px', fontSize: '11.5px', flexWrap: 'wrap' }}>
+              {cohort.presidentCount > 0 && (
+                <span style={{ background: '#fef9c3', color: '#854d0e', border: '1px solid #fde047', borderRadius: '4px', padding: '2px 8px', fontWeight: 800 }}>
+                  👑 {cohort.presidentCount} Worthy President{cohort.presidentCount === 1 ? '' : 's'}
+                </span>
+              )}
+              {cohort.nobleCount > 0 && (
+                <span style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fcd34d', borderRadius: '4px', padding: '2px 8px', fontWeight: 800 }}>
+                  👑 {cohort.nobleCount} Noble{cohort.nobleCount === 1 ? '' : 's'} (5th Deg)
+                </span>
+              )}
+              {cohort.chevalierCount > 0 && (
+                <span style={{ background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', borderRadius: '4px', padding: '2px 8px', fontWeight: 800 }}>
+                  🏅 {cohort.chevalierCount} Chevalier{cohort.chevalierCount === 1 ? '' : 's'} (4th Deg)
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <button
@@ -1495,8 +1639,23 @@ function CohortCard({ cohort }: { cohort: CohortGroup }) {
                       )}
 
                       <div>
-                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '13.5px' }}>
-                          {m.fullName}
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span>{m.fullName}</span>
+                          {m.isPastPresident && (
+                            <span style={{ background: '#fef9c3', color: '#854d0e', border: '1px solid #fde047', borderRadius: '4px', padding: '1px 6px', fontSize: '10.5px', fontWeight: 800 }}>
+                              👑 Past President
+                            </span>
+                          )}
+                          {m.isNoble && (
+                            <span style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fcd34d', borderRadius: '4px', padding: '1px 6px', fontSize: '10.5px', fontWeight: 800 }}>
+                              👑 Noble (5th Deg)
+                            </span>
+                          )}
+                          {m.isChevalier && !m.isNoble && (
+                            <span style={{ background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', borderRadius: '4px', padding: '1px 6px', fontSize: '10.5px', fontWeight: 800 }}>
+                              🏅 Chevalier (4th Deg)
+                            </span>
+                          )}
                         </div>
                         <div style={{ fontSize: '11px', color: '#64748b' }}>
                           {m.source}

@@ -23,22 +23,47 @@ export default async function InitiationCohortsPage() {
     .select('*')
     .order('entry_no', { ascending: true });
 
-  // 3. Fetch 1st degree records for any fallback dates
-  const { data: degrees } = await supabase
+  // 3. Fetch all degree records to determine initiation fallback & elevation milestones (4th Chevalier / 5th Noble)
+  const { data: allDegrees } = await supabase
     .from('degrees')
-    .select('member_id, degree_type, degree_date, degree_place')
-    .eq('degree_type', '1st Degree');
+    .select('member_id, degree_type, degree_date, degree_place');
+
+  // 4. Fetch leadership positions to identify Worthy Presidents
+  const { data: allPositions } = await supabase
+    .from('positions')
+    .select('member_id, position_title, level, date_from, date_to');
 
   const degreeMap = new Map<string, string>();
-  if (degrees) {
-    degrees.forEach(d => {
-      if (d.member_id && d.degree_date) {
-        degreeMap.set(d.member_id, d.degree_date);
+  const memberDegreesMap = new Map<string, any[]>();
+  if (allDegrees) {
+    allDegrees.forEach(d => {
+      if (d.member_id) {
+        if (!memberDegreesMap.has(d.member_id)) {
+          memberDegreesMap.set(d.member_id, []);
+        }
+        memberDegreesMap.get(d.member_id)!.push(d);
+
+        const dt = String(d.degree_type || '').toLowerCase();
+        if ((dt.includes('1st') || dt.includes('first')) && d.degree_date) {
+          degreeMap.set(d.member_id, d.degree_date);
+        }
       }
     });
   }
 
-  // 4. Combine into unified cohort roster
+  const memberPositionsMap = new Map<string, any[]>();
+  if (allPositions) {
+    allPositions.forEach(p => {
+      if (p.member_id) {
+        if (!memberPositionsMap.has(p.member_id)) {
+          memberPositionsMap.set(p.member_id, []);
+        }
+        memberPositionsMap.get(p.member_id)!.push(p);
+      }
+    });
+  }
+
+  // 5. Combine into unified cohort roster
   const unifiedMembers: CohortMemberItem[] = [];
 
   // Track linked roll book entries so they are not duplicated
@@ -71,6 +96,31 @@ export default async function InitiationCohortsPage() {
         }
       }
 
+      const memDegrees = memberDegreesMap.get(m.id) || [];
+      const memPositions = memberPositionsMap.get(m.id) || [];
+
+      // Determine highest degree & elevations
+      const has5th = memDegrees.some(d => {
+        const t = String(d.degree_type || '').toLowerCase();
+        return t.includes('5th') || t.includes('fifth') || t.includes('noble');
+      }) || String(m.title || '').toLowerCase().includes('noble');
+
+      const has4th = memDegrees.some(d => {
+        const t = String(d.degree_type || '').toLowerCase();
+        return t.includes('4th') || t.includes('fourth') || t.includes('chevalier');
+      });
+
+      const isPastPres = memPositions.some(p => {
+        const t = String(p.position_title || '').toLowerCase();
+        return t.includes('worthy president') || t === 'president' || t.includes('past worthy president');
+      });
+
+      let highestDegree = '1st Degree';
+      if (has5th) highestDegree = '5th Degree (Noble)';
+      else if (has4th) highestDegree = '4th Degree (Chevalier)';
+      else if (memDegrees.some(d => String(d.degree_type || '').includes('3rd'))) highestDegree = '3rd Degree';
+      else if (memDegrees.some(d => String(d.degree_type || '').includes('2nd'))) highestDegree = '2nd Degree';
+
       unifiedMembers.push({
         id: m.id,
         memberId: m.id,
@@ -98,7 +148,11 @@ export default async function InitiationCohortsPage() {
         source: linkedRoll?.source || 'Registered Member',
         photoUrl: m.photo_url || null,
         rank: null,
-        memberNumber: null
+        memberNumber: null,
+        highestDegree,
+        isChevalier: has4th,
+        isNoble: has5th,
+        isPastPresident: isPastPres
       });
     });
   }

@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth/requireUser';
 import { getMyMember, getMyInitiationCohort } from '@/services/memberService';
 import BirthdaysWidget from '@/components/dashboard/BirthdaysWidget';
 import { formatMemberTitle } from '@/lib/utils/ksji-logic';
+import MemberServiceJourneyTimeline from '@/components/members/MemberServiceJourneyTimeline';
 
 export default async function MePage() {
   await requireUser();
@@ -144,6 +145,15 @@ export default async function MePage() {
           <Link href='/me/positions' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Positions</Link>
         </div>
         <MemberSummaryCard member={{ ...member, title: displayTitle }} />
+
+        {/* LIFELONG FRATERNAL SERVICE JOURNEY TIMELINE */}
+        <MemberServiceJourneyTimeline
+          member={member}
+          degrees={member.degrees || []}
+          positions={member.positions || []}
+          military={member.military || []}
+          ranks={member.uniformed_rank_records || []}
+        />
       </div>
     </MemberShell>
   );
