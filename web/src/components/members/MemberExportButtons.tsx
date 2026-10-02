@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { formatDisplayDate, getMemberInitiationRecord } from '@/lib/utils/ksji-logic';
 
 interface MemberExportButtonsProps {
   members: any[];
@@ -21,13 +21,18 @@ export default function MemberExportButtons({ members }: MemberExportButtonsProp
       'Email',
       'Occupation',
       'Latest Position',
-      'Date Joined'
+      'Date of Initiation (KSJI)',
+      'Date Joined KSJI #500'
     ];
 
     const rows = members.map(m => {
       const latestPos = (m.positions || []).sort((a: any, b: any) => 
         String(b.date_from || '').localeCompare(String(a.date_from || ''))
       )[0]?.position_title || '—';
+
+      const initRec = getMemberInitiationRecord(m);
+      const initDateStr = initRec.initiationDate ? formatDisplayDate(initRec.initiationDate) : '';
+      const joined500Str = m.date_joined ? formatDisplayDate(m.date_joined) : '';
 
       return [
         m.title || '',
@@ -39,7 +44,8 @@ export default function MemberExportButtons({ members }: MemberExportButtonsProp
         m.email || '',
         m.occupation || '',
         latestPos,
-        m.date_joined ? new Date(m.date_joined).toLocaleDateString() : ''
+        initDateStr,
+        joined500Str
       ];
     });
 
@@ -71,6 +77,10 @@ export default function MemberExportButtons({ members }: MemberExportButtonsProp
         String(b.date_from || '').localeCompare(String(a.date_from || ''))
       )[0]?.position_title || '—';
 
+      const initRec = getMemberInitiationRecord(m);
+      const initDateStr = initRec.initiationDate ? formatDisplayDate(initRec.initiationDate) : '—';
+      const joined500Str = m.date_joined ? formatDisplayDate(m.date_joined) : '—';
+
       return `
         <tr>
           <td><strong>${[m.title, m.first_name, m.surname].filter(Boolean).join(' ') || 'Unnamed'}</strong></td>
@@ -78,7 +88,8 @@ export default function MemberExportButtons({ members }: MemberExportButtonsProp
           <td>${m.phone || m.mobile || '—'}</td>
           <td>${m.email || '—'}</td>
           <td>${latestPos}</td>
-          <td>${m.date_joined ? formatDisplayDate(m.date_joined) : '—'}</td>
+          <td>${initDateStr}</td>
+          <td>${joined500Str}</td>
         </tr>
       `;
     }).join('');
@@ -112,7 +123,8 @@ export default function MemberExportButtons({ members }: MemberExportButtonsProp
                 <th>Phone</th>
                 <th>Email</th>
                 <th>Latest Position</th>
-                <th>Joined</th>
+                <th>Initiated (KSJI)</th>
+                <th>Joined #500</th>
               </tr>
             </thead>
             <tbody>

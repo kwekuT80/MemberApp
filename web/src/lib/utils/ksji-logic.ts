@@ -143,6 +143,58 @@ export function getHistoricalEra(dateOrYear: string | number | null | undefined)
 }
 
 /**
+ * Resolves the member's true initiation record into the Order of KSJI vs their Commandery #500 join date.
+ * - For a brother initiated directly at #500: initiation date matches date_joined.
+ * - For a brother who transferred into #500 (e.g. from Hohoe): initiation date is from his 1st Degree record.
+ */
+export function getMemberInitiationRecord(member: any): {
+  initiationDate: string | null;
+  initiationPlace: string | null;
+  isTransferee: boolean;
+  transferFrom: string | null;
+} {
+  if (!member) {
+    return { initiationDate: null, initiationPlace: null, isTransferee: false, transferFrom: null };
+  }
+
+  const transferFrom = member.transfer_from && String(member.transfer_from).trim() ? String(member.transfer_from).trim() : null;
+  const isTransferee = Boolean(transferFrom);
+
+  // 1. Search in member.degrees for 1st Degree / Initiation
+  if (Array.isArray(member.degrees) && member.degrees.length > 0) {
+    const firstDeg = member.degrees.find((d: any) => {
+      const type = String(d.degree_type || '').toLowerCase();
+      return type.includes('1st') || type.includes('first') || type.includes('initiation');
+    });
+    if (firstDeg && firstDeg.degree_date) {
+      return {
+        initiationDate: firstDeg.degree_date,
+        initiationPlace: firstDeg.degree_place || member.degree1_place || null,
+        isTransferee,
+        transferFrom
+      };
+    }
+  }
+
+  // 2. Fallback: If not a transferee and date_joined is present, that is their initiation date at #500
+  if (!isTransferee && member.date_joined) {
+    return {
+      initiationDate: member.date_joined,
+      initiationPlace: member.degree1_place || 'St. Margaret-Mary #500',
+      isTransferee: false,
+      transferFrom: null
+    };
+  }
+
+  return {
+    initiationDate: null,
+    initiationPlace: member.degree1_place || null,
+    isTransferee,
+    transferFrom
+  };
+}
+
+/**
  * 2. DECEASED, DISMISSED & MEMORIAL TRUTHS:
  * - Deceased members are NEVER deleted from the database.
  * - Avoid clinical/morbid words like "Necrology".
@@ -669,23 +721,30 @@ function leadershipLabel(pos: { position_title?: string | null; level?: string |
  * @param transferDate - Already-formatted transfer date string (optional)
  */
 export function buildServiceNarrative(params: {
-  member: { transfer_from?: string | null; date_joined?: string | null };
+  member: { transfer_from?: string | null; date_joined?: string | null; transfer_date?: string | null };
   positions: Array<{ position_title?: string | null; level?: string | null; date_to?: string | null }>;
   degrees: Array<{ degree_type?: string | null }>;
   joinedDate: string;
+  initiationPlace?: string | null;
   displayTitle: string;
   firstName: string;
   surname: string;
   transferDate?: string;
 }): string {
-  const { member, positions, degrees, joinedDate, displayTitle, firstName, surname, transferDate } = params;
+  const { member, positions, degrees, joinedDate, initiationPlace, displayTitle, firstName, surname, transferDate } = params;
 
   const sentences: string[] = [];
 
   // --- 1. Base Narrative ------------------------------------------------------
-  let base = `${displayTitle} ${firstName} ${surname} was initiated into the Knights of St. John International on ${joinedDate}.`;
-  if (member.transfer_from && transferDate) {
-    base += ` He subsequently transferred to and joined the St. Margaret-Mary Commandery #500 on ${transferDate}.`;
+  const placePart = initiationPlace ? ` at ${initiationPlace}` : (member.transfer_from ? ` at ${member.transfer_from}` : '');
+  let base = `${displayTitle} ${firstName} ${surname} was initiated into the Knights of St. John International on ${joinedDate}${placePart}.`;
+  if (member.transfer_from) {
+    const tDate = transferDate || (member.date_joined ? formatDisplayDate(member.date_joined) : null);
+    if (tDate) {
+      base += ` He subsequently transferred to and joined St. Margaret-Mary Commandery #500 on ${tDate}.`;
+    } else {
+      base += ` He subsequently transferred to and joined St. Margaret-Mary Commandery #500.`;
+    }
   }
   base += ' Since then, he has remained a committed member of the Order, embodying the virtues of Charity, Fraternity, and Service.';
   sentences.push(base);

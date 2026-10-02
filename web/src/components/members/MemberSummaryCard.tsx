@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Member } from '@/types/member';
-import { formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { formatDisplayDate, getMemberInitiationRecord } from '@/lib/utils/ksji-logic';
 
 function value(v?: string | null) { return v && String(v).trim() ? v : '—'; }
 
@@ -21,6 +21,7 @@ export default function MemberSummaryCard({ member, editHref='/me/edit', showOwn
 
   const emailText = member.email && member.email.trim() ? member.email.trim() : null;
   const phoneText = (member.phone || member.mobile) && String(member.phone || member.mobile).trim() ? String(member.phone || member.mobile).trim() : null;
+  const initiationInfo = getMemberInitiationRecord(member);
 
   return (
     <div style={card}>
@@ -84,8 +85,30 @@ export default function MemberSummaryCard({ member, editHref='/me/edit', showOwn
         <Field label='Employment' value={value(member.emp_status)} />
         <Field label='Occupation' value={value(member.occupation)} />
         <Field label='Workplace' value={value(member.workplace)} />
+
+        {/* 1. ORDER-WIDE INITIATION */}
+        <div>
+          <Field 
+            label='Initiation Date (KSJI)' 
+            value={
+              initiationInfo.initiationDate 
+                ? `${formatDisplayDate(initiationInfo.initiationDate)}${initiationInfo.initiationPlace ? ` (${initiationInfo.initiationPlace})` : ''}`
+                : (initiationInfo.isTransferee ? `Prior to Transfer (${initiationInfo.transferFrom || 'Transfer'})` : '—')
+            } 
+          />
+          <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>
+            Order-wide Fraternal Seniority
+          </div>
+        </div>
+
+        {/* 2. LOCAL COMMANDERY #500 TENANCY */}
         <div>
           <Field label='Date joined KSJI #500' value={formatDisplayDate(member.date_joined)} />
+          {member.transfer_from && (
+            <div style={{ fontSize: 11, color: '#0369a1', marginTop: 2, fontWeight: 600 }}>
+              Transferred from: {member.transfer_from}
+            </div>
+          )}
           {member.date_joined && (
             <div style={{ marginTop: 6 }}>
               <Link 

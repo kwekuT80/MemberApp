@@ -375,10 +375,10 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
             </div>
 
             <InputField 
-              label="1st Degree Exemplification" 
+              label="1st Degree Exemplification (Initiation into KSJI)" 
               value={form.degree1_place} 
               onChange={(v: string) => updateField('degree1_place', v)} 
-              placeholder="e.g. 2002-12-05 — St. Margaret Mary Commandery Dansoman"
+              placeholder="e.g. 1988-07-16 — St. Augustine's Commandery #374, Hohoe"
             />
             <InputField 
               label="2nd & 3rd Degree" 

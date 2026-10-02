@@ -24,6 +24,10 @@ export default function MyCohortClient({ cohortData }: MyCohortClientProps) {
     archivedCount,
     isPreCharter,
     isCharterDay,
+    isTransferee,
+    transferFrom,
+    orderInitiationDate,
+    orderInitiationPlace,
     myMember,
     members
   } = cohortData;
@@ -86,11 +90,13 @@ export default function MyCohortClient({ cohortData }: MyCohortClientProps) {
               </span>
             </div>
             <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 800, color: '#ffffff' }}>
-              {hasCohort ? `Cohort of ${formattedDate}` : 'My Initiation Cohort'}
+              {hasCohort ? (isTransferee ? `Commandery #500 Intake Cohort of ${formattedDate}` : `Cohort of ${formattedDate}`) : 'My Initiation Cohort'}
             </h1>
             <p style={{ margin: '6px 0 0 0', fontSize: '14px', color: '#cbd5e1', maxWidth: '650px', lineHeight: '1.5' }}>
               {hasCohort ? (
-                isPreCharter ? (
+                isTransferee ? (
+                  `You were initiated into the Knights of St. John International${orderInitiationDate ? ` on ${orderInitiationDate}` : ''}${orderInitiationPlace || transferFrom ? ` at ${orderInitiationPlace || transferFrom}` : ''}, and transferred into St. Margaret-Mary Commandery #500 on ${formattedDate}. Below is your Commandery #500 intake class.`
+                ) : isPreCharter ? (
                   `You and ${totalMembers - 1} brother${totalMembers - 1 === 1 ? '' : 's'} were initiated prior to the charter of Commandery #500 and transferred on Charter Inauguration Day (30th Dec 1995) as foundational roll members.`
                 ) : isCharterDay ? (
                   `You were part of the historic Commandery #500 Charter Day Inauguration Class on 30th December 1995.`

@@ -1,7 +1,7 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
 import { Member } from '@/types/member';
-import { isSystemMember } from '@/lib/utils/ksji-logic';
+import { isSystemMember, getMemberInitiationRecord } from '@/lib/utils/ksji-logic';
 
 const FULL_SELECT = `
   *,
@@ -1155,6 +1155,10 @@ export interface MyCohortResult {
   archivedCount: number;
   isPreCharter: boolean;
   isCharterDay: boolean;
+  isTransferee?: boolean;
+  transferFrom?: string | null;
+  orderInitiationDate?: string | null;
+  orderInitiationPlace?: string | null;
   myMember: any | null;
   members: MyCohortBrother[];
 }
@@ -1225,15 +1229,11 @@ export async function getMyInitiationCohort(): Promise<MyCohortResult> {
 
   const supabase = await createClient();
 
-  // 1. Determine logged-in member's initiation date
-  let initiationDate: string | null = myMember.date_joined || null;
+  const initRec = getMemberInitiationRecord(myMember);
 
-  if (!initiationDate && myMember.degrees && Array.isArray(myMember.degrees)) {
-    const firstDeg = myMember.degrees.find((d: any) => d.degree_type === '1st Degree');
-    if (firstDeg?.degree_date) {
-      initiationDate = firstDeg.degree_date;
-    }
-  }
+  // 1. Determine logged-in member's Commandery #500 cohort date
+  // For home initiates, date_joined or 1st degree; for transferees, their date_joined at #500
+  let initiationDate: string | null = myMember.date_joined || initRec.initiationDate || null;
 
   if (!initiationDate) {
     const { data: rollMatch } = await supabase
@@ -1389,6 +1389,10 @@ export async function getMyInitiationCohort(): Promise<MyCohortResult> {
     archivedCount: cohortList.filter(c => c.status === 'Archived Roll').length,
     isPreCharter,
     isCharterDay,
+    isTransferee: initRec.isTransferee,
+    transferFrom: initRec.transferFrom,
+    orderInitiationDate: initRec.initiationDate,
+    orderInitiationPlace: initRec.initiationPlace,
     myMember,
     members: cohortList
   };

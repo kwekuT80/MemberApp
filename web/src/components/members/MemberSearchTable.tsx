@@ -160,10 +160,10 @@ export default function MemberSearchTable({
             <span style={{ fontSize: 18 }}>🎖️</span>
             <div>
               <span style={{ fontWeight: 800, color: '#166534', fontSize: 13.5 }}>
-                Viewing Cohort of {formatDisplayDate(cohortFilter)}
+                Viewing Commandery #500 Cohort of {formatDisplayDate(cohortFilter)}
               </span>
               <span style={{ color: '#15803d', fontSize: 12.5, marginLeft: 8 }}>
-                ({filteredMembers.length} Brother{filteredMembers.length === 1 ? '' : 's'} Initiated Together)
+                ({filteredMembers.length} Brother{filteredMembers.length === 1 ? '' : 's'} in Intake Batch)
               </span>
             </div>
           </div>
@@ -194,7 +194,7 @@ export default function MemberSearchTable({
               <th align='left'>Phone</th>
               <th align='left'>Children</th>
               <th align='left'>Latest Position</th>
-              <th align='left'>Initiation Cohort</th>
+              <th align='left'>Commandery #500 Intake</th>
               <th align='center'>Action</th>
             </tr>
           </thead>
@@ -262,6 +262,11 @@ export default function MemberSearchTable({
                           <div style={{ fontWeight: 600, color: '#1e293b' }}>
                             {formatDisplayDate(member.date_joined)}
                           </div>
+                          {member.transfer_from && (
+                            <div style={{ fontSize: 10, color: '#0369a1', fontWeight: 600, marginTop: 1 }}>
+                              🔄 Transferred in
+                            </div>
+                          )}
                           {batchSize > 1 ? (
                             <button
                               type="button"

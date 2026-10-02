@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { createClient } from '@/lib/supabase/client';
-import { formatMemberTitle, formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { formatMemberTitle, formatDisplayDate, getMemberInitiationRecord } from '@/lib/utils/ksji-logic';
 import { getMemberPersonalReport, PersonalReportData } from '@/services/memberService';
 
 export default function MemberDossierPage() {
@@ -63,6 +63,7 @@ export default function MemberDossierPage() {
   const firstName = String(member.first_name || '').trim();
   const otherNames = String(member.other_names || '').trim();
   const surname = String(member.surname || '').trim();
+  const initiationInfo = getMemberInitiationRecord(member);
 
   // Robust Array Handling
   const safeDegrees = Array.isArray(member.degrees) ? [...member.degrees] : [];
@@ -129,10 +130,30 @@ export default function MemberDossierPage() {
                   <td style={td}>{member.home_town || 'N/A'} {member.home_region ? `(${member.home_region})` : ''}</td>
                 </tr>
                 <tr>
-                  <th style={th}>Date Joined KSJI #500</th>
-                  <td style={td}><strong>{formatDisplayDate(member.date_joined)}</strong></td>
-                  <th style={th}>Membership Status</th>
+                  <th style={th}>Date of Initiation (KSJI)</th>
                   <td style={td}>
+                    <strong>
+                      {initiationInfo.initiationDate 
+                        ? `${formatDisplayDate(initiationInfo.initiationDate)}${initiationInfo.initiationPlace ? ` (${initiationInfo.initiationPlace})` : ''}`
+                        : (initiationInfo.isTransferee ? `Prior to Transfer (${initiationInfo.transferFrom || 'Transfer'})` : '—')}
+                    </strong>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                      Order-wide Fraternal Seniority
+                    </div>
+                  </td>
+                  <th style={th}>Date Joined KSJI #500</th>
+                  <td style={td}>
+                    <strong>{formatDisplayDate(member.date_joined)}</strong>
+                    {member.transfer_from && (
+                      <div style={{ fontSize: 11.5, color: '#0369a1', marginTop: 2, fontWeight: 600 }}>
+                        Transferred from: {member.transfer_from}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+                <tr>
+                  <th style={th}>Membership Status</th>
+                  <td style={td} colSpan={3}>
                     <span style={{
                       fontWeight: 800,
                       color: member.is_deceased || member.status === 'Deceased' ? '#64748b' : (member.status === 'Active' ? '#15803d' : '#b91c1c')

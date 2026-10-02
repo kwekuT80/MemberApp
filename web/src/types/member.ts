@@ -48,4 +48,5 @@ export interface Member {
   photo_url?: string | null;
   member_number?: string | null;
   rank?: string | null;
+  degrees?: any[];
 }
