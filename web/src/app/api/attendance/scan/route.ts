@@ -77,6 +77,32 @@ export async function POST(request: Request) {
 
     const memberId = member.id;
 
+    // Helper to fetch member degree & leadership honors
+    const getMemberHonors = async (mid: string, title?: string) => {
+      const [{ data: degrees }, { data: positions }] = await Promise.all([
+        supabase.from('degrees').select('degree_type').eq('member_id', mid),
+        supabase.from('positions').select('position_title, date_to').eq('member_id', mid),
+      ]);
+
+      let highestDegree = 'Knight (1st Degree)';
+      const degTypes = (degrees || []).map((d: any) => String(d.degree_type || '').toLowerCase());
+      const has5th = degTypes.some((t: string) => t.includes('5th') || t.includes('fifth') || t.includes('noble')) ||
+        String(title || '').toLowerCase().includes('noble');
+      const has4th = degTypes.some((t: string) => t.includes('4th') || t.includes('fourth') || t.includes('chevalier'));
+      const has3rd = degTypes.some((t: string) => t.includes('3rd') || t.includes('third'));
+      const has2nd = degTypes.some((t: string) => t.includes('2nd') || t.includes('second'));
+
+      if (has5th) highestDegree = 'Noble (5th Degree)';
+      else if (has4th) highestDegree = 'Chevalier (4th Degree)';
+      else if (has3rd) highestDegree = 'Knight (3rd Degree)';
+      else if (has2nd) highestDegree = 'Knight (2nd Degree)';
+
+      const activePositions = (positions || []).filter((p: any) => !p.date_to);
+      const officeTitle = activePositions[0]?.position_title || (positions && positions.length > 0 ? positions[0].position_title : null);
+
+      return { highestDegree, officeTitle };
+    };
+
     // Check if already checked in for this meeting
     const { data: existingCheckIn } = await supabase
       .from('attendance')
@@ -86,6 +112,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (existingCheckIn) {
+      const honors = await getMemberHonors(member.id, member.title);
       return NextResponse.json({
         success: true,
         alreadyCheckedIn: true,
@@ -93,8 +120,11 @@ export async function POST(request: Request) {
         checkInTime: existingCheckIn.check_in_time,
         member: {
           id: member.id,
-          name: `${member.first_name} ${member.surname}`,
+          name: `${member.first_name || ''} ${member.surname || ''}`.trim() || 'Brother',
           status: member.status,
+          title: member.title,
+          highestDegree: honors.highestDegree,
+          officeTitle: honors.officeTitle,
         },
       });
     }
@@ -155,6 +185,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const honors = await getMemberHonors(member.id, member.title);
     return NextResponse.json({
       success: true,
       alreadyCheckedIn: false,
@@ -163,6 +194,9 @@ export async function POST(request: Request) {
         id: member.id,
         name: `${member.first_name || ''} ${member.surname || ''}`.trim() || 'Brother',
         status: member.status,
+        title: member.title,
+        highestDegree: honors.highestDegree,
+        officeTitle: honors.officeTitle,
       },
     });
   } catch (error) {

@@ -14,6 +14,8 @@ interface ScannedMember {
   status?: string;
   alreadyCheckedIn: boolean;
   checkInTime?: string;
+  highestDegree?: string;
+  officeTitle?: string;
 }
 
 export default function MeetingScanPage() {
@@ -250,6 +252,8 @@ export default function MeetingScanPage() {
           status: result.member.status,
           alreadyCheckedIn: result.alreadyCheckedIn || false,
           checkInTime: result.checkInTime,
+          highestDegree: result.member?.highestDegree,
+          officeTitle: result.member?.officeTitle,
         });
 
         // Update tracked members if newly checked in
@@ -456,7 +460,35 @@ export default function MeetingScanPage() {
                   {lastResult.alreadyCheckedIn ? '✓' : '+'}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--navy)' }}>{lastResult.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                    <span style={{ fontWeight: 800, fontSize: 18, color: 'var(--navy)' }}>{lastResult.name}</span>
+                    {lastResult.highestDegree && (
+                      <span style={{
+                        fontSize: 11,
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        background: lastResult.highestDegree.includes('Noble') ? '#C9A84C' : lastResult.highestDegree.includes('Chevalier') ? '#2563eb' : '#0A1628',
+                        color: lastResult.highestDegree.includes('Noble') ? '#0A1628' : '#ffffff',
+                      }}>
+                        {lastResult.highestDegree.includes('Noble') ? '👑 ' : lastResult.highestDegree.includes('Chevalier') ? '🏅 ' : '⚔️ '}
+                        {lastResult.highestDegree}
+                      </span>
+                    )}
+                    {lastResult.officeTitle && (
+                      <span style={{
+                        fontSize: 11,
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        background: '#f1f5f9',
+                        color: '#334155',
+                        border: '1px solid #cbd5e1',
+                      }}>
+                        🏛️ {lastResult.officeTitle}
+                      </span>
+                    )}
+                  </div>
                   <div style={{ color: '#64748b', fontSize: 14 }}>
                     {lastResult.alreadyCheckedIn ? (
                       <>Already checked in at {new Date(lastResult.checkInTime!).toLocaleTimeString()}</>

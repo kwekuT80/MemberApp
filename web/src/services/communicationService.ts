@@ -8,7 +8,7 @@ import {
   DeliveryResult,
 } from '@/services/messaging';
 import { getAllMemberSummaries } from '@/services/financialService';
-import { isSystemMember, formatDisplayDate, formatDisplayTime, formatDisplayDateTime } from '@/lib/utils/ksji-logic';
+import { isSystemMember, formatDisplayDate, formatDisplayTime, formatDisplayDateTime, getMatchingVenuePreset } from '@/lib/utils/ksji-logic';
 
 // Communication template types and renderers
 export type CommunicationType = 'email' | 'sms';
@@ -88,6 +88,8 @@ function renderTemplate(
       const dateTimeStr = time ? `${date} at ${time}` : date;
       const uniform = variables.uniform ? `\nUniform: ${variables.uniform}.` : '';
       const specialNote = variables.note ? `\nNote: ${variables.note}` : '';
+      const mapUrl = variables.mapUrl ? String(variables.mapUrl) : '';
+      const address = variables.venueAddress ? ` (${variables.venueAddress})` : '';
 
       return {
         subject: `Notice of Meeting: ${title} - ${dateTimeStr}`,
@@ -99,7 +101,8 @@ function renderTemplate(
             <ul>
               <li><strong>Date:</strong> ${date}</li>
               ${time ? `<li><strong>Time:</strong> ${time}</li>` : ''}
-              <li><strong>Venue:</strong> ${location}</li>
+              <li><strong>Venue:</strong> ${location}${address}</li>
+              ${mapUrl ? `<li><strong>Directions:</strong> <a href="${mapUrl}" target="_blank" style="color: #1d4ed8; font-weight: bold;">View on Google Maps</a></li>` : ''}
               ${variables.uniform ? `<li><strong>Uniform:</strong> ${variables.uniform}</li>` : ''}
               ${variables.note ? `<li><strong>Note:</strong> ${variables.note}</li>` : ''}
             </ul>
@@ -107,7 +110,7 @@ function renderTemplate(
             <p>Fraternally in St. John,<br/><strong>Registrar</strong><br/>KSJI Commandery No. 500</p>
           </div>
         `,
-        text: `KSJI Notice: Dear ${name}, you are invited to ${title} on ${dateTimeStr} at ${location}.${uniform}${specialNote}\nFraternally, KSJI 500.`,
+        text: `KSJI Notice: Dear ${name}, you are invited to ${title} on ${dateTimeStr} at ${location}.${mapUrl ? ` Map: ${mapUrl}.` : ''}${uniform}${specialNote}\nFraternally, KSJI 500.`,
       };
     }
 
@@ -400,6 +403,16 @@ export async function broadcastMeetingNotice({
   const mDateStr = formatDisplayDate(meeting.date);
   const mTimeStr = (meetingTime && meetingTime.trim()) || formatDisplayTime(meeting.date) || '';
 
+  // Match meeting coordinates against venue presets
+  const preset = (meeting.latitude && meeting.longitude)
+    ? getMatchingVenuePreset(Number(meeting.latitude), Number(meeting.longitude))
+    : null;
+  const venueName = preset ? preset.name : (meeting.location_name || 'Commandery Hall');
+  const venueAddress = preset ? preset.address : '';
+  const mapUrl = (meeting.latitude && meeting.longitude)
+    ? `https://maps.google.com/?q=${meeting.latitude},${meeting.longitude}`
+    : '';
+
   const variablesMap: Record<string, TemplateVariables> = {};
   targetMembers.forEach(m => {
     variablesMap[m.id] = {
@@ -407,7 +420,9 @@ export async function broadcastMeetingNotice({
       meetingTitle: meeting.title,
       meetingDate: mDateStr,
       meetingTime: mTimeStr,
-      meetingLocation: meeting.location_name || 'Commandery Hall',
+      meetingLocation: venueName,
+      venueAddress: venueAddress,
+      mapUrl: mapUrl,
       uniform: uniform || '',
       note: specialNote || '',
     };
@@ -567,5 +582,83 @@ export async function sendSingleMemberStatement({
   return {
     success: true,
     message: `Statement sent to Brother ${summary.full_name} via ${channel.toUpperCase()}.`,
+  };
+}
+
+/**
+ * High-Level Action: Broadcast a Custom Segment Announcement or Directive via SMS, Email, or Both.
+ * Strictly adheres to statutory compliance & data protection:
+ * Excludes deceased, dismissed, or transferred members from communications.
+ * Automatically paces SMS messages at 3/min (20-second interval) to prevent cellular carrier blocks.
+ */
+export async function broadcastCustomSegmentMessage({
+  memberIds,
+  channel = 'both',
+  subject,
+  smsBody,
+  htmlContent,
+  textContent,
+}: {
+  memberIds: string[];
+  channel: 'sms' | 'email' | 'both';
+  subject?: string;
+  smsBody?: string;
+  htmlContent?: string;
+  textContent?: string;
+}): Promise<{ success: boolean; totalQueued: number; message: string }> {
+  if (!memberIds || memberIds.length === 0) {
+    return { success: true, totalQueued: 0, message: 'No recipients provided.' };
+  }
+
+  const admin = await createAdminClient();
+
+  // Safety check: ensure no deceased, dismissed, or transfer-out members are in the recipient list
+  const { data: validMembers } = await admin
+    .from('members')
+    .select('id, full_name, is_deceased, status')
+    .in('id', memberIds);
+
+  const safeMemberIds = (validMembers || [])
+    .filter(m => {
+      const s = String(m.status || '').trim().toLowerCase();
+      return !m.is_deceased && !['deceased', 'dismissed', 'transfer-out', 'transferred', 'system'].includes(s);
+    })
+    .map(m => m.id);
+
+  if (safeMemberIds.length === 0) {
+    return { success: true, totalQueued: 0, message: 'No eligible active recipients after statutory compliance checks.' };
+  }
+
+  let totalQueued = 0;
+
+  // Dispatch Email
+  if (channel === 'email' || channel === 'both') {
+    await sendBulkCommunications({
+      memberIds: safeMemberIds,
+      type: 'email',
+      templateId: 'general',
+      subject: subject || 'Commandery Communication',
+      htmlContent: htmlContent || `<p>${(textContent || smsBody || '').replace(/\n/g, '<br/>')}</p>`,
+      textContent: textContent || smsBody || '',
+    });
+    totalQueued += safeMemberIds.length;
+  }
+
+  // Dispatch SMS with 3 messages/minute rate limiting
+  if (channel === 'sms' || channel === 'both') {
+    await sendBulkCommunications({
+      memberIds: safeMemberIds,
+      type: 'sms',
+      templateId: 'general',
+      smsBody: smsBody || textContent || subject || 'Commandery Announcement',
+      rateLimitPerMinute: 3, // 1 message every 20 seconds
+    });
+    totalQueued += safeMemberIds.length;
+  }
+
+  return {
+    success: true,
+    totalQueued,
+    message: `Dispatched message to ${safeMemberIds.length} brothers (${channel.toUpperCase()}) queued at 3 SMS/min.`,
   };
 }

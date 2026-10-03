@@ -52,13 +52,14 @@ export async function POST(
     ) {
       result =
         await sendBulkCommunications({
-          memberIds:
-            body.memberIds,
+          memberIds: body.memberIds,
           type: body.type,
-          templateId:
-            body.templateId,
-          variables:
-            body.variables || {},
+          templateId: body.templateId || 'general',
+          subject: body.subject,
+          htmlContent: body.htmlContent,
+          textContent: body.textContent,
+          smsBody: body.smsBody,
+          variables: body.variables || {},
         });
     } else {
       result =

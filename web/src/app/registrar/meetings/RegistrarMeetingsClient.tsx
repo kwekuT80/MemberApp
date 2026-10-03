@@ -10,9 +10,10 @@ interface Props {
   profile: any;
   initialMeetings: any[];
   members: any[];
+  positions?: any[];
 }
 
-export default function RegistrarMeetingsClient({ profile, initialMeetings, members }: Props) {
+export default function RegistrarMeetingsClient({ profile, initialMeetings, members, positions = [] }: Props) {
   const [meetings, setMeetings] = useState(initialMeetings);
   const [selectedMeeting, setSelectedMeeting] = useState<any | null>(initialMeetings[0] || null);
   
@@ -25,6 +26,53 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [rosterSortOrder, setRosterSortOrder] = useState<'status_priority' | 'name' | 'checkin_time'>('status_priority');
+  const [noticeInitialTarget, setNoticeInitialTarget] = useState<'all_active' | 'unconfirmed_only'>('all_active');
+
+  // Mandatory Officers Roll & Quorum Monitor logic
+  const MANDATORY_OFFICER_ROLES = [
+    { title: 'Worthy President', short: 'President', icon: '👑', match: (t: string) => (t === 'worthy president' || t === 'president') && !t.includes('past') },
+    { title: '1st Vice President', short: '1st VP', icon: '🎖️', match: (t: string) => t.includes('1st vice') || t.includes('first vice') },
+    { title: '2nd Vice President', short: '2nd VP', icon: '🎖️', match: (t: string) => t.includes('2nd vice') || t.includes('second vice') },
+    { title: 'Commander', short: 'Captain', icon: '⚔️', match: (t: string) => t.includes('commander') || t.includes('captain') },
+    { title: 'Recording Secretary', short: 'Rec Sec', icon: '📝', match: (t: string) => t.includes('recording sec') || (t.includes('secretary') && !t.includes('financial')) },
+    { title: 'Financial Secretary', short: 'Fin Sec', icon: '💰', match: (t: string) => t.includes('financial sec') },
+    { title: 'Treasurer', short: 'Treasurer', icon: '🪙', match: (t: string) => t.includes('treasurer') },
+  ];
+
+  const officerList = MANDATORY_OFFICER_ROLES.map((role) => {
+    const pos = (positions || []).find((p: any) => !p.date_to && role.match(String(p.position_title || '').toLowerCase().trim()));
+    const member = pos ? members.find((m: any) => m.id === pos.member_id) : null;
+    const att = pos ? attendanceReport.find((a: any) => a.id === pos.member_id || a.member_id === pos.member_id) : null;
+
+    let status = 'Absent';
+    if (att) {
+      if (att.status?.startsWith('Present')) status = 'Present';
+      else if (att.status === 'Excused' || att.status === 'Excuse Pending') status = 'Excused';
+    }
+
+    return {
+      role: role.title,
+      short: role.short,
+      icon: role.icon,
+      memberName: member ? `${member.title || 'Bro.'} ${member.first_name || ''} ${member.surname || ''}`.trim() : null,
+      memberId: pos?.member_id,
+      status,
+    };
+  });
+
+  const officersPresent = officerList.filter((o) => o.status === 'Present').length;
+  const isOfficerQuorumMet = officersPresent >= 4;
+
+  const trusteeMemberIds = new Set(
+    (positions || [])
+      .filter((p: any) => {
+        const t = String(p.position_title || '').toLowerCase();
+        return t.includes('trustee') || t.includes('past worthy president') || (t.includes('worthy president') && p.date_to);
+      })
+      .map((p: any) => p.member_id)
+  );
+  const trusteesTotal = trusteeMemberIds.size;
+  const trusteesPresent = attendanceReport.filter((a: any) => trusteeMemberIds.has(a.id || a.member_id) && a.status?.startsWith('Present')).length;
 
   // Search Query & Status Filter for sign-in auditing
   const [attendanceQuery, setAttendanceQuery] = useState('');
@@ -874,6 +922,104 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                 </button>
 
                 
+              </div>
+            </div>
+
+            {/* Mandatory Officers Roll & Quorum Monitor Bar */}
+            <div className="card" style={{
+              background: 'linear-gradient(135deg, #0A1628 0%, #172554 100%)',
+              color: '#ffffff',
+              borderRadius: 14,
+              padding: '18px 20px',
+              boxShadow: '0 4px 12px rgba(10, 22, 40, 0.25)',
+              border: '1px solid rgba(201, 168, 76, 0.4)',
+              display: 'grid',
+              gap: 14
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 20 }}>🏛️</span>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#C9A84C' }}>
+                      Mandatory Officers Roll & Quorum Monitor
+                    </h3>
+                  </div>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#94a3b8' }}>
+                    Live quorum verification across executive council offices per KSJI constitutional procedure.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  {/* Officer Quorum Status Badge */}
+                  <div style={{
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    background: isOfficerQuorumMet ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                    border: `1.5px solid ${isOfficerQuorumMet ? '#22c55e' : '#ef4444'}`,
+                    color: isOfficerQuorumMet ? '#86efac' : '#fca5a5',
+                    fontWeight: 800,
+                    fontSize: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}>
+                    <span>{isOfficerQuorumMet ? '✅ Quorum Formed' : '⏳ Quorum Incomplete'}</span>
+                    <span>•</span>
+                    <span>{officersPresent} / {officerList.length} Present</span>
+                  </div>
+
+                  {/* Board of Trustees Quorum Count */}
+                  <div style={{
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    background: 'rgba(201, 168, 76, 0.15)',
+                    border: '1.5px solid #C9A84C',
+                    color: '#fef08a',
+                    fontWeight: 800,
+                    fontSize: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}>
+                    <span>📜 Trustees:</span>
+                    <span style={{ color: '#ffffff' }}>{trusteesPresent} of {trusteesTotal} Present</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Officer Roster Tiles */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
+                {officerList.map((off) => {
+                  const isPres = off.status === 'Present';
+                  const isExc = off.status === 'Excused';
+                  return (
+                    <div key={off.role} style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: `1px solid ${isPres ? '#22c55e' : isExc ? '#f59e0b' : 'rgba(255,255,255,0.1)'}`,
+                      borderRadius: 10,
+                      padding: '8px 10px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 2,
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: '#C9A84C', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {off.icon} {off.short}
+                        </span>
+                        <span style={{
+                          fontSize: 10,
+                          fontWeight: 800,
+                          color: isPres ? '#4ade80' : isExc ? '#fcd34d' : '#94a3b8',
+                        }}>
+                          {isPres ? '✓ Present' : isExc ? '⏳ Excused' : '— Absent'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {off.memberName || 'Unassigned'}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

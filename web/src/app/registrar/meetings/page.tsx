@@ -3,12 +3,13 @@ export const dynamic = 'force-dynamic';
 import React from 'react';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { requireRegistrar } from '@/lib/auth/requireRegistrar';
-import { getMeetings, getAttendanceReport, getAbsenceRequests } from '@/services/attendanceService';
+import { getMeetings } from '@/services/attendanceService';
 import { searchMembers } from '@/services/memberService';
+import { createClient } from '@/lib/supabase/server';
 import RegistrarMeetingsClient from './RegistrarMeetingsClient';
 
 export default async function RegistrarMeetingsPage() {
-  const { user, profile } = await requireRegistrar();
+  const { profile } = await requireRegistrar();
 
   if (!profile || !profile.commandery_id) {
     return (
@@ -29,7 +30,18 @@ export default async function RegistrarMeetingsPage() {
 
   // 2. Fetch all active members on the roll for this Commandery
   const allMembers = await searchMembers('');
-  const commanderyMembers = allMembers.filter(m => m.commandery_id === profile.commandery_id && !['Dismissed', 'Transfer-Out', 'Deceased'].includes(m.status || ''));
+  const commanderyMembers = allMembers.filter(
+    (m) =>
+      m.commandery_id === profile.commandery_id &&
+      !['Dismissed', 'Transfer-Out', 'Deceased'].includes(m.status || '')
+  );
+
+  // 3. Fetch leadership positions for Officer Quorum & Trustees tracking
+  const supabase = await createClient();
+  const { data: positions } = await supabase
+    .from('positions')
+    .select('id, member_id, position_title, level, date_from, date_to')
+    .or(`commandery_id.eq.${profile.commandery_id},commandery_id.is.null`);
 
   return (
     <RegistrarShell title="Meeting & Attendance" subtitle="Schedule geofenced meetings, review excuses, and trigger manual check-in overrides.">
@@ -37,6 +49,7 @@ export default async function RegistrarMeetingsPage() {
         profile={profile}
         initialMeetings={meetings}
         members={commanderyMembers}
+        positions={positions || []}
       />
     </RegistrarShell>
   );

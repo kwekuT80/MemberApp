@@ -10,6 +10,7 @@ interface MeetingNoticeModalProps {
   meeting: any;
   activeCount?: number;
   unconfirmedCount?: number;
+  initialTarget?: 'all_active' | 'unconfirmed_only';
 }
 
 export default function MeetingNoticeModal({
@@ -18,6 +19,7 @@ export default function MeetingNoticeModal({
   meeting,
   activeCount = 0,
   unconfirmedCount = 0,
+  initialTarget,
 }: MeetingNoticeModalProps) {
   const [channel, setChannel] = useState<'sms' | 'email' | 'both'>('sms');
   const [target, setTarget] = useState<'all_active' | 'unconfirmed_only'>('all_active');
@@ -32,6 +34,17 @@ export default function MeetingNoticeModal({
       setTime(formatDisplayTime(meeting.date) || '8:00 AM');
     }
   }, [meeting?.date]);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialTarget) {
+        setTarget(initialTarget);
+        if (initialTarget === 'unconfirmed_only') {
+          setSpecialNote('Notice: The Commandery meeting has commenced. Brothers yet to check in are kindly reminded to report to the registrar desk or check in promptly.');
+        }
+      }
+    }
+  }, [isOpen, initialTarget]);
 
   if (!isOpen || !meeting) return null;
 
