@@ -151,3 +151,45 @@ graph TD
 
 - **Zero Disruption to Active Data**: All improvements build on top of existing database schemas and verified services.
 - **Progressive Delivery**: Each phase can be deployed and verified independently without breaking existing member records or registrar workflows.
+
+---
+
+## 6. Privacy, Data Protection & Data Storage Compliance Policy
+### Institutional Data Governance Standard for Commandery #500 Member App
+*(Compliant with the Ghana Data Protection Act, 2012 [Act 843] and International Privacy Principles)*
+
+### 1. Data Controller & Processing Boundaries
+- **Data Controller:** St. Margaret-Mary Commandery No. 500, Knights of St. John International, P.O. Box DS 1234, Dansoman, Accra, Ghana.
+- **Scope of Data Collected:** Personal identity records (titles, legal names, dates of birth, photos), contact points (mobile numbers, residential and email addresses), sacramental and fraternal exemplification records, military ranks, family and dependent benefit records, and treasury ledgers (dues assessments, welfare contributions, and disbursements).
+- **Sole Fraternal Purpose:** All member data processed within this platform is strictly reserved for fraternal administration, voting eligibility, welfare scheme disbursement, pastoral care, and holy memorial archiving.
+- **Commercial Prohibition:** Under no circumstances shall member data, contact lists, phone directories, or financial ledgers be sold, leased, shared, or distributed to third-party commercial, advertising, or marketing organizations.
+
+### 2. Lawful Basis & Consent
+- Data processing is grounded in **Legitimate Fraternal Interest** (Act 843 §18) necessary for membership governance under the Constitution of the Knights of St. John International.
+- Members consent to fraternal notices (SMS and email) for official meetings, annual dues assessments, welfare benefit updates, and bereavement announcements upon initiation into Commandery #500.
+
+### 3. Deceased & Inactive Archival Retention Policy ("The Right to Fraternal History")
+- **Permanent Retention of Deceased Members:** Deceased brothers are **never erased or purged** from the database (`status = 'Deceased'` or `is_deceased = true`). In accordance with sacred fraternal traditions, deceased members are permanently retained in the Master Roll and Biographical Archive to honor their lifelong service to Church and Commandery.
+- **Operational Billing Exclusions:** Deceased, dismissed, and transferred members are strictly insulated from annual dues assessments, delinquency collection queues, automated SMS broadcast alerts, and welfare active subscriber quotas.
+- **Transferred & Dismissed Members:** Preserved with restricted super-admin viewing permissions for audit integrity and historical ledger balance reconciliation.
+
+### 4. Data Storage, Architecture & Technical Security Measures
+- **Storage Infrastructure:** Cloud-hosted PostgreSQL on Supabase enterprise cloud infrastructure, physically located in certified ISO/IEC 27001, SOC 2 Type II, and PCI DSS compliant enterprise data centers (AWS).
+- **Encryption in Transit:** All client-server communication is strictly enforced over HTTPS using **TLS 1.3** cryptographic protocols.
+- **Encryption at Rest:** Sensitive records, database volumes, and object storage backups are encrypted at rest using industry-standard **AES-256** encryption keys managed via cloud KMS.
+- **Role-Based Access Control (RBAC) & Row-Level Security (RLS):**
+  - *General Members (`/me`):* Governed by RLS policies permitting access strictly to their own profile, dependents, attendance metrics, and personal statement of standing.
+  - *Registrars & Financial Officers:* Scoped administrative roles restricted by authenticated session tokens with immutable audit logging (`financial_audit_log`, `welfare_audit_log`).
+  - *Public QR Verification (`/verify/[id]`):* Sanitized, read-only public payload exposing only verification validity, official degree attained, active leadership office, and good standing certification seal—omitting private financial balances, home addresses, phone numbers, and dependent data.
+
+### 5. Automated Backup, Heartbeat & Disaster Recovery Governance
+- **Automated Weekly Snapshots:** A serverless daemon cron (`/api/cron/backup`) triggers every Sunday at 00:00 UTC to compile a full relational snapshot across all 27 core database tables.
+- **Data Integrity & Checksum Verification:** Each backup payload is validated with an unalterable **SHA-256** cryptographic hash and compressed with Gzip to minimize exposure surface.
+- **Encrypted Vault Storage:** Snapshot archives are deposited into private Supabase storage vaults accessible only via 30-day time-limited signed URLs and delivered directly to the Commandery's official disaster recovery inbox.
+
+### 6. Data Subject Rights & Rectification
+- Every brother in good standing retains the right to:
+  1. **Access:** View their complete personal dossier, family records, and dues ledger via the `/me` portal at any time.
+  2. **Rectification:** Submit updates to their residential address, mobile numbers, occupation, and emergency contacts through their self-service portal.
+  3. **Exportability:** Generate and print official signed Statements of Good Standing and Personal Audit Sheets for transfer or audit purposes.
+
