@@ -96,6 +96,26 @@ export default async function RollOfWorthyPresidentsPage() {
       title="Roll of Worthy Presidents" 
       subtitle="St. Margaret-Mary Commandery No. 500 — Official Historical Succession of Worthy Presidents"
     >
+      <div style={{ marginBottom: 16 }}>
+        <a
+          href="/registrar/governance?tab=trustees"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 13,
+            fontWeight: 700,
+            color: '#1E3A8A',
+            textDecoration: 'none',
+            background: '#EFF6FF',
+            border: '1px solid #BFDBFE',
+            padding: '6px 12px',
+            borderRadius: 8,
+          }}
+        >
+          🏛️ View in Constitutional Board of Trustees & Governance Hub →
+        </a>
+      </div>
       <RollOfWorthyPresidentsClient 
         presidentsList={presidentsList}
         isRegistrar={true}

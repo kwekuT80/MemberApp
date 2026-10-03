@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { calculateExpectedWelfare, isEligibleWelfareMember } from '@/lib/utils/ksji-logic';
 import { fetchAllPaginated } from '@/lib/supabase/pagination';
 import { 
@@ -312,7 +312,22 @@ export async function recordWelfareContribution(payload: {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase
+  if (!user) throw new Error('Not authenticated.');
+
+  // Validate allowed roles: welfare_treasurer, financial_registrar, registrar, super_admin
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const allowedRoles = ['super_admin', 'registrar', 'welfare_treasurer', 'financial_registrar'];
+  if (!profile || !allowedRoles.includes(profile.role)) {
+    throw new Error('Access denied. Insufficient permissions to record welfare contributions.');
+  }
+
+  const admin = await createAdminClient();
+  const { data, error } = await admin
     .from('welfare_contributions')
     .insert({
       member_id: payload.member_id,
@@ -323,7 +338,7 @@ export async function recordWelfareContribution(payload: {
       payment_method: payload.payment_method,
       reference_no: payload.reference_no || null,
       notes: payload.notes || null,
-      recorded_by: user?.id || null,
+      recorded_by: user.id,
     })
     .select('*, members:member_id(first_name, surname)')
     .single();
@@ -343,14 +358,29 @@ export async function recordWelfareContribution(payload: {
 
 export async function deleteWelfareContribution(id: string): Promise<void> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: existing } = await supabase
+  if (!user) throw new Error('Not authenticated.');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const allowedRoles = ['super_admin', 'registrar', 'welfare_treasurer', 'financial_registrar'];
+  if (!profile || !allowedRoles.includes(profile.role)) {
+    throw new Error('Access denied. Insufficient permissions to delete welfare contributions.');
+  }
+
+  const admin = await createAdminClient();
+  const { data: existing } = await admin
     .from('welfare_contributions')
     .select('*')
     .eq('id', id)
     .single();
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('welfare_contributions')
     .delete()
     .eq('id', id);

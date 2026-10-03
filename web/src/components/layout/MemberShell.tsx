@@ -14,6 +14,7 @@ const memberNav = [
   {
     title: 'ORDERS & HONORS',
     items: [
+      { href: '/me/governance', label: '🏛️ Governance & Temples' },
       { href: '/me/cohort', label: '⚔️ My Initiation Cohort' },
       { href: '/me/officers', label: '⚔️ Commandery Officers' },
       { href: '/me/presidents', label: '👑 Worthy Presidents' },

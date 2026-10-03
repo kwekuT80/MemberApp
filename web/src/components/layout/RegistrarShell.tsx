@@ -65,6 +65,7 @@ export default function RegistrarShell({
     {
       title: '🏛️ GOVERNANCE & LEADERSHIP',
       items: [
+        { href: '/registrar/governance', label: '🏛️ Governance & Temples Hub' },
         { href: '/registrar/officers', label: '⚔️ Commandery Officers' },
         { href: '/registrar/presidents', label: '👑 Worthy Presidents' },
       ]
