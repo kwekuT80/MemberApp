@@ -722,13 +722,13 @@ export async function getWelfareArrearsDetailedReport(): Promise<WelfareArrearsR
   const currentMonth = new Date().getMonth() + 1;
   const baseStartYear = 2022;
 
-  // 1. Fetch eligible active/alive members
-  const { data: allMembers, error: membersErr } = await supabase
-    .from('members')
-    .select('id, first_name, surname, title, date_of_birth, date_joined, status, is_deceased')
-    .order('surname');
-
-  if (membersErr) throw membersErr;
+  const allMembers = await fetchAllPaginated<any>((from, to) =>
+    supabase
+      .from('members')
+      .select('id, first_name, surname, title, date_of_birth, date_joined, status, is_deceased, date_of_death, date_of_dismissal, transfer_to')
+      .order('surname')
+      .range(from, to)
+  );
 
   const eligibleMembers = (allMembers || []).filter(isEligibleWelfareMember);
 

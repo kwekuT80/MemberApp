@@ -287,12 +287,16 @@ export function formatFraternalStanding(status: string | null | undefined, isDec
 export function isBillableMember(m: {
   status?: string | null;
   is_deceased?: boolean | null;
+  date_of_death?: string | null;
+  date_of_dismissal?: string | null;
+  transfer_to?: string | null;
   first_name?: string | null;
   surname?: string | null;
 }): boolean {
-  if (m.is_deceased === true) return false;
+  if (m.is_deceased === true || Boolean(m.date_of_death)) return false;
+  if (Boolean(m.date_of_dismissal) || Boolean(m.transfer_to)) return false;
   const s = String(m.status || '').trim().toLowerCase();
-  if (['deceased', 'dismissed', 'transfer-out', 'system'].includes(s)) return false;
+  if (['deceased', 'dismissed', 'transfer-out', 'transferred', 'system'].includes(s)) return false;
   if (isSystemMember(m)) return false;
   return true;
 }
@@ -410,6 +414,102 @@ export function getCanonicalDegreeRank(
     return 'Chevalier';
   }
   return options?.short ? 'Bro.' : 'Brother';
+}
+
+export interface OfficialDegreeDetail {
+  degreeLevel: 1 | 2 | 3 | 4 | 5;
+  degreeName: 'Noble' | 'Chevalier' | 'Knight';
+  fullTitle: string;
+  badgeLabel: string;
+  templeAffiliation: string | null;
+  icon: string;
+}
+
+/**
+ * Resolves full degree credentials, temple affiliations, and badges.
+ */
+export function getOfficialDegreeDetail(
+  degrees?: Array<{ degree_type?: string | null }> | null
+): OfficialDegreeDetail {
+  if (hasAchieved5thDegree(degrees)) {
+    return {
+      degreeLevel: 5,
+      degreeName: 'Noble',
+      fullTitle: 'Noble (5th Degree Temple)',
+      badgeLabel: 'Noble (5th Degree)',
+      templeAffiliation: "Nobles' Temple",
+      icon: '👑',
+    };
+  }
+  if (hasAchieved4thDegree(degrees)) {
+    return {
+      degreeLevel: 4,
+      degreeName: 'Chevalier',
+      fullTitle: 'Chevalier (4th Degree Temple)',
+      badgeLabel: 'Chevalier (4th Degree)',
+      templeAffiliation: 'Chevaliers Temple',
+      icon: '⚔️',
+    };
+  }
+  return {
+    degreeLevel: 1,
+    degreeName: 'Knight',
+    fullTitle: 'Knight of St. John',
+    badgeLabel: 'Knight (1st–3rd Degree)',
+    templeAffiliation: null,
+    icon: '🛡️',
+  };
+}
+
+export interface LeadershipOfficeSummary {
+  activeOffice: string | null;
+  isPastPresident: boolean;
+  pastPresidentTitle: string | null;
+  allOfficesHeld: string[];
+}
+
+/**
+ * Evaluates leadership history to extract active executive offices and Past Worthy President status.
+ */
+export function getLeadershipOfficeSummary(
+  positions?: Array<{ position_title?: string | null; date_from?: string | null; date_to?: string | null }> | null
+): LeadershipOfficeSummary {
+  if (!positions || !Array.isArray(positions) || positions.length === 0) {
+    return { activeOffice: null, isPastPresident: false, pastPresidentTitle: null, allOfficesHeld: [] };
+  }
+
+  const currentYear = new Date().getFullYear();
+  let activeOffice: string | null = null;
+  let isPastPresident = false;
+  const allOfficesHeld: string[] = [];
+
+  for (const pos of positions) {
+    const title = (pos.position_title || '').trim();
+    if (!title) continue;
+
+    if (!allOfficesHeld.includes(title)) {
+      allOfficesHeld.push(title);
+    }
+
+    if (title.toLowerCase() === 'president' || title.toLowerCase() === 'worthy president') {
+      isPastPresident = true;
+    }
+
+    // Check if active: date_to is null or end year >= currentYear
+    const endYear = pos.date_to ? parseInt(pos.date_to.substring(0, 4), 10) : null;
+    if (!endYear || endYear >= currentYear) {
+      if (!activeOffice) {
+        activeOffice = title;
+      }
+    }
+  }
+
+  return {
+    activeOffice,
+    isPastPresident,
+    pastPresidentTitle: isPastPresident ? 'Past Worthy President (PWP)' : null,
+    allOfficesHeld,
+  };
 }
 
 /**
@@ -1183,10 +1283,14 @@ export function isEligibleWelfareMember(m: {
   surname?: string | null;
   status?: string | null;
   is_deceased?: boolean | null;
+  date_of_death?: string | null;
+  date_of_dismissal?: string | null;
+  transfer_to?: string | null;
 }): boolean {
-  if (m.is_deceased) return false;
+  if (m.is_deceased === true || Boolean(m.date_of_death)) return false;
+  if (Boolean(m.date_of_dismissal) || Boolean(m.transfer_to)) return false;
   const s = String(m.status || '').trim().toLowerCase();
-  if (['deceased', 'dismissed', 'transfer-out', 'system'].includes(s)) return false;
+  if (['deceased', 'dismissed', 'transfer-out', 'transferred', 'system'].includes(s)) return false;
   const fullName = `${m.first_name || ''} ${m.surname || ''}`.toLowerCase();
   if (fullName.includes('system account') || 
       fullName.includes('operational outflow') || 

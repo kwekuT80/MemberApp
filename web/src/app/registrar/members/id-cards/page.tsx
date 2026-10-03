@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { createClient } from '@/lib/supabase/client';
 import { Member } from '@/types/member';
+import { formatMemberTitle, getOfficialDegreeDetail } from '@/lib/utils/ksji-logic';
 
 export default function BulkIDCardsPage() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -18,7 +19,7 @@ export default function BulkIDCardsPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from('members')
-        .select('*')
+        .select('*, degrees(*)')
         .order('surname', { ascending: true });
 
       if (!error && data) {
@@ -374,25 +375,50 @@ export default function BulkIDCardsPage() {
                         </div>
 
                         <div style={{ flex: 1, overflow: 'hidden' }}>
-                          <div style={{ color: '#C9A84C', fontWeight: 800, fontSize: 11 }}>{member.title || 'Bro.'}</div>
+                          <div style={{ color: '#C9A84C', fontWeight: 800, fontSize: 11 }}>
+                            {formatMemberTitle(member.title, member.degrees)}
+                          </div>
                           <div className="card-surname" style={{ fontSize: 18, fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {member.surname}
                           </div>
                           <div className="card-firstname" style={{ color: '#CCD6F6', fontSize: 13, fontWeight: 600, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {member.first_name} {member.other_names || ''}
                           </div>
-                          <div style={{
-                            marginTop: 6,
-                            display: 'inline-block',
-                            background: member.status === 'Active' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                            color: member.status === 'Active' ? '#059669' : '#DC2626',
-                            padding: '2px 8px',
-                            borderRadius: 100,
-                            fontSize: 9,
-                            fontWeight: 900,
-                            border: `1px solid ${member.status === 'Active' ? 'rgba(52, 211, 153, 0.4)' : 'rgba(252, 165, 165, 0.4)'}`
-                          }}>
-                            STATUS: {member.status?.toUpperCase() || 'ACTIVE'}
+                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                            {(() => {
+                              const isDec = member.is_deceased === true || String(member.status || '').toLowerCase() === 'deceased';
+                              const deg = getOfficialDegreeDetail(member.degrees);
+                              return (
+                                <>
+                                  <span style={{
+                                    display: 'inline-block',
+                                    background: isDec ? 'rgba(99, 102, 241, 0.2)' : member.status === 'Active' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                    color: isDec ? '#818cf8' : member.status === 'Active' ? '#059669' : '#DC2626',
+                                    padding: '2px 7px',
+                                    borderRadius: 100,
+                                    fontSize: 8.5,
+                                    fontWeight: 900,
+                                    border: `1px solid ${isDec ? 'rgba(99, 102, 241, 0.4)' : member.status === 'Active' ? 'rgba(52, 211, 153, 0.4)' : 'rgba(252, 165, 165, 0.4)'}`
+                                  }}>
+                                    {isDec ? '🕊️ ROLL OF HONOUR' : member.status?.toUpperCase() || 'ACTIVE'}
+                                  </span>
+                                  {deg.degreeLevel >= 4 && (
+                                    <span style={{
+                                      display: 'inline-block',
+                                      background: 'rgba(201, 168, 76, 0.2)',
+                                      color: '#FCD34D',
+                                      padding: '2px 7px',
+                                      borderRadius: 100,
+                                      fontSize: 8.5,
+                                      fontWeight: 800,
+                                      border: '1px solid rgba(201, 168, 76, 0.4)'
+                                    }}>
+                                      {deg.icon} {deg.degreeName}
+                                    </span>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>

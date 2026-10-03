@@ -2,13 +2,53 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { formatMemberTitle, formatDisplayDate, getCanonicalDegreeRank } from '@/lib/utils/ksji-logic';
+import Link from 'next/link';
+
+interface VerificationData {
+  id: string;
+  shortCode: string;
+  first_name: string;
+  surname: string;
+  other_names?: string | null;
+  title: string;
+  photo_url?: string | null;
+  status: string;
+  date_joined?: string | null;
+  date_joined_formatted: string;
+  commandery: string;
+  commandery_code: string;
+  commandery_location: string;
+  degreeDetail: {
+    degreeLevel: number;
+    degreeName: string;
+    fullTitle: string;
+    badgeLabel: string;
+    templeAffiliation: string | null;
+    icon: string;
+  };
+  leadership: {
+    activeOffice: string | null;
+    isPastPresident: boolean;
+    pastPresidentTitle: string | null;
+    allOfficesHeld: string[];
+  };
+  standing: {
+    code: string;
+    label: string;
+    description: string;
+    color: string;
+    isGoodStanding: boolean;
+    isDeceased: boolean;
+    isSeniorExempt: boolean;
+  };
+  verifiedAt: string;
+}
 
 export default function VerificationPage() {
   const { id } = useParams();
-  const [member, setMember] = useState<any>(null);
+  const [data, setData] = useState<VerificationData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -16,11 +56,15 @@ export default function VerificationPage() {
       try {
         const res = await fetch(`/api/verify/${id}`);
         if (res.ok) {
-          const data = await res.json();
-          setMember(data);
+          const json = await res.json();
+          setData(json);
+        } else {
+          const errJson = await res.json().catch(() => ({}));
+          setError(errJson.error || 'Membership credential could not be verified.');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load member verification:', err);
+        setError('Network error verifying credential.');
       } finally {
         setLoading(false);
       }
@@ -28,195 +72,390 @@ export default function VerificationPage() {
     load();
   }, [id]);
 
-  if (loading) return <div style={container}><div style={card}>Loading Verification Data...</div></div>;
-  if (!member) return <div style={container}><div style={card}><h3>Invalid ID</h3><p>This membership record could not be verified.</p></div></div>;
-
-  const degrees = member.degrees || [];
-  const displayTitle = formatMemberTitle(member.title, degrees);
-  const fullName = `${displayTitle} ${member.first_name} ${member.surname}`.toUpperCase();
-  const isActive = member.status === 'Active';
-  
-  // Find highest degree
-  const rank = getCanonicalDegreeRank(degrees);
-
-  return (
-    <div style={container}>
-      <div style={card}>
-        <div style={badgeHeader}>
-          <div style={logo}>KSJI</div>
-          <div style={headerText}>OFFICIAL VERIFICATION</div>
-        </div>
-
-        <div style={photoWrap}>
-          {member.photo_url ? (
-            <img src={member.photo_url} alt="Portrait" style={photo} />
-          ) : (
-            <div style={photoPlaceholder}>👤</div>
-          )}
-        </div>
-
-        <h1 style={name}>{fullName}</h1>
-        <div style={rankTag}>{rank.toUpperCase()}</div>
-
-        <div style={divider} />
-
-        <div style={statusGrid}>
-          <div style={statusItem}>
-            <div style={label}>Status</div>
-            <div style={{ ...statusValue, color: isActive ? '#1f6f43' : '#a02020' }}>
-              {isActive ? '✓ ACTIVE' : '⚠ ' + (member.status || 'INACTIVE').toUpperCase()}
-            </div>
+  if (loading) {
+    return (
+      <div style={containerStyle}>
+        <div style={cardLoadingStyle}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>🛡️</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#C9A84C' }}>
+            VERIFYING KSJI CREDENTIAL...
           </div>
-          <div style={statusItem}>
-            <div style={label}>Member Since</div>
-            <div style={statusValue}>{formatDisplayDate(member.date_joined)}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
+            Connecting to Commandery #500 Master Registry
           </div>
-        </div>
-
-        <div style={footer}>
-          Verified by KSJI Registrar Suite<br />
-          {new Date().toLocaleString()}
         </div>
       </div>
-      
-      <div style={branding}>
-        Knights of St. John International
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div style={containerStyle}>
+        <div style={{ ...cardBaseStyle, maxWidth: 440, textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
+          <h2 style={{ fontSize: 20, fontWeight: 900, color: '#dc2626', margin: 0 }}>
+            UNVERIFIED CREDENTIAL
+          </h2>
+          <p style={{ fontSize: 13, color: '#475569', margin: '12px 0 24px', lineHeight: 1.5 }}>
+            {error || 'This QR identifier does not match any confirmed record in the Commandery #500 database registry.'}
+          </p>
+          <Link
+            href="/login"
+            style={{
+              display: 'inline-block',
+              background: '#0A1628',
+              color: '#C9A84C',
+              padding: '10px 20px',
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            Access Registrar Portal
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const { degreeDetail, leadership, standing } = data;
+  const fullName = `${data.title} ${data.first_name} ${data.surname}`.trim();
+
+  return (
+    <div style={containerStyle}>
+      <div style={cardBaseStyle}>
+        {/* Top Official Seal & Header */}
+        <div style={headerStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            <span style={{ fontSize: 28 }}>🛡️</span>
+            <div>
+              <div style={brandTitleStyle}>KNIGHTS OF ST. JOHN INTERNATIONAL</div>
+              <div style={brandSubtitleStyle}>Commandery #500 • Official Public Credential Registry</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Member Portrait & Elevational Badges */}
+        <div style={{ textAlign: 'center', padding: '24px 24px 16px' }}>
+          <div style={avatarWrapStyle}>
+            {data.photo_url ? (
+              <img
+                src={data.photo_url}
+                alt={fullName}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 54, background: '#f1f5f9', color: '#64748b' }}>
+                👤
+              </div>
+            )}
+            <div style={statusDotStyle(standing.color)} title={standing.label} />
+          </div>
+
+          <h1 style={nameStyle}>{fullName}</h1>
+          
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+            <span style={shortCodePillStyle}>{data.shortCode}</span>
+            <span style={degreePillStyle}>
+              {degreeDetail.icon} {degreeDetail.fullTitle}
+            </span>
+            {degreeDetail.templeAffiliation && (
+              <span style={templePillStyle}>🏛️ {degreeDetail.templeAffiliation}</span>
+            )}
+            {leadership.isPastPresident && (
+              <span style={leadershipPillStyle}>👑 Past Worthy President</span>
+            )}
+            {leadership.activeOffice && (
+              <span style={officePillStyle}>⚔️ {leadership.activeOffice}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Fraternal Good Standing Certification Block */}
+        <div style={{ padding: '0 24px 20px' }}>
+          <div style={standingBlockStyle(standing.code, standing.color)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 24 }}>
+                {standing.isDeceased ? '🕊️' : standing.isSeniorExempt ? '⚜️' : standing.isGoodStanding ? '✅' : '⏳'}
+              </span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                  {standing.label}
+                </div>
+                <div style={{ fontSize: 11.5, opacity: 0.9, marginTop: 2 }}>
+                  {standing.description}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Fraternal Verification Details Grid */}
+        <div style={{ padding: '0 24px 20px' }}>
+          <div style={detailGridStyle}>
+            <div style={detailItemStyle}>
+              <div style={detailLabelStyle}>Commandery Unit</div>
+              <div style={detailValueStyle}>{data.commandery} ({data.commandery_code})</div>
+            </div>
+            <div style={detailItemStyle}>
+              <div style={detailLabelStyle}>Parish Jurisdiction</div>
+              <div style={detailValueStyle}>{data.commandery_location}</div>
+            </div>
+            <div style={detailItemStyle}>
+              <div style={detailLabelStyle}>Member Since</div>
+              <div style={detailValueStyle}>{data.date_joined_formatted}</div>
+            </div>
+            <div style={detailItemStyle}>
+              <div style={detailLabelStyle}>Highest Degree</div>
+              <div style={detailValueStyle}>{degreeDetail.badgeLabel}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Official Footer Verification Stamp */}
+        <div style={footerStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontSize: 11, color: '#64748b' }}>
+            <span>Verified by Commandery Registrar Suite</span>
+            <span>{new Date(data.verifiedAt).toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Auxiliary Actions */}
+      <div style={{ marginTop: 20, textAlign: 'center', display: 'flex', gap: 16 }}>
+        <button
+          onClick={() => window.print()}
+          style={printButtonStyle}
+        >
+          🖨️ Print Credential
+        </button>
+        <Link
+          href="/login"
+          style={portalLinkStyle}
+        >
+          Officer Portal
+        </Link>
+      </div>
+
+      <div style={{ marginTop: 16, fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
+        Knights of St. John International • St. Margaret-Mary Commandery No. 500
       </div>
     </div>
   );
 }
 
-const container: React.CSSProperties = {
+// ─── STYLES ─────────────────────────────────────────────────────────────────
+
+const containerStyle: React.CSSProperties = {
   minHeight: '100vh',
-  backgroundColor: '#10233f',
+  background: 'linear-gradient(135deg, #0A1628 0%, #0f172a 100%)',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: '20px',
-  fontFamily: 'system-ui, -apple-system, sans-serif',
+  padding: '30px 16px',
+  fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
 };
 
-const card: React.CSSProperties = {
-  backgroundColor: '#fff',
+const cardBaseStyle: React.CSSProperties = {
+  background: '#ffffff',
+  borderRadius: 20,
+  maxWidth: 480,
   width: '100%',
-  maxWidth: '400px',
-  borderRadius: '24px',
-  padding: '40px',
-  boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+  boxShadow: '0 24px 48px rgba(0,0,0,0.35)',
+  border: '2px solid #C9A84C',
+  overflow: 'hidden',
+};
+
+const cardLoadingStyle: React.CSSProperties = {
+  ...cardBaseStyle,
+  padding: '60px 24px',
   textAlign: 'center',
-  border: '1px solid #d4af37',
+  maxWidth: 380,
 };
 
-const badgeHeader: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  marginBottom: '30px',
+const headerStyle: React.CSSProperties = {
+  background: 'linear-gradient(135deg, #0A1628 0%, #1e293b 100%)',
+  padding: '18px 24px',
+  textAlign: 'center',
+  color: '#ffffff',
+  borderBottom: '1px solid rgba(201, 168, 76, 0.4)',
 };
 
-const logo: React.CSSProperties = {
-  fontSize: '24px',
-  fontWeight: '900',
-  color: '#d4af37',
-  letterSpacing: '2px',
-};
-
-const headerText: React.CSSProperties = {
-  fontSize: '12px',
-  fontWeight: '700',
-  color: '#a0aec0',
-  marginTop: '4px',
+const brandTitleStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 900,
+  color: '#C9A84C',
   letterSpacing: '1px',
 };
 
-const photoWrap: React.CSSProperties = {
-  width: '150px',
-  height: '150px',
-  borderRadius: '75px',
-  border: '4px solid #d4af37',
-  margin: '0 auto 24px',
+const brandSubtitleStyle: React.CSSProperties = {
+  fontSize: 11,
+  color: '#cbd5e1',
+  marginTop: 2,
+};
+
+const avatarWrapStyle: React.CSSProperties = {
+  width: 120,
+  height: 120,
+  borderRadius: '50%',
+  border: '3px solid #C9A84C',
+  margin: '0 auto 16px',
   overflow: 'hidden',
-  backgroundColor: '#f8fafc',
+  boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
+  position: 'relative',
 };
 
-const photo: React.CSSProperties = {
-  width: '100%',
-  height: '100%',
-  objectFit: 'cover',
+const statusDotStyle = (color: string): React.CSSProperties => ({
+  position: 'absolute',
+  bottom: 6,
+  right: 6,
+  width: 16,
+  height: 16,
+  borderRadius: '50%',
+  backgroundColor: color,
+  border: '2px solid #ffffff',
+  boxShadow: `0 0 8px ${color}`,
+});
+
+const nameStyle: React.CSSProperties = {
+  fontSize: 20,
+  fontWeight: 900,
+  color: '#0A1628',
+  margin: 0,
+  letterSpacing: '-0.3px',
 };
 
-const photoPlaceholder: React.CSSProperties = {
-  width: '100%',
-  height: '100%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: '60px',
-  opacity: 0.2,
+const shortCodePillStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontFamily: 'monospace',
+  fontWeight: 800,
+  background: '#f1f5f9',
+  color: '#334155',
+  padding: '4px 8px',
+  borderRadius: 6,
+  border: '1px solid #cbd5e1',
 };
 
-const name: React.CSSProperties = {
-  fontSize: '22px',
-  margin: '0 0 8px',
-  color: '#10233f',
-  fontWeight: '800',
+const degreePillStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 800,
+  background: '#fefce8',
+  color: '#854d0e',
+  padding: '4px 10px',
+  borderRadius: 999,
+  border: '1px solid #fef08a',
 };
 
-const rankTag: React.CSSProperties = {
-  display: 'inline-block',
-  padding: '6px 16px',
-  backgroundColor: '#f0f4f8',
-  borderRadius: '20px',
-  fontSize: '12px',
-  fontWeight: '700',
-  color: '#53657d',
-  marginBottom: '24px',
+const templePillStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 800,
+  background: '#eff6ff',
+  color: '#1e40af',
+  padding: '4px 10px',
+  borderRadius: 999,
+  border: '1px solid #bfdbfe',
 };
 
-const divider: React.CSSProperties = {
-  height: '1px',
-  backgroundColor: '#edf2f7',
-  margin: '0 0 24px',
+const leadershipPillStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 800,
+  background: '#faf5ff',
+  color: '#6b21a8',
+  padding: '4px 10px',
+  borderRadius: 999,
+  border: '1px solid #e9d5ff',
 };
 
-const statusGrid: React.CSSProperties = {
+const officePillStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 800,
+  background: '#f0fdf4',
+  color: '#166534',
+  padding: '4px 10px',
+  borderRadius: 999,
+  border: '1px solid #bbf7d0',
+};
+
+const standingBlockStyle = (code: string, color: string): React.CSSProperties => {
+  let bg = 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)';
+  let textColor = '#ffffff';
+
+  if (code === 'MEMORIAL_ROLL') {
+    bg = 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)';
+  } else if (code === 'SENIOR_EXEMPT') {
+    bg = 'linear-gradient(135deg, #78350f 0%, #92400e 100%)';
+  } else if (code === 'ASSESSMENT_PENDING') {
+    bg = 'linear-gradient(135deg, #b45309 0%, #d97706 100%)';
+  } else if (code === 'ARCHIVED_DISMISSED') {
+    bg = 'linear-gradient(135deg, #991b1b 0%, #b91c1c 100%)';
+  } else if (code === 'ARCHIVED_TRANSFERRED') {
+    bg = 'linear-gradient(135deg, #334155 0%, #475569 100%)';
+  }
+
+  return {
+    background: bg,
+    color: textColor,
+    padding: '14px 18px',
+    borderRadius: 12,
+    border: '1px solid rgba(255,255,255,0.2)',
+    boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+  };
+};
+
+const detailGridStyle: React.CSSProperties = {
+  background: '#f8fafc',
+  borderRadius: 12,
+  padding: 16,
   display: 'grid',
   gridTemplateColumns: '1fr 1fr',
-  gap: '16px',
-  marginBottom: '30px',
+  gap: 12,
+  border: '1px solid #e2e8f0',
 };
 
-const statusItem: React.CSSProperties = {
-  textAlign: 'left',
+const detailItemStyle: React.CSSProperties = {
+  display: 'grid',
+  gap: 2,
 };
 
-const label: React.CSSProperties = {
-  fontSize: '11px',
-  color: '#a0aec0',
-  fontWeight: '700',
+const detailLabelStyle: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 800,
+  color: '#64748b',
   textTransform: 'uppercase',
-  marginBottom: '4px',
+  letterSpacing: '0.4px',
 };
 
-const statusValue: React.CSSProperties = {
-  fontSize: '14px',
-  fontWeight: '700',
-  color: '#10233f',
+const detailValueStyle: React.CSSProperties = {
+  fontSize: 12.5,
+  fontWeight: 700,
+  color: '#0f172a',
 };
 
-const footer: React.CSSProperties = {
-  fontSize: '11px',
-  color: '#cbd5e0',
-  marginTop: '20px',
-  lineHeight: '1.5',
+const footerStyle: React.CSSProperties = {
+  background: '#f1f5f9',
+  padding: '12px 24px',
+  borderTop: '1px solid #e2e8f0',
 };
 
-const branding: React.CSSProperties = {
-  color: '#d4af37',
-  marginTop: '24px',
-  fontSize: '13px',
-  fontWeight: '600',
-  letterSpacing: '1px',
-  textTransform: 'uppercase',
+const printButtonStyle: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.1)',
+  color: '#C9A84C',
+  border: '1px solid rgba(201, 168, 76, 0.4)',
+  padding: '8px 16px',
+  borderRadius: 8,
+  fontSize: 12,
+  fontWeight: 700,
+  cursor: 'pointer',
+};
+
+const portalLinkStyle: React.CSSProperties = {
+  background: '#C9A84C',
+  color: '#0A1628',
+  padding: '8px 16px',
+  borderRadius: 8,
+  fontSize: 12,
+  fontWeight: 800,
+  textDecoration: 'none',
 };

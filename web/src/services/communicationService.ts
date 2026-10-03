@@ -461,7 +461,8 @@ export async function broadcastFinancialStatements({
 
   // Filter out deceased, dismissed, system members
   let targetSummaries = summaries.filter(m => {
-    if (m.is_deceased || m.status === 'Deceased' || m.status === 'Dismissed') return false;
+    const s = String(m.status || '').trim().toLowerCase();
+    if (m.is_deceased === true || ['deceased', 'dismissed', 'transfer-out', 'transferred', 'system'].includes(s)) return false;
     if (m.is_senior_exempt) return false;
     if (target === 'outstanding_only') {
       const bal = parseFloat(String(m.outstanding_balance || 0));

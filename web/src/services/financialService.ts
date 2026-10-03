@@ -436,7 +436,8 @@ export async function getAllMemberSummaries(filters?: {
     const totalAssessed = parseFloat(row.total_assessed || 0);
     const actualDuesPaid = duesPaidByMember[memberId] ?? 0;
     const netOutstanding = totalAssessed - actualDuesPaid;
-    const isDeceased = row.is_deceased || row.status === 'Deceased';
+    const isDeceased = row.is_deceased === true || String(row.status || '').toLowerCase() === 'deceased' || Boolean(row.date_of_death);
+    const isArchivedInactive = ['dismissed', 'transfer-out', 'transferred'].includes(String(row.status || '').toLowerCase()) || Boolean(row.date_of_dismissal) || Boolean(row.transfer_to);
 
     const dob = dobMap[memberId] || row.date_of_birth;
     const birthYear = dob ? new Date(dob).getFullYear() : null;
@@ -446,6 +447,8 @@ export async function getAllMemberSummaries(filters?: {
     let paymentStatus = 'delinquent';
     if (isDeceased) {
       paymentStatus = 'exempt_deceased';
+    } else if (isArchivedInactive) {
+      paymentStatus = 'exempt_archived';
     } else if (isSeniorExempt) {
       paymentStatus = 'exempt_senior';
     } else if (totalAssessed <= 0) {
