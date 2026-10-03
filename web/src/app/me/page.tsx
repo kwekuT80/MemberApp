@@ -149,10 +149,10 @@ export default async function MePage() {
         {/* LIFELONG FRATERNAL SERVICE JOURNEY TIMELINE */}
         <MemberServiceJourneyTimeline
           member={member}
-          degrees={member.degrees || []}
-          positions={member.positions || []}
-          military={member.military || []}
-          ranks={member.uniformed_rank_records || []}
+          degrees={Array.isArray(member.degrees) ? member.degrees : member.degrees ? [member.degrees] : []}
+          positions={Array.isArray(member.positions) ? member.positions : member.positions ? [member.positions] : []}
+          military={Array.isArray(member.military) ? member.military : member.military ? [member.military] : []}
+          ranks={Array.isArray(member.uniformed_rank_records) ? member.uniformed_rank_records : member.uniformed_rank_records ? [member.uniformed_rank_records] : []}
         />
       </div>
     </MemberShell>

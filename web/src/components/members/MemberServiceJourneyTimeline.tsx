@@ -37,6 +37,13 @@ interface MemberServiceJourneyTimelineProps {
   compact?: boolean;
 }
 
+function toSafeArray<T = any>(val: any): T[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'object') return [val as T];
+  return [];
+}
+
 export default function MemberServiceJourneyTimeline({
   member,
   degrees = [],
@@ -111,7 +118,8 @@ export default function MemberServiceJourneyTimeline({
     }
 
     // 3. EXEMPLIFICATIONS / DEGREES
-    const safeDegrees = Array.isArray(degrees) && degrees.length > 0 ? degrees : (member?.degrees || []);
+    const rawDegrees = Array.isArray(degrees) && degrees.length > 0 ? degrees : member?.degrees;
+    const safeDegrees = toSafeArray<any>(rawDegrees);
     safeDegrees.forEach((d: any, idx: number) => {
       const dt = String(d.degree_type || '').toLowerCase();
       // Skip duplicate 1st degree if already placed by initiation
@@ -167,7 +175,8 @@ export default function MemberServiceJourneyTimeline({
     });
 
     // 4. UNIFORMED MILITARY RANKS
-    const safeMilitary = Array.isArray(military) && military.length > 0 ? military : (member?.military || []);
+    const rawMilitary = Array.isArray(military) && military.length > 0 ? military : member?.military;
+    const safeMilitary = toSafeArray<any>(rawMilitary);
     safeMilitary.forEach((m: any, idx: number) => {
       const pDate = m.date_promoted || '9999-12-31';
       events.push({
@@ -188,7 +197,8 @@ export default function MemberServiceJourneyTimeline({
     });
 
     // 5. LEADERSHIP & OFFICES HELD
-    const safePositions = Array.isArray(positions) && positions.length > 0 ? positions : (member?.positions || []);
+    const rawPositions = Array.isArray(positions) && positions.length > 0 ? positions : member?.positions;
+    const safePositions = toSafeArray<any>(rawPositions);
     safePositions.forEach((pos: any, idx: number) => {
       const fDate = pos.date_from || '9999-12-31';
       const titleLower = String(pos.position_title || '').toLowerCase();
@@ -232,11 +242,34 @@ export default function MemberServiceJourneyTimeline({
       });
     });
 
+    // Uniformed rank records
+    const rawRanks = Array.isArray(ranks) && ranks.length > 0 ? ranks : member?.uniformed_rank_records;
+    const safeRanks = toSafeArray<any>(rawRanks);
+    safeRanks.forEach((r: any, idx: number) => {
+      if (!r || !r.rank_name) return;
+      const rDate = r.effective_date || '9999-12-31';
+      events.push({
+        id: `ev-rank-rec-${idx}`,
+        category: 'rank',
+        dateStr: rDate,
+        formattedDate: r.effective_date ? formatDisplayDate(r.effective_date) : 'Date Unknown',
+        title: `Rank: ${r.rank_name}`,
+        subtitle: r.rank_category || 'Uniformed Rank',
+        description: r.notes || 'Official KSJI rank record.',
+        badge: 'Rank Record',
+        icon: '🎖️',
+        color: '#15803d',
+        bgColor: '#f0fdf4',
+        borderColor: '#bbf7d0',
+        isMilestone: true,
+      });
+    });
+
     // 6. FRATERNAL JUBILEE ANNIVERSARIES
     const initDateForJubilee = initInfo.initiationDate || member.date_joined;
     if (initDateForJubilee) {
       const jubilees = getFraternalJubileeMilestones(initDateForJubilee);
-      jubilees.forEach(j => {
+      (jubilees || []).forEach(j => {
         if (j.isReached) {
           events.push({
             id: `ev-jubilee-${j.years}`,
