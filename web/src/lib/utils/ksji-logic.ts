@@ -367,7 +367,7 @@ export function isSystemMember(member: any): boolean {
  * - 1st Degree (Initiation): Addressed as Brother ("Bro.").
  * - 2nd & 3rd Degrees: Addressed as Brother ("Bro.").
  * - 4th Degree: Exemplified into the Fourth Degree; becomes a Chevalier
- *   and member of the Chapter of Chevaliers (e.g., Archbishop William Thomas Porter Chapter).
+ *   and member of the Chapter of Chevaliers (e.g., Archbishop William Porter Chapter of Chevaliers).
  *   IMPORTANT: Chevaliers are NOT addressed as "Chevalier" in everyday fraternal life;
  *   they are still addressed and referred to as "Bro." / "Brother".
  * - 5th Degree ("Noble Degree"): Exemplified into / Attained the Fifth Degree; becomes a Noble Brother
@@ -1033,7 +1033,7 @@ export function buildServiceNarrative(params: {
     );
   } else if (has4th) {
     sentences.push(
-      'Having been exemplified into the Fourth Degree, he is a Chevalier and a member of the Archbishop William Thomas Porter Chapter of Chevaliers.'
+      'Having been exemplified into the Fourth Degree, he is a Chevalier and a member of the Archbishop William Porter Chapter of Chevaliers.'
     );
   }
 

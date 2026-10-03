@@ -153,7 +153,7 @@ export default function MemberServiceJourneyTimeline({
         bgColor = '#eff6ff';
         borderColor = '#bfdbfe';
         badge = '4th Degree • Chevalier';
-        subtitle = d.degree_place || 'Archbishop Porter Chapter of Chevaliers';
+        subtitle = d.degree_place || 'Archbishop William Porter Chapter of Chevaliers';
         description = 'Exemplified into the Fourth Degree of the Order, joining the Chapter of Chevaliers.';
       }
 

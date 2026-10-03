@@ -136,7 +136,7 @@ export default async function MePage() {
           <Link href='/me/report' style={{ textDecoration: 'none', color: '#2563EB', fontWeight: 900, background: '#EFF6FF', padding: '6px 16px', borderRadius: 8 }}>📊 Personal Report</Link>
           <Link href='/me/edit' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Edit Main Record</Link>
           <Link href='/me/attendance' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Attendance</Link>
-          <Link href='/me/education' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Exemplification (Degrees)</Link>
+          <Link href='/me/exemplification' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Exemplification</Link>
           <Link href='/me/emergency' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Emergency</Link>
           <Link href='/me/family' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Family</Link>
           <Link href='/me/financials' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Financials</Link>
