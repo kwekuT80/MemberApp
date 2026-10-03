@@ -49,8 +49,7 @@ export default function GovernanceHubClient({
     );
   }, [data.officers.administrations, selectedTermKey]);
 
-  // Board of Trustees filter
-  const [trusteeFilter, setTrusteeFilter] = useState<'all' | 'active_bot' | 'transferred' | 'deceased'>('all');
+  // Board of Trustees search filter
   const [trusteeSearch, setTrusteeSearch] = useState('');
 
   // Temple tab state
@@ -82,24 +81,32 @@ export default function GovernanceHubClient({
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // Filtered Past Presidents
-  const filteredPastPresidents = useMemo(() => {
-    return data.boardOfTrustees.pastPresidents.filter((p) => {
-      const isTrans = p.status === 'Transfer-Out' || p.isTransferred;
-      if (trusteeFilter === 'active_bot') return !p.isDeceased && !isTrans && p.status !== 'Dismissed';
-      if (trusteeFilter === 'transferred') return isTrans;
-      if (trusteeFilter === 'deceased') return p.isDeceased;
-      if (trusteeSearch) {
-        const q = trusteeSearch.toLowerCase();
-        return (
-          p.name.toLowerCase().includes(q) ||
-          p.title.toLowerCase().includes(q) ||
-          p.tenure.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
-  }, [data.boardOfTrustees.pastPresidents, trusteeFilter, trusteeSearch]);
+  // Living Life Trustees on the Board (Past Presidents in Active Standing)
+  const filteredLifeTrustees = useMemo(() => {
+    const list =
+      data.boardOfTrustees.activeLifeTrustees && data.boardOfTrustees.activeLifeTrustees.length > 0
+        ? data.boardOfTrustees.activeLifeTrustees
+        : data.boardOfTrustees.pastPresidents
+            .filter(
+              (p) =>
+                !p.isDeceased &&
+                !p.isIncumbent &&
+                !p.isTransferred &&
+                p.status !== 'Transfer-Out' &&
+                p.status !== 'Transferred' &&
+                p.status !== 'Dismissed'
+            )
+            .map((p, idx) => ({ ...p, no: idx + 1 }));
+
+    if (!trusteeSearch.trim()) return list;
+    const q = trusteeSearch.toLowerCase().trim();
+    return list.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.title.toLowerCase().includes(q) ||
+        p.tenure.toLowerCase().includes(q)
+    );
+  }, [data.boardOfTrustees, trusteeSearch]);
 
   // Active Temple Data
   const currentTempleData = useMemo(() => {
@@ -259,13 +266,12 @@ export default function GovernanceHubClient({
 
   const chevaliersCount = data.degreeTemples.chevaliersChapter.roster.length;
   const noblesCount = data.degreeTemples.noblesTemple.roster.length;
-  const activeBotPresidentsCount = data.boardOfTrustees.pastPresidents.filter(
-    (p) => !p.isDeceased && p.status !== 'Transfer-Out' && !p.isTransferred && p.status !== 'Dismissed'
+  const livingLifeTrusteesCount = (
+    data.boardOfTrustees.activeLifeTrustees ||
+    data.boardOfTrustees.pastPresidents.filter(
+      (p) => !p.isDeceased && !p.isIncumbent && p.status !== 'Transfer-Out' && !p.isTransferred && p.status !== 'Dismissed'
+    )
   ).length;
-  const transferredPresidentsCount = data.boardOfTrustees.pastPresidents.filter(
-    (p) => p.status === 'Transfer-Out' || p.isTransferred
-  ).length;
-  const deceasedPresidentsCount = data.boardOfTrustees.pastPresidents.filter((p) => p.isDeceased).length;
 
   return (
     <div style={{ color: '#0F172A', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -372,8 +378,8 @@ export default function GovernanceHubClient({
             </div>
 
             <div style={{ background: 'rgba(16, 185, 129, 0.1)', backdropFilter: 'blur(12px)', padding: '14px 18px', borderRadius: 16, border: '1px solid rgba(52, 211, 153, 0.25)', textAlign: 'center', minWidth: 110 }}>
-              <div style={{ fontSize: 24, fontWeight: 900, color: '#34D399', fontFamily: 'monospace' }}>{activeBotPresidentsCount}</div>
-              <div style={{ fontSize: 11, fontWeight: 800, color: '#A7F3D0', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>Active BOT Counselors</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: '#34D399', fontFamily: 'monospace' }}>{livingLifeTrusteesCount}</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#A7F3D0', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>Life Trustees</div>
             </div>
           </div>
         </div>
@@ -803,10 +809,10 @@ export default function GovernanceHubClient({
                   The Constitutional Board of Trustees of Commandery No. 500
                 </h3>
                 <p style={{ margin: 0, fontSize: 14, color: '#334155', lineHeight: 1.6 }}>
-                  Under the Constitution of the Knights of St. John International, the Commandery Board of Trustees oversees property, assets, constitutional fidelity, and long-term continuity. The Board is composed of the <strong>Incumbent Worthy President</strong> (Board Chairman), the <strong>Three Elected Trustees</strong>, the <strong>Incumbent Executive Officers</strong>, and the permanent <strong>Roll of Past Worthy Presidents in active standing</strong>.
+                  Under the Constitution of the Knights of St. John International, the Commandery Board of Trustees oversees property, assets, constitutional fidelity, and long-term continuity. The Board is composed of the <strong>Incumbent Worthy President</strong> (Board Chairman), the <strong>Three Elected Trustees</strong>, the <strong>Incumbent Executive Officers</strong>, and <strong>Living Past Worthy Presidents in active standing</strong> (Life Trustees).
                 </p>
                 <div style={{ marginTop: 12, fontSize: 13, color: '#1E293B', background: 'rgba(255, 255, 255, 0.7)', padding: '10px 14px', borderRadius: 10, borderLeft: '4px solid #3B82F6' }}>
-                  ℹ️ <strong>Constitutional Rule on Transferred Past Presidents:</strong> Past Worthy Presidents who have transferred their membership out of Commandery No. 500 (such as N/B John Fifi Sackey) remain honored in the historical Roll of Past Presidents, but are <strong>no longer members of the Commandery No. 500 Board of Trustees</strong>. They are excluded from BOT meeting calls, receive no notifications, and are never billed for Commandery dues.
+                  ℹ️ <strong>Board Membership Criteria:</strong> The Board of Trustees is an active governing body comprised strictly of living, active members of Commandery No. 500. Deceased past presidents are reverently honored in the permanent historical records and Memorial Roll, but do not sit on the Board. Transferred past presidents (such as N/B John Fifi Sackey) are also no longer members of the Commandery No. 500 Board.
                 </div>
               </div>
             </div>
@@ -919,23 +925,23 @@ export default function GovernanceHubClient({
             </div>
           </div>
 
-          {/* Section B: Historical Roll of Past Worthy Presidents */}
+          {/* Section B: Life Trustees on the Board */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 900, color: '#0A1628' }}>
-                  👑 Roll of Past Worthy Presidents (Permanent Board Counselors)
+                  👑 Life Trustees (Living Past Worthy Presidents in Active Standing)
                 </div>
                 <div style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
-                  Succession roll of Worthy Presidents from Commandery founding (1996) to present day.
+                  Living Past Worthy Presidents in active standing who constitutionally serve as permanent Life Trustees on the Commandery No. 500 Board of Trustees.
                 </div>
               </div>
 
-              {/* Filter Pills & Search */}
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              {/* Search */}
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <input
                   type="text"
-                  placeholder="Search president..."
+                  placeholder="Search life trustee..."
                   value={trusteeSearch}
                   onChange={(e) => setTrusteeSearch(e.target.value)}
                   style={{
@@ -943,79 +949,13 @@ export default function GovernanceHubClient({
                     borderRadius: 10,
                     border: '1px solid #CBD5E1',
                     fontSize: 13,
-                    width: 180,
+                    width: 220,
                   }}
                 />
-
-                <div style={{ display: 'flex', gap: 6, background: '#F1F5F9', padding: 4, borderRadius: 12, flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => setTrusteeFilter('all')}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: 8,
-                      border: 'none',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      background: trusteeFilter === 'all' ? '#0A1628' : 'transparent',
-                      color: trusteeFilter === 'all' ? '#FFFFFF' : '#475569',
-                    }}
-                  >
-                    All ({data.boardOfTrustees.pastPresidents.length})
-                  </button>
-
-                  <button
-                    onClick={() => setTrusteeFilter('active_bot')}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: 8,
-                      border: 'none',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      background: trusteeFilter === 'active_bot' ? '#065F46' : 'transparent',
-                      color: trusteeFilter === 'active_bot' ? '#FFFFFF' : '#047857',
-                    }}
-                  >
-                    ⭐ Active BOT ({activeBotPresidentsCount})
-                  </button>
-
-                  <button
-                    onClick={() => setTrusteeFilter('transferred')}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: 8,
-                      border: 'none',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      background: trusteeFilter === 'transferred' ? '#475569' : 'transparent',
-                      color: trusteeFilter === 'transferred' ? '#FFFFFF' : '#475569',
-                    }}
-                  >
-                    🔄 Transferred Out ({transferredPresidentsCount})
-                  </button>
-
-                  <button
-                    onClick={() => setTrusteeFilter('deceased')}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: 8,
-                      border: 'none',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      background: trusteeFilter === 'deceased' ? '#312E81' : 'transparent',
-                      color: trusteeFilter === 'deceased' ? '#FFFFFF' : '#4338CA',
-                    }}
-                  >
-                    🕯️ Memorial Roll ({deceasedPresidentsCount})
-                  </button>
-                </div>
               </div>
             </div>
 
-            {/* Past Presidents Table */}
+            {/* Life Trustees Table */}
             <div
               style={{
                 background: '#FFFFFF',
@@ -1029,68 +969,101 @@ export default function GovernanceHubClient({
                 <thead>
                   <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>
                     <th style={{ padding: '14px 20px' }}>Seq</th>
-                    <th style={{ padding: '14px 20px' }}>Worthy President</th>
-                    <th style={{ padding: '14px 20px' }}>Administration Tenure</th>
-                    <th style={{ padding: '14px 20px' }}>Duration</th>
+                    <th style={{ padding: '14px 20px' }}>Life Trustee</th>
+                    <th style={{ padding: '14px 20px' }}>Presidential Tenure</th>
+                    <th style={{ padding: '14px 20px' }}>Duration Served</th>
                     <th style={{ padding: '14px 20px' }}>Board Standing</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPastPresidents.map((pres) => (
-                    <tr
-                      key={pres.memberId + pres.no}
-                      style={{
-                        borderBottom: '1px solid #F1F5F9',
-                        background: pres.isIncumbent ? '#F0FDF4' : pres.isDeceased ? '#F8FAFC' : '#FFFFFF',
-                      }}
-                    >
-                      <td style={{ padding: '14px 20px', fontWeight: 800, color: '#94A3B8', fontFamily: 'monospace' }}>
-                        #{pres.no.toString().padStart(2, '0')}
-                      </td>
-                      <td style={{ padding: '14px 20px' }}>
-                        <div style={{ fontWeight: 800, color: '#0F172A' }}>
-                          <Link
-                            href={isRegistrar ? `/registrar/members/${pres.memberId}` : `/me`}
-                            style={{ textDecoration: 'none', color: 'inherit' }}
-                          >
-                            {pres.title} {pres.name}
-                          </Link>
-                        </div>
-                      </td>
-                      <td style={{ padding: '14px 20px', fontWeight: 700, color: '#334155' }}>
-                        {pres.tenure}
-                      </td>
-                      <td style={{ padding: '14px 20px', color: '#64748B' }}>
-                        {pres.duration}
-                      </td>
-                      <td style={{ padding: '14px 20px' }}>
-                        {pres.isIncumbent ? (
-                          <span style={{ background: '#DCFCE7', color: '#166534', padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 800 }}>
-                            👑 Incumbent Chair
-                          </span>
-                        ) : pres.isDeceased ? (
-                          <span style={{ background: '#EDE9FE', color: '#5B21B6', padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 800 }}>
-                            🕯️ Memorial Roll
-                          </span>
-                        ) : (pres.status === 'Transfer-Out' || pres.isTransferred) ? (
-                          <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
-                            <span style={{ background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 800 }}>
-                              🔄 Transferred Out (Non-BOT)
-                            </span>
-                            <span style={{ fontSize: 10, color: '#64748B', fontWeight: 600 }}>
-                              Transferred from Comd. 500
-                            </span>
-                          </div>
-                        ) : (
-                          <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 800 }}>
-                            ⭐ Life Trustee
-                          </span>
-                        )}
+                  {filteredLifeTrustees.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '24px 20px', textAlign: 'center', color: '#64748B' }}>
+                        No life trustees match your search.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredLifeTrustees.map((pres, idx) => (
+                      <tr
+                        key={pres.memberId + (pres.no || idx)}
+                        style={{
+                          borderBottom: '1px solid #F1F5F9',
+                          background: '#FFFFFF',
+                        }}
+                      >
+                        <td style={{ padding: '14px 20px', fontWeight: 800, color: '#94A3B8', fontFamily: 'monospace' }}>
+                          #{(idx + 1).toString().padStart(2, '0')}
+                        </td>
+                        <td style={{ padding: '14px 20px' }}>
+                          <div style={{ fontWeight: 800, color: '#0F172A' }}>
+                            <Link
+                              href={isRegistrar ? `/registrar/members/${pres.memberId}` : `/me`}
+                              style={{ textDecoration: 'none', color: 'inherit' }}
+                            >
+                              {pres.title} {pres.name}
+                            </Link>
+                          </div>
+                        </td>
+                        <td style={{ padding: '14px 20px', fontWeight: 700, color: '#334155' }}>
+                          {pres.tenure}
+                        </td>
+                        <td style={{ padding: '14px 20px', color: '#64748B' }}>
+                          {pres.duration}
+                        </td>
+                        <td style={{ padding: '14px 20px' }}>
+                          <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 800 }}>
+                            ⭐ Active Life Trustee
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Historical Reference Footer */}
+            <div
+              style={{
+                marginTop: 24,
+                background: '#F8FAFC',
+                border: '1px dashed #CBD5E1',
+                borderRadius: 16,
+                padding: '20px 24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 16,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A' }}>
+                  📜 Looking for Historical Presidential Successions or Memorial Roll?
+                </div>
+                <div style={{ fontSize: 13, color: '#64748B', marginTop: 3 }}>
+                  The complete historical record of all Worthy Presidents since 1996 and the Memorial Roll of deceased past leaders are preserved in the dedicated Roll of Worthy Presidents.
+                </div>
+              </div>
+              <Link
+                href={isRegistrar ? '/registrar/presidents' : '/me/presidents'}
+                style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: '#0A1628',
+                  background: '#FEF3C7',
+                  border: '1px solid #FDE68A',
+                  padding: '8px 16px',
+                  borderRadius: 10,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <span>👑 View Roll of Worthy Presidents</span>
+                <span>→</span>
+              </Link>
             </div>
           </div>
         </div>

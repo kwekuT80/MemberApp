@@ -211,6 +211,17 @@ export default function CommanderyOfficersClient({
     return list;
   }, [positions]);
 
+  // Living Life Trustees on the Board (excluding deceased and transferred members)
+  const activeLifeTrustees = useMemo(() => {
+    return pastPresidents.filter(
+      (p) =>
+        !p.isDeceased &&
+        p.status !== 'Transfer-Out' &&
+        p.status !== 'Transferred' &&
+        p.status !== 'Dismissed'
+    );
+  }, [pastPresidents]);
+
   // Filter slots by category and search query
   const filteredSlots = useMemo(() => {
     return roleSlots.filter((slot) => {
@@ -666,15 +677,15 @@ export default function CommanderyOfficersClient({
             </div>
           </div>
 
-          {/* Branch 2: Past Worthy Presidents */}
+          {/* Branch 2: Life Trustees on the Board */}
           <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', padding: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, borderBottom: '1px solid #f1f5f9', paddingBottom: 10, flexWrap: 'wrap', gap: 10 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0A1628' }}>
-                  Branch 2: Past Worthy Presidents of Commandery #500
+                  Branch 2: Life Trustees on the Board ({activeLifeTrustees.length})
                 </h3>
                 <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>
-                  Honorary lifetime members of the Board of Trustees by virtue of their presidential service
+                  Living Past Worthy Presidents in active standing serving as permanent Life Trustees
                 </p>
               </div>
               <Link
@@ -693,20 +704,20 @@ export default function CommanderyOfficersClient({
                   gap: 6,
                 }}
               >
-                <span>👑 View Roll of Worthy Presidents</span>
+                <span>👑 View Historical Roll of Worthy Presidents</span>
                 <span>→</span>
               </Link>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-              {pastPresidents.map((p) => (
+              {activeLifeTrustees.map((p) => (
                 <div
                   key={p.memberId}
                   style={{
                     padding: 10,
                     borderRadius: 8,
                     border: '1px solid #e2e8f0',
-                    background: p.isDeceased ? '#f8fafc' : '#ffffff',
+                    background: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -718,7 +729,7 @@ export default function CommanderyOfficersClient({
                       {p.title ? `${p.title} ` : ''}{p.name}
                     </div>
                     <div style={{ fontSize: 11, color: '#64748b' }}>
-                      Tenure: {p.tenure} {p.isDeceased && '• ✝️ Deceased'}
+                      Tenure: {p.tenure} • ⭐ Life Trustee
                     </div>
                   </div>
                   <Link

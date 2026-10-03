@@ -67,6 +67,7 @@ export interface GovernanceHubData {
     chairman: AssignedOfficer | null;
     electedTrustees: AssignedOfficer[];
     executiveOfficers: AssignedOfficer[];
+    activeLifeTrustees: PresidentItem[];
     pastPresidents: PresidentItem[];
   };
   degreeTemples: {

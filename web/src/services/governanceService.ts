@@ -236,6 +236,24 @@ export async function getGovernanceHubData(): Promise<GovernanceHubData> {
     });
   }
 
+  // 5. Active Life Trustees on the Board of Trustees
+  // Under KSJI governance, only living past presidents in active standing in Commandery No. 500
+  // serve on the Board of Trustees as Life Trustees. Deceased and transferred past presidents do not sit on the Board.
+  const activeLifeTrustees = pastPresidents
+    .filter(
+      (p) =>
+        !p.isDeceased &&
+        !p.isIncumbent &&
+        !p.isTransferred &&
+        p.status !== 'Transfer-Out' &&
+        p.status !== 'Transferred' &&
+        p.status !== 'Dismissed'
+    )
+    .map((p, idx) => ({
+      ...p,
+      no: idx + 1,
+    }));
+
   // ── C. Build Degree Temples Data ───────────────────────────────────────────
   // 1. 4th Degree (Chevaliers) - Archbishop William Porter Chapter of Chevaliers
   const deg4List = (rawDegrees || []).filter((d) => {
@@ -447,6 +465,7 @@ export async function getGovernanceHubData(): Promise<GovernanceHubData> {
       chairman,
       electedTrustees,
       executiveOfficers,
+      activeLifeTrustees,
       pastPresidents,
     },
     degreeTemples: {
