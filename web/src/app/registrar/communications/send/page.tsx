@@ -101,18 +101,26 @@ export default async function BroadcastComposerPage() {
         return t.includes('4th') || t.includes('fourth') || t.includes('chevalier');
       });
 
-      const isPastPresident = memPositions.some((p) => {
-        const t = String(p.position_title || '').toLowerCase();
-        return (
-          t.includes('past worthy president') ||
-          ((t.includes('worthy president') || t === 'president') && p.date_to)
-        );
-      });
+      const isTransferredOrDismissed =
+        ['transfer-out', 'dismissed', 'deceased'].includes(String(m.status || '').toLowerCase()) ||
+        Boolean(m.is_deceased);
 
-      const isTrustee = memPositions.some((p) => {
-        const t = String(p.position_title || '').toLowerCase();
-        return t.includes('trustee') || isPastPresident;
-      });
+      const isPastPresident =
+        !isTransferredOrDismissed &&
+        memPositions.some((p) => {
+          const t = String(p.position_title || '').toLowerCase();
+          return (
+            t.includes('past worthy president') ||
+            ((t.includes('worthy president') || t === 'president') && p.date_to)
+          );
+        });
+
+      const isTrustee =
+        !isTransferredOrDismissed &&
+        (memPositions.some((p) => {
+          const t = String(p.position_title || '').toLowerCase();
+          return t.includes('trustee');
+        }) || isPastPresident);
 
       let highestDegree: EnrichedBroadcastMember['highestDegree'] = 'Knight (1st Degree)';
       if (has5th) highestDegree = 'Noble (5th Degree)';

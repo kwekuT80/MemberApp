@@ -50,7 +50,7 @@ export default function GovernanceHubClient({
   }, [data.officers.administrations, selectedTermKey]);
 
   // Board of Trustees filter
-  const [trusteeFilter, setTrusteeFilter] = useState<'all' | 'living' | 'deceased'>('all');
+  const [trusteeFilter, setTrusteeFilter] = useState<'all' | 'active_bot' | 'transferred' | 'deceased'>('all');
   const [trusteeSearch, setTrusteeSearch] = useState('');
 
   // Temple tab state
@@ -85,8 +85,10 @@ export default function GovernanceHubClient({
   // Filtered Past Presidents
   const filteredPastPresidents = useMemo(() => {
     return data.boardOfTrustees.pastPresidents.filter((p) => {
-      if (trusteeFilter === 'living' && p.isDeceased) return false;
-      if (trusteeFilter === 'deceased' && !p.isDeceased) return false;
+      const isTrans = p.status === 'Transfer-Out' || p.isTransferred;
+      if (trusteeFilter === 'active_bot') return !p.isDeceased && !isTrans && p.status !== 'Dismissed';
+      if (trusteeFilter === 'transferred') return isTrans;
+      if (trusteeFilter === 'deceased') return p.isDeceased;
       if (trusteeSearch) {
         const q = trusteeSearch.toLowerCase();
         return (
@@ -257,7 +259,13 @@ export default function GovernanceHubClient({
 
   const chevaliersCount = data.degreeTemples.chevaliersChapter.roster.length;
   const noblesCount = data.degreeTemples.noblesTemple.roster.length;
-  const livingPresidentsCount = data.boardOfTrustees.pastPresidents.filter((p) => !p.isDeceased).length;
+  const activeBotPresidentsCount = data.boardOfTrustees.pastPresidents.filter(
+    (p) => !p.isDeceased && p.status !== 'Transfer-Out' && !p.isTransferred && p.status !== 'Dismissed'
+  ).length;
+  const transferredPresidentsCount = data.boardOfTrustees.pastPresidents.filter(
+    (p) => p.status === 'Transfer-Out' || p.isTransferred
+  ).length;
+  const deceasedPresidentsCount = data.boardOfTrustees.pastPresidents.filter((p) => p.isDeceased).length;
 
   return (
     <div style={{ color: '#0F172A', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -364,8 +372,8 @@ export default function GovernanceHubClient({
             </div>
 
             <div style={{ background: 'rgba(16, 185, 129, 0.1)', backdropFilter: 'blur(12px)', padding: '14px 18px', borderRadius: 16, border: '1px solid rgba(52, 211, 153, 0.25)', textAlign: 'center', minWidth: 110 }}>
-              <div style={{ fontSize: 24, fontWeight: 900, color: '#34D399', fontFamily: 'monospace' }}>{livingPresidentsCount}</div>
-              <div style={{ fontSize: 11, fontWeight: 800, color: '#A7F3D0', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>Past Presidents</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: '#34D399', fontFamily: 'monospace' }}>{activeBotPresidentsCount}</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#A7F3D0', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>Active BOT Counselors</div>
             </div>
           </div>
         </div>
@@ -795,8 +803,11 @@ export default function GovernanceHubClient({
                   The Constitutional Board of Trustees of Commandery No. 500
                 </h3>
                 <p style={{ margin: 0, fontSize: 14, color: '#334155', lineHeight: 1.6 }}>
-                  Under the Constitution of the Knights of St. John International, the Commandery Board of Trustees oversees property, assets, constitutional fidelity, and long-term continuity. The Board is composed of the <strong>Incumbent Worthy President</strong> (Board Chairman), the <strong>Three Elected Trustees</strong>, the <strong>Incumbent Executive Officers</strong>, and the permanent <strong>Roll of Past Worthy Presidents</strong>.
+                  Under the Constitution of the Knights of St. John International, the Commandery Board of Trustees oversees property, assets, constitutional fidelity, and long-term continuity. The Board is composed of the <strong>Incumbent Worthy President</strong> (Board Chairman), the <strong>Three Elected Trustees</strong>, the <strong>Incumbent Executive Officers</strong>, and the permanent <strong>Roll of Past Worthy Presidents in active standing</strong>.
                 </p>
+                <div style={{ marginTop: 12, fontSize: 13, color: '#1E293B', background: 'rgba(255, 255, 255, 0.7)', padding: '10px 14px', borderRadius: 10, borderLeft: '4px solid #3B82F6' }}>
+                  ℹ️ <strong>Constitutional Rule on Transferred Past Presidents:</strong> Past Worthy Presidents who have transferred their membership out of Commandery No. 500 (such as N/B John Fifi Sackey) remain honored in the historical Roll of Past Presidents, but are <strong>no longer members of the Commandery No. 500 Board of Trustees</strong>. They are excluded from BOT meeting calls, receive no notifications, and are never billed for Commandery dues.
+                </div>
               </div>
             </div>
           </div>
@@ -936,25 +947,70 @@ export default function GovernanceHubClient({
                   }}
                 />
 
-                <div style={{ display: 'flex', gap: 4, background: '#F1F5F9', padding: 4, borderRadius: 12 }}>
-                  {(['all', 'living', 'deceased'] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={() => setTrusteeFilter(mode)}
-                      style={{
-                        padding: '6px 12px',
-                        borderRadius: 8,
-                        border: 'none',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        background: trusteeFilter === mode ? '#0A1628' : 'transparent',
-                        color: trusteeFilter === mode ? '#FFFFFF' : '#475569',
-                      }}
-                    >
-                      {mode === 'all' ? 'All' : mode === 'living' ? 'Living' : 'Memorial Roll'}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', gap: 6, background: '#F1F5F9', padding: 4, borderRadius: 12, flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => setTrusteeFilter('all')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      border: 'none',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: trusteeFilter === 'all' ? '#0A1628' : 'transparent',
+                      color: trusteeFilter === 'all' ? '#FFFFFF' : '#475569',
+                    }}
+                  >
+                    All ({data.boardOfTrustees.pastPresidents.length})
+                  </button>
+
+                  <button
+                    onClick={() => setTrusteeFilter('active_bot')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      border: 'none',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: trusteeFilter === 'active_bot' ? '#065F46' : 'transparent',
+                      color: trusteeFilter === 'active_bot' ? '#FFFFFF' : '#047857',
+                    }}
+                  >
+                    ⭐ Active BOT ({activeBotPresidentsCount})
+                  </button>
+
+                  <button
+                    onClick={() => setTrusteeFilter('transferred')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      border: 'none',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: trusteeFilter === 'transferred' ? '#475569' : 'transparent',
+                      color: trusteeFilter === 'transferred' ? '#FFFFFF' : '#475569',
+                    }}
+                  >
+                    🔄 Transferred Out ({transferredPresidentsCount})
+                  </button>
+
+                  <button
+                    onClick={() => setTrusteeFilter('deceased')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      border: 'none',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: trusteeFilter === 'deceased' ? '#312E81' : 'transparent',
+                      color: trusteeFilter === 'deceased' ? '#FFFFFF' : '#4338CA',
+                    }}
+                  >
+                    🕯️ Memorial Roll ({deceasedPresidentsCount})
+                  </button>
                 </div>
               </div>
             </div>
@@ -1016,6 +1072,15 @@ export default function GovernanceHubClient({
                           <span style={{ background: '#EDE9FE', color: '#5B21B6', padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 800 }}>
                             🕯️ Memorial Roll
                           </span>
+                        ) : (pres.status === 'Transfer-Out' || pres.isTransferred) ? (
+                          <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
+                            <span style={{ background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 800 }}>
+                              🔄 Transferred Out (Non-BOT)
+                            </span>
+                            <span style={{ fontSize: 10, color: '#64748B', fontWeight: 600 }}>
+                              Transferred from Comd. 500
+                            </span>
+                          </div>
                         ) : (
                           <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 800 }}>
                             ⭐ Life Trustee

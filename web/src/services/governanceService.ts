@@ -216,6 +216,7 @@ export async function getGovernanceHubData(): Promise<GovernanceHubData> {
     }
 
     const isDeceased = m.is_deceased || String(m.status).toLowerCase() === 'deceased';
+    const isTransferred = String(m.status).toLowerCase() === 'transfer-out' || String(m.status).toLowerCase() === 'transferred';
     let formattedTitle = m.title || 'Bro.';
     if (formattedTitle === 'N Bro.' || formattedTitle === 'N Bro') {
       formattedTitle = 'N/B';
@@ -228,9 +229,10 @@ export async function getGovernanceHubData(): Promise<GovernanceHubData> {
       name: `${m.first_name || ''} ${m.surname || ''}`.trim(),
       tenure,
       duration,
-      status: m.status || (isDeceased ? 'Deceased' : 'Active'),
+      status: m.status || (isDeceased ? 'Deceased' : isTransferred ? 'Transfer-Out' : 'Active'),
       isDeceased,
       isIncumbent: isIncumbentPres,
+      isTransferred,
     });
   }
 

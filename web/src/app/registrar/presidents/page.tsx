@@ -72,6 +72,8 @@ export default async function RollOfWorthyPresidentsPage() {
 
     const isDeceased = m.is_deceased || String(m.status).toLowerCase() === 'deceased';
 
+    const isTransferred = String(m.status).toLowerCase() === 'transfer-out';
+
     // Format title prefix according to app convention
     let formattedTitle = m.title || 'Bro.';
     if (formattedTitle === 'N Bro.' || formattedTitle === 'N Bro') {
@@ -85,9 +87,10 @@ export default async function RollOfWorthyPresidentsPage() {
       name: `${m.first_name || ''} ${m.surname || ''}`.trim(),
       tenure,
       duration,
-      status: m.status || (isDeceased ? 'Deceased' : 'Active'),
+      status: m.status || (isDeceased ? 'Deceased' : isTransferred ? 'Transfer-Out' : 'Active'),
       isDeceased,
       isIncumbent,
+      isTransferred,
     });
   }
 

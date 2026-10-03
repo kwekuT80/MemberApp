@@ -13,6 +13,7 @@ export interface PresidentItem {
   status: string;
   isDeceased: boolean;
   isIncumbent: boolean;
+  isTransferred?: boolean;
 }
 
 export default function RollOfWorthyPresidentsClient({
@@ -22,14 +23,17 @@ export default function RollOfWorthyPresidentsClient({
   presidentsList: PresidentItem[];
   isRegistrar?: boolean;
 }) {
-  const [filter, setFilter] = useState<'all' | 'living' | 'deceased'>('all');
+  const [filter, setFilter] = useState<'all' | 'active_living' | 'transferred' | 'deceased'>('all');
 
   const totalCount = presidentsList.length;
-  const livingCount = presidentsList.filter((p) => !p.isDeceased).length;
+  const livingCount = presidentsList.filter((p) => !p.isDeceased && p.status !== 'Transfer-Out' && !p.isTransferred).length;
+  const transferredCount = presidentsList.filter((p) => p.status === 'Transfer-Out' || p.isTransferred).length;
   const deceasedCount = presidentsList.filter((p) => p.isDeceased).length;
 
   const filteredList = presidentsList.filter((p) => {
-    if (filter === 'living') return !p.isDeceased;
+    const isTrans = p.status === 'Transfer-Out' || p.isTransferred;
+    if (filter === 'active_living') return !p.isDeceased && !isTrans;
+    if (filter === 'transferred') return isTrans;
     if (filter === 'deceased') return p.isDeceased;
     return true;
   });
@@ -76,17 +80,22 @@ export default function RollOfWorthyPresidentsClient({
 
           {/* Metric Badges */}
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            <div style={{ background: 'rgba(255, 255, 255, 0.07)', backdropFilter: 'blur(12px)', padding: '16px 22px', borderRadius: 16, border: '1px solid rgba(255, 255, 255, 0.12)', textAlign: 'center', minWidth: 110 }}>
+            <div style={{ background: 'rgba(255, 255, 255, 0.07)', backdropFilter: 'blur(12px)', padding: '16px 22px', borderRadius: 16, border: '1px solid rgba(255, 255, 255, 0.12)', textAlign: 'center', minWidth: 100 }}>
               <div style={{ fontSize: 26, fontWeight: 900, color: '#F59E0B', fontFamily: 'monospace' }}>{totalCount}</div>
               <div style={{ fontSize: 11, fontWeight: 800, color: '#CBD5E1', marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Presidents</div>
             </div>
 
-            <div style={{ background: 'rgba(16, 185, 129, 0.1)', backdropFilter: 'blur(12px)', padding: '16px 22px', borderRadius: 16, border: '1px solid rgba(52, 211, 153, 0.25)', textAlign: 'center', minWidth: 110 }}>
+            <div style={{ background: 'rgba(16, 185, 129, 0.1)', backdropFilter: 'blur(12px)', padding: '16px 22px', borderRadius: 16, border: '1px solid rgba(52, 211, 153, 0.25)', textAlign: 'center', minWidth: 100 }}>
               <div style={{ fontSize: 26, fontWeight: 900, color: '#34D399', fontFamily: 'monospace' }}>{livingCount}</div>
-              <div style={{ fontSize: 11, fontWeight: 800, color: '#A7F3D0', marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Living</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#A7F3D0', marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Active in Comd.</div>
             </div>
 
-            <div style={{ background: 'rgba(129, 140, 248, 0.12)', backdropFilter: 'blur(12px)', padding: '16px 22px', borderRadius: 16, border: '1px solid rgba(165, 180, 252, 0.3)', textAlign: 'center', minWidth: 130 }}>
+            <div style={{ background: 'rgba(148, 163, 184, 0.12)', backdropFilter: 'blur(12px)', padding: '16px 22px', borderRadius: 16, border: '1px solid rgba(203, 213, 225, 0.3)', textAlign: 'center', minWidth: 110 }}>
+              <div style={{ fontSize: 26, fontWeight: 900, color: '#CBD5E1', fontFamily: 'monospace' }}>🔄 {transferredCount}</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#E2E8F0', marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Transferred</div>
+            </div>
+
+            <div style={{ background: 'rgba(129, 140, 248, 0.12)', backdropFilter: 'blur(12px)', padding: '16px 22px', borderRadius: 16, border: '1px solid rgba(165, 180, 252, 0.3)', textAlign: 'center', minWidth: 110 }}>
               <div style={{ fontSize: 26, fontWeight: 900, color: '#C7D2FE', fontFamily: 'monospace' }}>🕯️ {deceasedCount}</div>
               <div style={{ fontSize: 11, fontWeight: 800, color: '#E0E7FF', marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Roll of Honor</div>
             </div>
@@ -97,7 +106,7 @@ export default function RollOfWorthyPresidentsClient({
       {/* ── Filter & Search Toolbar ─────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
         {/* Interactive Filter Pills */}
-        <div style={{ display: 'flex', gap: 8, background: '#F1F5F9', padding: 5, borderRadius: 30, border: '1px solid #E2E8F0' }}>
+        <div style={{ display: 'flex', gap: 8, background: '#F1F5F9', padding: 5, borderRadius: 30, border: '1px solid #E2E8F0', flexWrap: 'wrap' }}>
           <button
             onClick={() => setFilter('all')}
             style={{
@@ -117,7 +126,7 @@ export default function RollOfWorthyPresidentsClient({
           </button>
 
           <button
-            onClick={() => setFilter('living')}
+            onClick={() => setFilter('active_living')}
             style={{
               padding: '8px 18px',
               borderRadius: 24,
@@ -126,12 +135,30 @@ export default function RollOfWorthyPresidentsClient({
               fontWeight: 800,
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              background: filter === 'living' ? '#065F46' : 'transparent',
-              color: filter === 'living' ? '#FFFFFF' : '#047857',
-              boxShadow: filter === 'living' ? '0 2px 8px rgba(6,95,70,0.2)' : 'none',
+              background: filter === 'active_living' ? '#065F46' : 'transparent',
+              color: filter === 'active_living' ? '#FFFFFF' : '#047857',
+              boxShadow: filter === 'active_living' ? '0 2px 8px rgba(6,95,70,0.2)' : 'none',
             }}
           >
-            🟢 Living Past & Incumbent ({livingCount})
+            🟢 Active in Commandery ({livingCount})
+          </button>
+
+          <button
+            onClick={() => setFilter('transferred')}
+            style={{
+              padding: '8px 18px',
+              borderRadius: 24,
+              border: 'none',
+              fontSize: 13,
+              fontWeight: 800,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              background: filter === 'transferred' ? '#475569' : 'transparent',
+              color: filter === 'transferred' ? '#FFFFFF' : '#475569',
+              boxShadow: filter === 'transferred' ? '0 2px 8px rgba(71,85,105,0.2)' : 'none',
+            }}
+          >
+            🔄 Transferred Out ({transferredCount})
           </button>
 
           <button
@@ -144,12 +171,12 @@ export default function RollOfWorthyPresidentsClient({
               fontWeight: 800,
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              background: filter === 'deceased' ? 'linear-gradient(135deg, #312E81 0%, #1E1B4B 100%)' : 'transparent',
-              color: filter === 'deceased' ? '#FDE047' : '#3730A3',
-              boxShadow: filter === 'deceased' ? '0 2px 8px rgba(49,46,129,0.3)' : 'none',
+              background: filter === 'deceased' ? '#312E81' : 'transparent',
+              color: filter === 'deceased' ? '#FFFFFF' : '#4338CA',
+              boxShadow: filter === 'deceased' ? '0 2px 8px rgba(49,46,129,0.2)' : 'none',
             }}
           >
-            🕯️ Roll of Honor ({deceasedCount})
+            🕯️ Memorial Roll ({deceasedCount})
           </button>
         </div>
 
@@ -327,23 +354,28 @@ export default function RollOfWorthyPresidentsClient({
                         >
                           🕯️ Roll of Honor
                         </span>
-                      ) : item.status === 'Transfer-Out' ? (
-                        <span
-                          style={{
-                            background: '#EFF6FF',
-                            color: '#1D4ED8',
-                            border: '1px solid #BFDBFE',
-                            padding: '6px 14px',
-                            borderRadius: 20,
-                            fontSize: 12,
-                            fontWeight: 800,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                          }}
-                        >
-                          🔵 Transferred Out
-                        </span>
+                      ) : (item.status === 'Transfer-Out' || item.isTransferred) ? (
+                        <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
+                          <span
+                            style={{
+                              background: '#F1F5F9',
+                              color: '#475569',
+                              border: '1px solid #CBD5E1',
+                              padding: '6px 14px',
+                              borderRadius: 20,
+                              fontSize: 12,
+                              fontWeight: 800,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                            }}
+                          >
+                            🔄 Transferred Out (Non-BOT)
+                          </span>
+                          <span style={{ fontSize: 10, color: '#64748B', fontWeight: 600 }}>
+                            Transferred from Comd. 500 • Excluded from BOT
+                          </span>
+                        </div>
                       ) : (
                         <span
                           style={{
@@ -396,7 +428,7 @@ export default function RollOfWorthyPresidentsClient({
       </div>
 
       {/* ── Dedicated Memorial Showcase Section for Deceased Roll of Honor ──────── */}
-      {deceasedCount > 0 && filter !== 'living' && (
+      {deceasedCount > 0 && (filter === 'all' || filter === 'deceased') && (
         <div
           style={{
             background: 'linear-gradient(135deg, #0F172A 0%, #1E1B4B 100%)',
