@@ -41,7 +41,7 @@ export default async function RegistrarMemberExemplificationPage({
         >
           ← Back to Member Profile
         </Link>
-        <DegreesEditor memberId={member.id} initialDegrees={degrees} degreeTypes={degreeTypes} />
+        <DegreesEditor memberId={member.id} initialDegrees={degrees} degreeTypes={degreeTypes} member={member} />
       </div>
     </RegistrarShell>
   );

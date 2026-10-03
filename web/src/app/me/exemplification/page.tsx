@@ -33,7 +33,7 @@ export default async function MeExemplificationPage() {
         <Link href='/me' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>
           ← Back to Overview
         </Link>
-        <DegreesEditor memberId={member.id} initialDegrees={degrees} degreeTypes={degreeTypes} />
+        <DegreesEditor memberId={member.id} initialDegrees={degrees} degreeTypes={degreeTypes} member={member} />
       </div>
     </MemberShell>
   );
