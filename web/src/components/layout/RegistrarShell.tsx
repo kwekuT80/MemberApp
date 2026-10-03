@@ -92,6 +92,7 @@ export default function RegistrarShell({
         ] : []),
         { href: '/registrar/reports', label: '📊 Executive Reports Hub' },
         { href: '/registrar/backup', label: '🛡️ Database Vault & Backups' },
+        { href: '/privacy', label: '🛡️ Privacy Policy (Act 843)' },
       ]
     },
     {

@@ -238,8 +238,14 @@ export default function VerificationPage() {
         </Link>
       </div>
 
-      <div style={{ marginTop: 16, fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
-        Knights of St. John International • St. Margaret-Mary Commandery No. 500
+      <div style={{ marginTop: 16, fontSize: 11, color: 'rgba(255,255,255,0.6)', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div>Knights of St. John International • St. Margaret-Mary Commandery No. 500</div>
+        <div>
+          Protected under Ghana Data Protection Act 2012 (Act 843) •{' '}
+          <Link href="/privacy" style={{ color: '#93C5FD', textDecoration: 'underline' }}>
+            Privacy & Statutory Compliance Policy
+          </Link>
+        </div>
       </div>
     </div>
   );

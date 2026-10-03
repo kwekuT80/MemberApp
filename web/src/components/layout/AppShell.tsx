@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Sidebar, { SidebarItem, SidebarSection } from './Sidebar';
 import SignOutButton from '@/components/auth/SignOutButton';
 
@@ -62,8 +63,41 @@ export default function AppShell({
           </div>
         </aside>
 
-        <main className="app-shell-main print-main">
-          {children}
+        <main className="app-shell-main print-main" style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 120px)' }}>
+          <div style={{ flex: 1 }}>
+            {children}
+          </div>
+          <footer
+            className="no-print"
+            style={{
+              marginTop: 40,
+              paddingTop: 18,
+              paddingBottom: 24,
+              borderTop: '1px solid #E2E8F0',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 12,
+              fontSize: 12,
+              color: '#64748B',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span>⚔️ Knights of St. John International • Commandery No. 500</span>
+              <span>•</span>
+              <span style={{ color: '#047857', fontWeight: 700 }}>🇬🇭 Ghana Act 843 Compliant</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <Link
+                href="/privacy"
+                style={{ color: '#1E3A8A', fontWeight: 800, textDecoration: 'none' }}
+              >
+                🛡️ Privacy & Compliance Policy
+              </Link>
+              <span>🔒 TLS 1.3 / AES-256</span>
+            </div>
+          </footer>
         </main>
       </div>
     </div>

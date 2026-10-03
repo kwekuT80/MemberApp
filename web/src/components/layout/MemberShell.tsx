@@ -34,6 +34,12 @@ const memberNav = [
     ]
   },
   {
+    title: 'DATA PROTECTION & TRUST',
+    items: [
+      { href: '/privacy', label: '🛡️ Privacy Policy (Act 843)' },
+    ]
+  },
+  {
     title: 'OFFICER ACCESS',
     items: [
       { href: '/registrar', label: '🏛️ Registrar Portal' },

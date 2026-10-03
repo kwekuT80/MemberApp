@@ -154,6 +154,53 @@ export default async function MePage() {
           military={Array.isArray(member.military) ? member.military : member.military ? [member.military] : []}
           ranks={Array.isArray(member.uniformed_rank_records) ? member.uniformed_rank_records : member.uniformed_rank_records ? [member.uniformed_rank_records] : []}
         />
+
+        {/* STATUTORY DATA PROTECTION & PRIVACY GUARANTEE */}
+        <div
+          style={{
+            background: '#FFFFFF',
+            borderRadius: 16,
+            border: '1px solid #E2E8F0',
+            padding: '20px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 16,
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.02)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ fontSize: 28 }}>🛡️</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A' }}>
+                Your Privacy & Fraternal Data Protection Guarantee
+              </div>
+              <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                Compliant with the <strong>Ghana Data Protection Act, 2012 (Act 843)</strong>. Your sacramental records, dues ledger, and family details are encrypted (TLS 1.3 & AES-256) and never shared commercially.
+              </div>
+            </div>
+          </div>
+          <Link
+            href="/privacy"
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              color: '#1E3A8A',
+              background: '#EFF6FF',
+              border: '1px solid #BFDBFE',
+              padding: '8px 16px',
+              borderRadius: 10,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <span>Read Compliance Policy</span>
+            <span>→</span>
+          </Link>
+        </div>
       </div>
     </MemberShell>
   );
