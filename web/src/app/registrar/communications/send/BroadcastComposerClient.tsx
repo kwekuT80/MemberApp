@@ -358,7 +358,7 @@ export default function BroadcastComposerClient({ members }: Props) {
                 { id: 'trustees', label: 'Board of Trustees & Past Presidents', count: members.filter((m) => m.isTrustee || m.isPastPresident).length, icon: '📜' },
                 { id: 'nobles', label: 'Nobles (5th Degree)', count: members.filter((m) => m.isNoble).length, icon: '👑' },
                 { id: 'chevaliers', label: 'Chevaliers (4th Degree Chapter)', count: members.filter((m) => m.isChevalier).length, icon: '🏅' },
-                { id: 'cohort', label: 'Initiation Cohort Year', count: selectedCohortYear ? members.filter((m) => m.cohortYear === selectedCohortYear).length : members.length, icon: '🎓' },
+                { id: 'cohort', label: 'Initiation Cohort Year', count: selectedCohortYear ? members.filter((m) => m.cohortYear === selectedCohortYear).length : members.length, icon: '⚔️' },
                 { id: 'committee', label: 'Commandery Committee (9 Groups)', count: KSJI_COMMANDERY_COMMITTEES.length, icon: '🏛️' },
                 { id: 'financial', label: 'Financial Assessment Standing', count: members.filter((m) => m.outstandingBalance > 0).length, icon: '💳' },
                 { id: 'custom', label: 'Custom Member Multi-Select', count: customSelectedIds.size, icon: '✏️' },

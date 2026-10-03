@@ -25,7 +25,7 @@ export default async function MeExemplificationPage() {
   ]);
 
   return (
-    <MemberShell title='Exemplification' subtitle='Manage your exemplification records.'>
+    <MemberShell title='Exemplification (Degrees)' subtitle='Solemn fraternal exemplifications and Knighthood degrees (1st to 5th Degree).'>
       <div style={{ display: 'grid', gap: 18 }}>
         <Link href='/me' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>
           ← Back to Overview

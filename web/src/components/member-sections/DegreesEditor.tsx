@@ -65,8 +65,13 @@ export default function DegreesEditor({ memberId, initialDegrees, degreeTypes }:
 
   return (
     <div style={cardStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>Exemplification</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h2 style={{ margin: '0 0 4px', color: 'var(--navy)' }}>📜 Exemplification Records</h2>
+          <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+            Solemn Knighthood Degrees (1st Degree Initiation, 2nd & 3rd Degree, 4th Degree Chevalier, 5th Degree Noble) conferred within the Knights of St. John International.
+          </p>
+        </div>
         {!isEditing ? (
           <button type='button' onClick={() => setIsEditing(true)} style={secondaryButton}>✏️ Edit Records</button>
         ) : (
