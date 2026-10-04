@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { isSystemMember } from '@/lib/utils/ksji-logic';
+import { isSystemMember, getMeetingCategory, MeetingCategory, isMemberActiveAtMeeting } from '@/lib/utils/ksji-logic';
 import { fetchAllPaginated } from '@/lib/supabase/pagination';
 
 export async function getCommanderies() {
@@ -33,14 +33,48 @@ export async function createMeeting(payload: {
   latitude: number;
   longitude: number;
   radius_meters: number;
+  meeting_type?: MeetingCategory;
+  active_roll_count?: number | null;
 }) {
   const supabase = await createClient();
+  let rollCount = payload.active_roll_count;
+  if (rollCount === undefined) {
+    const { count } = await supabase
+      .from('members')
+      .select('id', { count: 'exact', head: true })
+      .eq('commandery_id', payload.commandery_id)
+      .eq('status', 'Active')
+      .eq('is_deceased', false);
+    rollCount = count ?? 68;
+  }
+
+  const insertPayload = {
+    ...payload,
+    meeting_type: payload.meeting_type || 'GENERAL_MEETING',
+    active_roll_count: rollCount,
+  };
+
   const { data, error } = await supabase
     .from('meetings')
-    .insert(payload)
+    .insert(insertPayload)
     .select()
     .single();
-  if (error) throw error;
+
+  if (error) {
+    if (error.code === '42703' || error.message?.includes('meeting_type') || error.message?.includes('active_roll_count')) {
+      const fallbackPayload: any = { ...insertPayload };
+      delete fallbackPayload.active_roll_count;
+      delete fallbackPayload.meeting_type;
+      const fallbackResult = await supabase
+        .from('meetings')
+        .insert(fallbackPayload)
+        .select()
+        .single();
+      if (fallbackResult.error) throw fallbackResult.error;
+      return fallbackResult.data;
+    }
+    throw error;
+  }
   return data;
 }
 
@@ -52,6 +86,8 @@ export async function updateMeeting(
     latitude?: number;
     longitude?: number;
     radius_meters?: number;
+    meeting_type?: MeetingCategory;
+    active_roll_count?: number | null;
   }
 ) {
   const supabase = await createClient();
@@ -61,7 +97,23 @@ export async function updateMeeting(
     .eq('id', meetingId)
     .select()
     .single();
-  if (error) throw error;
+
+  if (error) {
+    if (error.code === '42703' || error.message?.includes('meeting_type') || error.message?.includes('active_roll_count')) {
+      const fallbackPayload: any = { ...payload };
+      delete fallbackPayload.active_roll_count;
+      delete fallbackPayload.meeting_type;
+      const fallbackResult = await supabase
+        .from('meetings')
+        .update(fallbackPayload)
+        .eq('id', meetingId)
+        .select()
+        .single();
+      if (fallbackResult.error) throw fallbackResult.error;
+      return fallbackResult.data;
+    }
+    throw error;
+  }
   return data;
 }
 
@@ -275,13 +327,13 @@ export async function reviewAbsenceRequest(payload: {
 export async function getAttendanceReport(meetingId: string, commanderyId: string) {
   const supabase = await createClient();
 
-  // 1. Fetch all members in this commandery who are on the active roll (paginated, excluding system accounts)
+  // 1. Fetch all legitimate members in this commandery (paginated, excluding system accounts)
   const members = await fetchAllPaginated((from, to) =>
     supabase
       .from('members')
       .select('*')
       .eq('commandery_id', commanderyId)
-      .not('status', 'in', '("Dismissed","Transfer-Out","Deceased","System")')
+      .neq('status', 'System')
       .neq('id', 'f0000000-0000-0000-0000-000000000000')
       .not('surname', 'ilike', '%Operational Outflows%')
       .range(from, to)
@@ -305,14 +357,31 @@ export async function getAttendanceReport(meetingId: string, commanderyId: strin
       .range(from, to)
   );
 
-  // 4. Filter out any remaining phantom system accounts and map everything together
-  const realMembers = (members || []).filter(m => !isSystemMember(m) && !m.is_deceased);
+  // 3b. Fetch meeting date to determine if session has occurred
+  const { data: meetingData } = await supabase
+    .from('meetings')
+    .select('date, title')
+    .eq('id', meetingId)
+    .maybeSingle();
+
+  const isMeetingUpcoming = meetingData?.date ? (new Date(meetingData.date).getTime() > Date.now()) : false;
+  const meetingDateStr = meetingData?.date || '';
+
+  const attMemberIds = new Set((attendance || []).map(a => a.member_id));
+  const absMemberIds = new Set((absences || []).map(a => a.member_id));
+
+  // 4. Point-in-time active roll filter:
+  // Includes members who were active on the meeting date (or had attendance/excuse records logged)
+  // Excludes brothers not yet initiated on this date, and brothers who died before this date
+  const realMembers = (members || []).filter(m =>
+    !isSystemMember(m) && isMemberActiveAtMeeting(m, meetingDateStr, attMemberIds, absMemberIds)
+  );
 
   return realMembers.map(m => {
     const checkIn = (attendance || []).find(a => a.member_id === m.id);
     const absence = (absences || []).find(a => a.member_id === m.id);
 
-    let status = 'Absent';
+    let status = isMeetingUpcoming ? 'Scheduled (Not Checked In)' : 'Absent';
     if (checkIn) {
       const isQr = checkIn.method === 'qr' || checkIn.method === 'qr_scan' || (checkIn.override_note && String(checkIn.override_note).includes('QR'));
       status = checkIn.method === 'gps' ? 'Present (GPS)' : isQr ? 'Present (QR Scan)' : 'Present (Manual)';
@@ -321,7 +390,7 @@ export async function getAttendanceReport(meetingId: string, commanderyId: strin
     } else if (absence && absence.status === 'pending') {
       status = 'Excuse Pending';
     } else if (absence && absence.status === 'declined') {
-      status = 'Absent (Excuse Declined)';
+      status = isMeetingUpcoming ? 'Excuse Declined (Pending Session)' : 'Absent (Excuse Declined)';
     }
 
     return {
@@ -391,6 +460,8 @@ export interface MeetingMetricItem {
   excusedCount: number;
   absentCount: number;
   turnoutRate: number;
+  isUpcoming?: boolean;
+  category: MeetingCategory;
   methods: {
     manual: number;
     qr: number;
@@ -409,6 +480,7 @@ export interface MeetingMetricItem {
 
 export interface OverallMeetingMetrics {
   totalMeetings: number;
+  upcomingMeetingsCount?: number;
   totalCheckIns: number;
   averageTurnoutRate: number;
   averagePresentPerMeeting: number;
@@ -429,6 +501,11 @@ export interface OverallMeetingMetrics {
   } | null;
   availableYears: number[];
   meetings: MeetingMetricItem[];
+  categoryCounts?: {
+    general: number;
+    trustees: number;
+    events: number;
+  };
 }
 
 /**
@@ -465,24 +542,28 @@ export async function getAllMeetingsMetrics(commanderyId?: string): Promise<Over
     };
   }
 
-  // 2. Fetch living active members on the roll (excluding deceased, dismissed, system accounts)
+  // 2. Fetch all legitimate members (for point-in-time roll evaluation and roster name resolution)
   const rawMembers = await fetchAllPaginated((from, to) => {
     let query = supabase
       .from('members')
-      .select('id, first_name, surname, phone, mobile, status, commandery_id, is_deceased')
-      .not('status', 'in', '("Dismissed","Transfer-Out","Deceased","System")')
-      .neq('id', 'f0000000-0000-0000-0000-000000000000');
+      .select('id, first_name, surname, phone, mobile, status, commandery_id, is_deceased, date_of_death, date_joined, transfer_date, date_of_dismissal')
+      .neq('status', 'System')
+      .neq('id', 'f0000000-0000-0000-0000-000000000000')
+      .not('surname', 'ilike', '%Operational Outflows%');
     if (commanderyId) {
       query = query.eq('commandery_id', commanderyId);
     }
     return query.range(from, to);
   });
 
-  const activeMembers = (rawMembers || []).filter(m => !isSystemMember(m) && !m.is_deceased);
-  const activeRollCount = activeMembers.length;
+  const legitimateMembers = (rawMembers || []).filter(m => !isSystemMember(m));
+
+  // Current active living roll (for overall contemporary dashboard count)
+  const currentActiveMembers = legitimateMembers.filter(m => m.status === 'Active' && !m.is_deceased);
+  const activeRollCount = currentActiveMembers.length;
 
   const memberMap = new Map<string, { fullName: string; phone: string | null }>();
-  activeMembers.forEach(m => {
+  legitimateMembers.forEach(m => {
     const fullName = `${m.first_name || ''} ${m.surname || ''}`.trim();
     memberMap.set(m.id, {
       fullName: fullName || 'Brother',
@@ -590,10 +671,30 @@ export async function getAllMeetingsMetrics(commanderyId?: string): Promise<Over
 
     excusedMembers.sort((a, b) => a.name.localeCompare(b.name));
 
+    // 1. Direct O(1) read if active_roll_count is persisted on the meeting record
+    let meetingTotalRoll = (m.active_roll_count != null && Number(m.active_roll_count) > 0)
+      ? Number(m.active_roll_count)
+      : null;
+
+    // 2. Point-in-time membership evaluation fallback (if column not yet populated)
+    if (meetingTotalRoll == null) {
+      const mDay = m.date ? m.date.substring(0, 10) : '';
+      const attMemberIds = new Set(attList.map(a => a.member_id));
+      const absMemberIds = new Set(absList.filter(a => a.status === 'approved' || a.status === 'pending').map(a => a.member_id));
+
+      const meetingRoll = legitimateMembers.filter(mem =>
+        isMemberActiveAtMeeting(mem, mDay, attMemberIds, absMemberIds)
+      );
+      meetingTotalRoll = meetingRoll.length;
+    }
+
+    const isUpcoming = mDate.getTime() > Date.now() && attList.length === 0;
     const presentCount = attList.length;
     const excusedCount = excusesSummary.approved;
-    const absentCount = Math.max(0, activeRollCount - presentCount - excusedCount);
-    const turnoutRate = activeRollCount > 0 ? Number(((presentCount / activeRollCount) * 100).toFixed(1)) : 0;
+    const absentCount = isUpcoming ? 0 : Math.max(0, meetingTotalRoll - presentCount - excusedCount);
+    const turnoutRate = meetingTotalRoll > 0 ? Number(((presentCount / meetingTotalRoll) * 100).toFixed(1)) : 0;
+
+    const category = getMeetingCategory(m);
 
     return {
       id: m.id,
@@ -604,11 +705,13 @@ export async function getAllMeetingsMetrics(commanderyId?: string): Promise<Over
       latitude: m.latitude,
       longitude: m.longitude,
       radiusMeters: m.radius_meters,
-      totalRoll: activeRollCount,
+      totalRoll: meetingTotalRoll,
       presentCount,
       excusedCount,
       absentCount,
       turnoutRate,
+      isUpcoming,
+      category,
       methods,
       excusesSummary,
       firstCheckInTime: firstCheckIn,
@@ -620,11 +723,25 @@ export async function getAllMeetingsMetrics(commanderyId?: string): Promise<Over
 
   const availableYears = Array.from(yearsSet).sort((a, b) => b - a);
 
-  // Highest and lowest turnout sessions
+  // Category counts
+  const categoryCounts = {
+    general: meetingItems.filter(m => m.category === 'GENERAL_MEETING').length,
+    trustees: meetingItems.filter(m => m.category === 'TRUSTEES_MEETING').length,
+    events: meetingItems.filter(m => m.category === 'EVENT').length,
+  };
+
+  // Filter to concluded meetings that have occurred for accurate performance indicators
+  const concludedMeetings = meetingItems.filter(m => !m.isUpcoming);
+  const upcomingMeetingsCount = meetingItems.filter(m => m.isUpcoming).length;
+
+  // Highest and lowest turnout sessions (evaluate among general meetings first for standard roll compliance)
   let highestMeeting: OverallMeetingMetrics['highestTurnoutMeeting'] = null;
   let lowestMeeting: OverallMeetingMetrics['lowestTurnoutMeeting'] = null;
 
-  meetingItems.forEach(item => {
+  const generalConcluded = concludedMeetings.filter(m => m.category === 'GENERAL_MEETING');
+  const meetingsForTurnoutExtremes = generalConcluded.length > 0 ? generalConcluded : concludedMeetings;
+
+  meetingsForTurnoutExtremes.forEach(item => {
     if (!highestMeeting || item.turnoutRate > highestMeeting.rate) {
       highestMeeting = {
         id: item.id,
@@ -646,22 +763,23 @@ export async function getAllMeetingsMetrics(commanderyId?: string): Promise<Over
   });
 
   const averageTurnoutRate =
-    meetingItems.length > 0
+    concludedMeetings.length > 0
       ? Number(
           (
-            meetingItems.reduce((acc, m) => acc + m.turnoutRate, 0) /
-            meetingItems.length
+            concludedMeetings.reduce((acc, m) => acc + m.turnoutRate, 0) /
+            concludedMeetings.length
           ).toFixed(1)
         )
       : 0;
 
   const averagePresentPerMeeting =
-    meetingItems.length > 0
-      ? Math.round(totalCumulativeCheckIns / meetingItems.length)
+    concludedMeetings.length > 0
+      ? Math.round(totalCumulativeCheckIns / concludedMeetings.length)
       : 0;
 
   return {
-    totalMeetings: meetingItems.length,
+    totalMeetings: concludedMeetings.length,
+    upcomingMeetingsCount,
     totalCheckIns: totalCumulativeCheckIns,
     averageTurnoutRate,
     averagePresentPerMeeting,
@@ -670,5 +788,6 @@ export async function getAllMeetingsMetrics(commanderyId?: string): Promise<Over
     lowestTurnoutMeeting: lowestMeeting,
     availableYears,
     meetings: meetingItems,
+    categoryCounts,
   };
 }

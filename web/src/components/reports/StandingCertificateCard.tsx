@@ -286,7 +286,7 @@ export default function StandingCertificateCard({
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
             <div style={attBox}>
-              <div style={attLabel}>TOTAL MEETINGS</div>
+              <div style={attLabel}>MEETINGS HELD</div>
               <div style={attVal}>{attendance?.totalMeetings || 0}</div>
             </div>
             <div style={attBox}>

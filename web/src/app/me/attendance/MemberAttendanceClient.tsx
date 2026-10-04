@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { checkInMember, submitAbsenceRequest } from '@/services/attendanceService';
-import { formatDisplayDate, getMatchingVenuePreset } from '@/lib/utils/ksji-logic';
+import { formatDisplayDate, getMatchingVenuePreset, MeetingCategory, MEETING_CATEGORIES, getMeetingCategory, getMeetingCategoryConfig } from '@/lib/utils/ksji-logic';
 
 interface Props {
   member: any;
@@ -25,6 +25,7 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
   const [meetings, setMeetings] = useState(initialMeetings);
   const [attendance, setAttendance] = useState<any[]>(initialAttendance);
   const [excuses, setExcuses] = useState<any[]>(initialExcuses);
+  const [categoryFilter, setCategoryFilter] = useState<'all' | MeetingCategory>('all');
 
   // GPS / Geolocation state
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -140,12 +141,52 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
   };
 
   // Personal Attendance Data (Objective Facts) & Assessment (Calculated Metrics)
-  const totalMeetingsCount = meetings.length;
-  const attendedCount = meetings.filter(m => attendance.some(a => a.meeting_id === m.id && isAttendedRecord(a))).length;
-  const excusedCount = excuses.filter(e => e.status === 'approved').length;
+  // Meetings that have occurred during the member's active tenure (past date/time or verified check-in recorded)
+  const nowTime = new Date().getTime();
+  const joinDay = member?.date_joined ? String(member.date_joined).substring(0, 10) : '';
+  const deathDay = member?.date_of_death ? String(member.date_of_death).substring(0, 10) : '';
+
+  const pastMeetings = meetings.filter(m => {
+    const hasAttended = attendance.some(a => a.meeting_id === m.id && isAttendedRecord(a));
+    if (hasAttended) return true;
+    const mDay = m.date ? String(m.date).substring(0, 10) : '';
+    if (joinDay && mDay < joinDay) return false;
+    if (deathDay && mDay >= deathDay) return false;
+    return new Date(m.date).getTime() <= nowTime;
+  });
+  const upcomingMeetings = meetings.filter(m => new Date(m.date).getTime() > nowTime && !attendance.some(a => a.meeting_id === m.id && isAttendedRecord(a)));
+
+  // Core constitutional compliance applies to General Meetings (60% Good Standing requirement)
+  const generalPastMeetings = pastMeetings.filter(m => getMeetingCategory(m) === 'GENERAL_MEETING');
+  const complianceMeetings = generalPastMeetings.length > 0 ? generalPastMeetings : pastMeetings;
+
+  const totalMeetingsCount = complianceMeetings.length;
+  const attendedCount = complianceMeetings.filter(m => attendance.some(a => a.meeting_id === m.id && isAttendedRecord(a))).length;
+  const excusedCount = complianceMeetings.filter(m => excuses.some(e => e.meeting_id === m.id && e.status === 'approved')).length;
   const unexcusedCount = Math.max(0, totalMeetingsCount - attendedCount - excusedCount);
 
-  const attendanceAssessmentPct = totalMeetingsCount > 0 ? Math.round((attendedCount / totalMeetingsCount) * 100) : 0;
+  // Cross-category participation statistics
+  const botPastMeetings = pastMeetings.filter(m => getMeetingCategory(m) === 'TRUSTEES_MEETING');
+  const botAttendedCount = botPastMeetings.filter(m => attendance.some(a => a.meeting_id === m.id && isAttendedRecord(a))).length;
+
+  const eventPastMeetings = pastMeetings.filter(m => getMeetingCategory(m) === 'EVENT');
+  const eventAttendedCount = eventPastMeetings.filter(m => attendance.some(a => a.meeting_id === m.id && isAttendedRecord(a))).length;
+
+  // Category counts map for filter tabs
+  const categoryCounts = {
+    all: meetings.length,
+    GENERAL_MEETING: meetings.filter(m => getMeetingCategory(m) === 'GENERAL_MEETING').length,
+    TRUSTEES_MEETING: meetings.filter(m => getMeetingCategory(m) === 'TRUSTEES_MEETING').length,
+    EVENT: meetings.filter(m => getMeetingCategory(m) === 'EVENT').length,
+  };
+
+  const filteredMeetings = meetings.filter(m => {
+    if (categoryFilter === 'all') return true;
+    return getMeetingCategory(m) === categoryFilter;
+  });
+
+  // If no meetings have occurred yet this period, member is in default good standing (100%), not 0%
+  const attendanceAssessmentPct = totalMeetingsCount > 0 ? Math.round((attendedCount / totalMeetingsCount) * 100) : 100;
   const complianceStanding = attendanceAssessmentPct >= 60 ? 'Good Standing' : 'Below Threshold';
 
   // 6-Month Rolling Window (Past 180 Days)
@@ -201,13 +242,35 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
             📊 Attendance Data (Objective Facts)
           </div>
           <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', marginBottom: 6 }}>
-            {attendedCount} <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>of {totalMeetingsCount} meetings attended</span>
+            {attendedCount} <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>of {totalMeetingsCount} General Meetings attended</span>
+            {upcomingMeetings.length > 0 && (
+              <span style={{ fontSize: 12, color: '#2563eb', fontWeight: 700, marginLeft: 8 }}>
+                ({upcomingMeetings.length} upcoming scheduled)
+              </span>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#475569', flexWrap: 'wrap' }}>
             <span>✅ Present: <strong>{attendedCount}</strong></span>
             <span>✉️ Excused: <strong>{excusedCount}</strong></span>
             <span>❌ Absent: <strong>{unexcusedCount}</strong></span>
+            {upcomingMeetings.length > 0 && (
+              <span style={{ color: '#2563eb' }}>⏳ Upcoming: <strong>{upcomingMeetings.length}</strong></span>
+            )}
           </div>
+          {(botPastMeetings.length > 0 || eventPastMeetings.length > 0) && (
+            <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+              {botPastMeetings.length > 0 && (
+                <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: '#f3e8ff', color: '#7e22ce', border: '1px solid #d8b4fe' }}>
+                  🏛️ Board of Trustees: {botAttendedCount} / {botPastMeetings.length}
+                </span>
+              )}
+              {eventPastMeetings.length > 0 && (
+                <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: '#fef3c7', color: '#b45309', border: '1px solid #fcd34d' }}>
+                  🎖️ Events & Functions: {eventAttendedCount} / {eventPastMeetings.length}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Attendance Assessment (Calculated Metrics) */}
@@ -224,7 +287,7 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
             </span>
           </div>
           <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-            Calculated attendance ratio across all scheduled meetings.
+            Calculated attendance ratio across meetings held to date.
           </p>
         </div>
       </div>
@@ -276,7 +339,7 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
       </div>
 
       {/* Motivational Standing & Action Guidance ("Buck Up" Alert) */}
-      {(currentMissedStreak >= 2 || attendanceAssessmentPct < 60) && (
+      {(currentMissedStreak >= 2 || (totalMeetingsCount > 0 && attendanceAssessmentPct < 60)) && (
         <div style={{ background: '#fff1f2', border: '1.5px solid #fecdd3', borderRadius: 14, padding: 18, display: 'flex', gap: 14, alignItems: 'center' }}>
           <div style={{ fontSize: 28 }}>📢</div>
           <div>
@@ -328,15 +391,80 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
 
       {/* Meetings Section */}
       <div>
-        <h3 className="label" style={{ marginBottom: 16, color: 'var(--navy)', fontSize: 16 }}>Upcoming & Recent Meetings</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+          <h3 className="label" style={{ margin: 0, color: 'var(--navy)', fontSize: 16 }}>Upcoming & Recent Meetings</h3>
+          {/* Category Filter Pills */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setCategoryFilter('all')}
+              style={{
+                fontSize: 11,
+                padding: '4px 10px',
+                borderRadius: 20,
+                border: categoryFilter === 'all' ? '1.5px solid var(--navy)' : '1px solid #cbd5e1',
+                background: categoryFilter === 'all' ? 'var(--navy)' : '#ffffff',
+                color: categoryFilter === 'all' ? '#ffffff' : '#475569',
+                fontWeight: categoryFilter === 'all' ? 800 : 600,
+                cursor: 'pointer',
+              }}
+            >
+              All ({categoryCounts.all})
+            </button>
+            <button
+              onClick={() => setCategoryFilter('GENERAL_MEETING')}
+              style={{
+                fontSize: 11,
+                padding: '4px 10px',
+                borderRadius: 20,
+                border: categoryFilter === 'GENERAL_MEETING' ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
+                background: categoryFilter === 'GENERAL_MEETING' ? '#e0f2fe' : '#ffffff',
+                color: categoryFilter === 'GENERAL_MEETING' ? '#0369a1' : '#475569',
+                fontWeight: categoryFilter === 'GENERAL_MEETING' ? 800 : 600,
+                cursor: 'pointer',
+              }}
+            >
+              👑 General ({categoryCounts.GENERAL_MEETING})
+            </button>
+            <button
+              onClick={() => setCategoryFilter('TRUSTEES_MEETING')}
+              style={{
+                fontSize: 11,
+                padding: '4px 10px',
+                borderRadius: 20,
+                border: categoryFilter === 'TRUSTEES_MEETING' ? '1.5px solid #7e22ce' : '1px solid #cbd5e1',
+                background: categoryFilter === 'TRUSTEES_MEETING' ? '#f3e8ff' : '#ffffff',
+                color: categoryFilter === 'TRUSTEES_MEETING' ? '#7e22ce' : '#475569',
+                fontWeight: categoryFilter === 'TRUSTEES_MEETING' ? 800 : 600,
+                cursor: 'pointer',
+              }}
+            >
+              🏛️ Trustees ({categoryCounts.TRUSTEES_MEETING})
+            </button>
+            <button
+              onClick={() => setCategoryFilter('EVENT')}
+              style={{
+                fontSize: 11,
+                padding: '4px 10px',
+                borderRadius: 20,
+                border: categoryFilter === 'EVENT' ? '1.5px solid #d97706' : '1px solid #cbd5e1',
+                background: categoryFilter === 'EVENT' ? '#fef3c7' : '#ffffff',
+                color: categoryFilter === 'EVENT' ? '#b45309' : '#475569',
+                fontWeight: categoryFilter === 'EVENT' ? 800 : 600,
+                cursor: 'pointer',
+              }}
+            >
+              🎖️ Events ({categoryCounts.EVENT})
+            </button>
+          </div>
+        </div>
         
-        {meetings.length === 0 ? (
+        {filteredMeetings.length === 0 ? (
           <div className="card" style={{ padding: 32, textAlign: 'center', color: '#64748b' }}>
             ℹ️ No commandery meetings have been scheduled yet.
           </div>
         ) : (
           <div style={{ display: 'grid', gap: 16 }}>
-            {meetings.map((meeting) => {
+            {filteredMeetings.map((meeting) => {
               const checkIn = attendance.find(a => a.meeting_id === meeting.id);
               const excuse = excuses.find(e => e.meeting_id === meeting.id);
 
@@ -367,13 +495,46 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
                     <div>
                       {(() => {
                         const matchedVenue = getMatchingVenuePreset(meeting.latitude, meeting.longitude);
+                        const catConf = getMeetingCategoryConfig(meeting.title);
+                        const isMeetingInFuture = nowTime < meetingTime;
                         return (
                           <>
-                            <h4 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>{meeting.title}</h4>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                              <span style={{
+                                fontSize: 11,
+                                fontWeight: 800,
+                                padding: '2px 8px',
+                                borderRadius: 6,
+                                background: catConf.badgeBg,
+                                color: catConf.badgeColor,
+                                border: `1px solid ${catConf.borderColor}`,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                              }}>
+                                {catConf.icon} {catConf.shortLabel}
+                              </span>
+                              <h4 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>{meeting.title}</h4>
+                              {isMeetingInFuture && (
+                                <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: '#dbeafe', color: '#1e40af' }}>
+                                  ⏳ Upcoming
+                                </span>
+                              )}
+                            </div>
                             <p style={{ margin: '0 0 4px', fontSize: 13, color: '#64748b' }}>📅 {formattedDate}</p>
                             {matchedVenue && (
                               <p style={{ margin: '0 0 6px', fontSize: 13, color: 'var(--navy)', fontWeight: 700 }}>
                                 {matchedVenue.icon} Venue: {matchedVenue.full_name}
+                              </p>
+                            )}
+                            {catConf.id === 'TRUSTEES_MEETING' && (
+                              <p style={{ margin: '0 0 6px', fontSize: 12, color: '#7e22ce', fontWeight: 600 }}>
+                                🏛️ Board of Trustees monthly session preceding general meeting.
+                              </p>
+                            )}
+                            {catConf.id === 'EVENT' && (
+                              <p style={{ margin: '0 0 6px', fontSize: 12, color: '#b45309', fontWeight: 600 }}>
+                                🎖️ Commandery fraternal event and participation record.
                               </p>
                             )}
                             <p style={{ margin: 0, fontSize: 12, color: 'var(--gold)', fontWeight: 700 }}>
@@ -393,6 +554,14 @@ export default function MemberAttendanceClient({ member, initialMeetings, initia
                       ) : excuse ? (
                         <span style={{ display: 'inline-block', background: excuse.status === 'approved' ? '#e0f2fe' : '#fef3c7', color: excuse.status === 'approved' ? '#0369a1' : '#b45309', padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 800 }}>
                           ℹ️ EXCUSE: {excuse.status.toUpperCase()} ({excuse.reason})
+                        </span>
+                      ) : (joinDay && meeting.date && String(meeting.date).substring(0, 10) < joinDay) ? (
+                        <span style={{ display: 'inline-block', background: '#f8fafc', color: '#64748b', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
+                          ⚪ Prior to Initiation
+                        </span>
+                      ) : (deathDay && meeting.date && String(meeting.date).substring(0, 10) >= deathDay) ? (
+                        <span style={{ display: 'inline-block', background: '#f8fafc', color: '#64748b', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
+                          🕊️ Posthumous
                         </span>
                       ) : isExpired ? (
                         <span style={{ display: 'inline-block', background: '#fdeaea', color: 'crimson', padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 800 }}>

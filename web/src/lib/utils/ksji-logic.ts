@@ -88,6 +88,250 @@ export function hasMistypedAccraLongitude(lon: number | string): boolean {
   return n > -0.1 && n < 0;
 }
 
+/**
+ * ============================================================================
+ * MEETING & EVENT CATEGORIZATION DOMAIN LOGIC
+ * ============================================================================
+ * Categorizes Commandery gatherings into:
+ * 1. GENERAL_MEETING: Regular monthly meeting of all active members (60% attendance rule)
+ * 2. TRUSTEES_MEETING: Monthly Board of Trustees meeting preceding the general meeting
+ * 3. EVENT: Fraternal functions (Parades, Drills, Masses, Funerals, Retreats, Exemplifications)
+ */
+
+export type MeetingCategory = 'GENERAL_MEETING' | 'TRUSTEES_MEETING' | 'EVENT';
+
+export interface MeetingCategoryConfig {
+  id: MeetingCategory;
+  label: string;
+  shortLabel: string;
+  icon: string;
+  badgeBg: string;
+  badgeColor: string;
+  borderColor: string;
+  description: string;
+}
+
+export const MEETING_CATEGORIES: Record<MeetingCategory, MeetingCategoryConfig> = {
+  GENERAL_MEETING: {
+    id: 'GENERAL_MEETING',
+    label: 'Monthly General Meeting',
+    shortLabel: 'General Meeting',
+    icon: '👑',
+    badgeBg: '#e0f2fe',
+    badgeColor: '#0369a1',
+    borderColor: '#7dd3fc',
+    description: 'Regular monthly plenary meeting of all active members. Basis for the 60% Good Standing attendance requirement.',
+  },
+  TRUSTEES_MEETING: {
+    id: 'TRUSTEES_MEETING',
+    label: 'Board of Trustees Meeting',
+    shortLabel: 'Board of Trustees',
+    icon: '🏛️',
+    badgeBg: '#f3e8ff',
+    badgeColor: '#7e22ce',
+    borderColor: '#d8b4fe',
+    description: 'Precedes monthly general meeting. Attended by Board of Trustees, Past Worthy Presidents, and key officers.',
+  },
+  EVENT: {
+    id: 'EVENT',
+    label: 'Commandery Event / Fraternal Function',
+    shortLabel: 'Event / Function',
+    icon: '🎖️',
+    badgeBg: '#fef3c7',
+    badgeColor: '#b45309',
+    borderColor: '#fcd34d',
+    description: 'Fraternal activities including Church Parades, Drills & Inspections, Requiem Masses, Funerals, Exemplifications, and Retreats.',
+  },
+};
+
+/**
+ * Categorizes a meeting by title, detecting Board of Trustees meetings,
+ * special events/parades/drills, or standard monthly general meetings.
+ */
+export function getMeetingCategory(titleOrMeeting: string | { title?: string; meeting_type?: string } | null | undefined): MeetingCategory {
+  if (!titleOrMeeting) return 'GENERAL_MEETING';
+
+  // 0. Explicit database column (highest precedence)
+  if (typeof titleOrMeeting === 'object') {
+    if (
+      titleOrMeeting.meeting_type === 'TRUSTEES_MEETING' ||
+      titleOrMeeting.meeting_type === 'EVENT' ||
+      titleOrMeeting.meeting_type === 'GENERAL_MEETING'
+    ) {
+      return titleOrMeeting.meeting_type;
+    }
+  }
+
+  const title = typeof titleOrMeeting === 'string' ? titleOrMeeting : (titleOrMeeting.title || '');
+  const lower = title.toLowerCase();
+
+  // 1. Board of Trustees Meeting (preceding general meeting)
+  if (
+    lower.includes('trustee') ||
+    lower.includes('board of trustee') ||
+    lower.includes('bot meeting') ||
+    lower.includes('[bot]') ||
+    lower.includes('[board of trustees]') ||
+    lower.includes('bot session')
+  ) {
+    return 'TRUSTEES_MEETING';
+  }
+
+  // 2. Fraternal Events & Functions
+  if (
+    lower.includes('parade') ||
+    lower.includes('inspection') ||
+    lower.includes('drill') ||
+    lower.includes('requiem') ||
+    lower.includes('funeral') ||
+    lower.includes('mass') ||
+    lower.includes('retreat') ||
+    lower.includes('exemplification') ||
+    lower.includes('anniversary') ||
+    lower.includes('harvest') ||
+    lower.includes('picnic') ||
+    lower.includes('[event]') ||
+    lower.includes('fraternal function') ||
+    lower.includes('special event') ||
+    lower.includes('seminar') ||
+    lower.includes('workshop') ||
+    lower.includes('recollection')
+  ) {
+    return 'EVENT';
+  }
+
+  // 3. Default to Monthly General Meeting
+  return 'GENERAL_MEETING';
+}
+
+/**
+ * Returns configuration object for a meeting category.
+ */
+export function getMeetingCategoryConfig(titleOrMeeting: string | { title?: string } | null | undefined): MeetingCategoryConfig {
+  const cat = getMeetingCategory(titleOrMeeting);
+  return MEETING_CATEGORIES[cat] || MEETING_CATEGORIES.GENERAL_MEETING;
+}
+
+/**
+ * Determines whether a brother was on the active roll of the Commandery
+ * on the specific date of a meeting (point-in-time historical roll evaluation).
+ *
+ * Accounts for:
+ * - Initiations later in the year (brothers are not marked absent prior to joining)
+ * - Deceased members (brothers who passed away remain on the roll for sessions before their death)
+ * - Transfers out & dismissals based on effective date
+ */
+export function isMemberActiveAtMeeting(
+  member: {
+    id: string;
+    date_joined?: string | null;
+    is_deceased?: boolean | null;
+    status?: string | null;
+    date_of_death?: string | null;
+    transfer_date?: string | null;
+    date_of_dismissal?: string | null;
+  },
+  meetingDate: string | Date,
+  attMemberIds?: Set<string>,
+  absMemberIds?: Set<string>
+): boolean {
+  if (attMemberIds && attMemberIds.has(member.id)) return true;
+  if (absMemberIds && absMemberIds.has(member.id)) return true;
+
+  const meetingDay = typeof meetingDate === 'string'
+    ? meetingDate.substring(0, 10)
+    : meetingDate.toISOString().substring(0, 10);
+
+  // 1. Not yet joined / initiated
+  if (member.date_joined) {
+    const joinDay = member.date_joined.substring(0, 10);
+    if (joinDay > meetingDay) return false;
+  }
+
+  // 2. Deceased:
+  // If date_of_death is recorded, they were active if the meeting occurred before their death.
+  if (member.is_deceased || member.status === 'Deceased' || member.date_of_death) {
+    if (member.date_of_death) {
+      const deathDay = member.date_of_death.substring(0, 10);
+      if (deathDay <= meetingDay) return false;
+    } else {
+      return false;
+    }
+  }
+
+  // 3. Transferred Out:
+  if (member.status === 'Transfer-Out' || member.transfer_date) {
+    if (member.transfer_date) {
+      const transferDay = member.transfer_date.substring(0, 10);
+      if (transferDay <= meetingDay) return false;
+    } else {
+      return false;
+    }
+  }
+
+  // 4. Dismissed:
+  if (member.status === 'Dismissed' || member.date_of_dismissal) {
+    if (member.date_of_dismissal) {
+      const dismissalDay = member.date_of_dismissal.substring(0, 10);
+      if (dismissalDay <= meetingDay) return false;
+    } else {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Pre-defined Event & Meeting Title Presets for 1-Click scheduling
+ */
+export const EVENT_TEMPLATE_PRESETS = [
+  {
+    category: 'GENERAL_MEETING' as MeetingCategory,
+    name: 'Monthly General Meeting',
+    icon: '👑',
+    defaultTitle: (month: string, year: number) => `${month} ${year} General Meeting`,
+  },
+  {
+    category: 'TRUSTEES_MEETING' as MeetingCategory,
+    name: 'Board of Trustees Meeting',
+    subtitle: 'Preceding General Meeting',
+    icon: '🏛️',
+    defaultTitle: (month: string, year: number) => `Board of Trustees Meeting (${month} ${year})`,
+  },
+  {
+    category: 'EVENT' as MeetingCategory,
+    name: 'Church Parade & Mass',
+    icon: '⛪',
+    defaultTitle: (month: string, year: number) => `Church Parade & Thanksgiving Mass (${month} ${year})`,
+  },
+  {
+    category: 'EVENT' as MeetingCategory,
+    name: 'Commandery Drill & Inspection',
+    icon: '⚔️',
+    defaultTitle: (month: string, year: number) => `Commandery Drill & Uniform Inspection (${month} ${year})`,
+  },
+  {
+    category: 'EVENT' as MeetingCategory,
+    name: 'Requiem Mass / Funeral Turnout',
+    icon: '🕯️',
+    defaultTitle: (month: string, year: number) => `Requiem Mass & Fraternal Turnout`,
+  },
+  {
+    category: 'EVENT' as MeetingCategory,
+    name: 'Spiritual Retreat & Recollection',
+    icon: '🕊️',
+    defaultTitle: (month: string, year: number) => `Spiritual Retreat & Recollection (${year})`,
+  },
+  {
+    category: 'EVENT' as MeetingCategory,
+    name: 'Exemplification of Degrees',
+    icon: '📜',
+    defaultTitle: (month: string, year: number) => `Exemplification of Degrees (${year})`,
+  },
+] as const;
+
+
 export const KSJI_TERMINOLOGY = {
   DEGREE_SECTION: 'Exemplification',
   EXEMPLIFIED: 'Exemplified into the',

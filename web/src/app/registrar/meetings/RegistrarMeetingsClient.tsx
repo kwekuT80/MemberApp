@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createMeeting, updateMeeting, checkInMember, getAbsenceRequests, reviewAbsenceRequest, getAttendanceReport, registrarGrantExcuse, deleteMeeting, rejectCheckIn } from '@/services/attendanceService';
-import { formatDisplayDate, formatDisplayTime, formatDisplayDateTime, KSJI_MEETING_LOCATION, KSJI_VENUE_PRESETS, getMatchingVenuePreset, hasMistypedAccraLongitude } from '@/lib/utils/ksji-logic';
+import { formatDisplayDate, formatDisplayTime, formatDisplayDateTime, KSJI_MEETING_LOCATION, KSJI_VENUE_PRESETS, getMatchingVenuePreset, hasMistypedAccraLongitude, MeetingCategory, MEETING_CATEGORIES, getMeetingCategory, getMeetingCategoryConfig, EVENT_TEMPLATE_PRESETS } from '@/lib/utils/ksji-logic';
 import MeetingNoticeModal from '@/components/meetings/MeetingNoticeModal';
 
 interface Props {
@@ -120,13 +120,17 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const totalRoster = attendanceReport.length;
   const presentCount = attendanceReport.filter((m: any) => m.status.startsWith('Present')).length;
   const excusedCount = attendanceReport.filter((m: any) => m.status === 'Excused').length;
-  const absentCount = attendanceReport.filter((m: any) => m.status === 'Absent').length;
+  const isSelectedMeetingUpcoming = selectedMeeting ? new Date().getTime() < new Date(selectedMeeting.date).getTime() : false;
+  const absentCount = isSelectedMeetingUpcoming ? 0 : attendanceReport.filter((m: any) => m.status === 'Absent').length;
   
   const presentPct = totalRoster > 0 ? Math.round((presentCount / totalRoster) * 100) : 0;
   const excusedPct = totalRoster > 0 ? Math.round((excusedCount / totalRoster) * 100) : 0;
   const absentPct = totalRoster > 0 ? Math.round((absentCount / totalRoster) * 100) : 0;
 
   // New Meeting Form States - Pre-populated with canonical Commandery meeting venue (St. Bernadette Soubirous School)
+  // Category Filtering for Meetings List
+  const [meetingCategoryFilter, setMeetingCategoryFilter] = useState<'all' | MeetingCategory>('all');
+  const [sessionCategory, setSessionCategory] = useState<MeetingCategory>('GENERAL_MEETING');
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [radiusMeters, setRadiusMeters] = useState<number>(KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS);
@@ -137,12 +141,43 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   // Edit Meeting Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
+  const [editCategory, setEditCategory] = useState<MeetingCategory>('GENERAL_MEETING');
   const [editTitle, setEditTitle] = useState('');
   const [editDate, setEditDate] = useState('');
   const [editLatitude, setEditLatitude] = useState('');
   const [editLongitude, setEditLongitude] = useState('');
   const [editRadiusMeters, setEditRadiusMeters] = useState<number>(KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS);
+  const [editActiveRollCount, setEditActiveRollCount] = useState<number | ''>('');
   const [savingEdit, setSavingEdit] = useState(false);
+
+  // Category counts for list tabs
+  const categoryCounts = {
+    all: meetings.length,
+    GENERAL_MEETING: meetings.filter(m => getMeetingCategory(m) === 'GENERAL_MEETING').length,
+    TRUSTEES_MEETING: meetings.filter(m => getMeetingCategory(m) === 'TRUSTEES_MEETING').length,
+    EVENT: meetings.filter(m => getMeetingCategory(m) === 'EVENT').length,
+  };
+
+  const filteredMeetingsList = meetings.filter(m => {
+    if (meetingCategoryFilter === 'all') return true;
+    return getMeetingCategory(m) === meetingCategoryFilter;
+  });
+
+  function selectCategoryForNewMeeting(cat: MeetingCategory) {
+    setSessionCategory(cat);
+    const now = new Date();
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const month = monthNames[now.getMonth()];
+    const year = now.getFullYear();
+
+    if (cat === 'TRUSTEES_MEETING') {
+      setTitle(`Board of Trustees Meeting (${month} ${year})`);
+    } else if (cat === 'GENERAL_MEETING') {
+      setTitle(`${month} ${year} General Meeting`);
+    } else {
+      setTitle(`Church Parade & Thanksgiving Mass (${month} ${year})`);
+    }
+  }
 
   function formatForDateTimeLocal(isoDateStr: string) {
     if (!isoDateStr) return '';
@@ -176,11 +211,13 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   function openEditModal(meeting: any) {
     if (!meeting) return;
     setEditingMeetingId(meeting.id);
+    setEditCategory(getMeetingCategory(meeting));
     setEditTitle(meeting.title || '');
     setEditDate(formatForDateTimeLocal(meeting.date));
     setEditLatitude(meeting.latitude !== undefined && meeting.latitude !== null ? meeting.latitude.toString() : KSJI_MEETING_LOCATION.LATITUDE.toString());
     setEditLongitude(meeting.longitude !== undefined && meeting.longitude !== null ? meeting.longitude.toString() : KSJI_MEETING_LOCATION.LONGITUDE.toString());
     setEditRadiusMeters(meeting.radius_meters || KSJI_MEETING_LOCATION.DEFAULT_RADIUS_METERS);
+    setEditActiveRollCount(meeting.active_roll_count ?? '');
     setIsEditModalOpen(true);
   }
 
@@ -197,6 +234,8 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
         latitude: latNum,
         longitude: lonNum,
         radius_meters: editRadiusMeters,
+        meeting_type: editCategory,
+        active_roll_count: editActiveRollCount !== '' ? Number(editActiveRollCount) : null,
       });
 
       setMeetings(prev => prev.map(m => m.id === editingMeetingId ? { ...m, ...updated } : m));
@@ -281,7 +320,8 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
         date,
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
-        radius_meters: radiusMeters
+        radius_meters: radiusMeters,
+        meeting_type: sessionCategory,
       });
 
       setMeetings(prev => [newMeeting, ...prev]);
@@ -494,6 +534,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
           
           <div class="meeting-info">
             <h2>${selectedMeeting.title}</h2>
+            <p style="margin-bottom: 6px; font-weight: 700; color: #0A1628;">Session Type: ${getMeetingCategoryConfig(selectedMeeting.title).label}</p>
             <p>📅 <strong>Date:</strong> ${formatDisplayDate(selectedMeeting.date)} | 🎯 <strong>Geofence:</strong> ${selectedMeeting.radius_meters}m radius</p>
             
             <div class="stats-container" style="display: flex; gap: 15px; margin-top: 15px;">
@@ -660,6 +701,94 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             })()}
           </div>
 
+          {/* Session Category Selector */}
+          <div style={{ display: 'grid', gap: 6 }}>
+            <label style={{ ...label, margin: 0 }}>
+              <span style={{ fontWeight: 800 }}>Session Type / Category</span>
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+              {(['GENERAL_MEETING', 'TRUSTEES_MEETING', 'EVENT'] as MeetingCategory[]).map(catKey => {
+                const conf = MEETING_CATEGORIES[catKey];
+                const isSelected = sessionCategory === catKey;
+                return (
+                  <button
+                    key={catKey}
+                    type="button"
+                    onClick={() => selectCategoryForNewMeeting(catKey)}
+                    style={{
+                      padding: '8px 6px',
+                      borderRadius: 8,
+                      border: isSelected ? `2px solid ${conf.borderColor}` : '1px solid #cbd5e1',
+                      background: isSelected ? conf.badgeBg : '#ffffff',
+                      color: isSelected ? conf.badgeColor : '#475569',
+                      fontWeight: isSelected ? 800 : 600,
+                      fontSize: 11,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 5,
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
+                    }}
+                  >
+                    <span>{conf.icon}</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>{conf.shortLabel}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Contextual description for category */}
+            {sessionCategory === 'TRUSTEES_MEETING' && (
+              <div style={{
+                fontSize: 11,
+                padding: '6px 10px',
+                borderRadius: 8,
+                background: '#f3e8ff',
+                color: '#6b21a8',
+                border: '1px solid #d8b4fe',
+                lineHeight: 1.4,
+              }}>
+                🏛️ <strong>Board of Trustees Meeting:</strong> Held monthly preceding the general meeting. Records attendance for Trustees, Past Worthy Presidents, and Key Officers.
+              </div>
+            )}
+
+            {sessionCategory === 'EVENT' && (
+              <div style={{ display: 'grid', gap: 4, marginTop: 2 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>Quick Event Presets (Click to Fill Title):</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {EVENT_TEMPLATE_PRESETS.filter(t => t.category === 'EVENT').map(tpl => {
+                    const now = new Date();
+                    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                    const month = monthNames[now.getMonth()];
+                    const year = now.getFullYear();
+                    const suggested = tpl.defaultTitle(month, year);
+                    return (
+                      <button
+                        key={tpl.name}
+                        type="button"
+                        onClick={() => setTitle(suggested)}
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          background: '#fef3c7',
+                          color: '#92400e',
+                          border: '1px solid #fde68a',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {tpl.icon} {tpl.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
           <label style={label}>
             <span>Meeting Title</span>
             <input value={title} onChange={e => setTitle(e.target.value)} required style={input} placeholder="e.g. October 2026 General Meeting" />
@@ -721,14 +850,86 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
 
         {/* Scheduled Meetings List */}
         <div className="card" style={{ display: 'grid', gap: 12 }}>
-          <h3 style={{ margin: '0 0 4px', fontSize: 15, color: 'var(--navy)', fontWeight: 800 }}>Recent Meetings</h3>
-          {meetings.length === 0 ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+            <h3 style={{ margin: 0, fontSize: 15, color: 'var(--navy)', fontWeight: 800 }}>Recent Meetings</h3>
+            <span style={{ fontSize: 11, color: '#64748b' }}>{filteredMeetingsList.length} of {meetings.length}</span>
+          </div>
+
+          {/* Category Filter Pills */}
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => setMeetingCategoryFilter('all')}
+              style={{
+                fontSize: 11,
+                padding: '4px 10px',
+                borderRadius: 20,
+                border: meetingCategoryFilter === 'all' ? '1.5px solid var(--navy)' : '1px solid #cbd5e1',
+                background: meetingCategoryFilter === 'all' ? 'var(--navy)' : '#ffffff',
+                color: meetingCategoryFilter === 'all' ? '#ffffff' : '#475569',
+                fontWeight: meetingCategoryFilter === 'all' ? 800 : 600,
+                cursor: 'pointer',
+              }}
+            >
+              All ({categoryCounts.all})
+            </button>
+            <button
+              type="button"
+              onClick={() => setMeetingCategoryFilter('GENERAL_MEETING')}
+              style={{
+                fontSize: 11,
+                padding: '4px 10px',
+                borderRadius: 20,
+                border: meetingCategoryFilter === 'GENERAL_MEETING' ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
+                background: meetingCategoryFilter === 'GENERAL_MEETING' ? '#e0f2fe' : '#ffffff',
+                color: meetingCategoryFilter === 'GENERAL_MEETING' ? '#0369a1' : '#475569',
+                fontWeight: meetingCategoryFilter === 'GENERAL_MEETING' ? 800 : 600,
+                cursor: 'pointer',
+              }}
+            >
+              👑 General ({categoryCounts.GENERAL_MEETING})
+            </button>
+            <button
+              type="button"
+              onClick={() => setMeetingCategoryFilter('TRUSTEES_MEETING')}
+              style={{
+                fontSize: 11,
+                padding: '4px 10px',
+                borderRadius: 20,
+                border: meetingCategoryFilter === 'TRUSTEES_MEETING' ? '1.5px solid #7e22ce' : '1px solid #cbd5e1',
+                background: meetingCategoryFilter === 'TRUSTEES_MEETING' ? '#f3e8ff' : '#ffffff',
+                color: meetingCategoryFilter === 'TRUSTEES_MEETING' ? '#7e22ce' : '#475569',
+                fontWeight: meetingCategoryFilter === 'TRUSTEES_MEETING' ? 800 : 600,
+                cursor: 'pointer',
+              }}
+            >
+              🏛️ Trustees ({categoryCounts.TRUSTEES_MEETING})
+            </button>
+            <button
+              type="button"
+              onClick={() => setMeetingCategoryFilter('EVENT')}
+              style={{
+                fontSize: 11,
+                padding: '4px 10px',
+                borderRadius: 20,
+                border: meetingCategoryFilter === 'EVENT' ? '1.5px solid #d97706' : '1px solid #cbd5e1',
+                background: meetingCategoryFilter === 'EVENT' ? '#fef3c7' : '#ffffff',
+                color: meetingCategoryFilter === 'EVENT' ? '#b45309' : '#475569',
+                fontWeight: meetingCategoryFilter === 'EVENT' ? 800 : 600,
+                cursor: 'pointer',
+              }}
+            >
+              🎖️ Events ({categoryCounts.EVENT})
+            </button>
+          </div>
+          {filteredMeetingsList.length === 0 ? (
             <span style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>No meetings scheduled.</span>
           ) : (
             <div style={{ display: 'grid', gap: 8 }}>
-              {meetings.map((m) => {
+              {filteredMeetingsList.map((m) => {
                 const isUpcoming = new Date().getTime() < new Date(m.date).getTime();
                 const matchedVenue = getMatchingVenuePreset(m.latitude, m.longitude);
+                const catConf = getMeetingCategoryConfig(m.title);
                 return (
                   <div
                     key={m.id}
@@ -748,6 +949,17 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                   >
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{
+                          fontSize: 10,
+                          fontWeight: 800,
+                          padding: '1px 6px',
+                          borderRadius: 4,
+                          background: catConf.badgeBg,
+                          color: catConf.badgeColor,
+                          border: `1px solid ${catConf.borderColor}`,
+                        }}>
+                          {catConf.icon} {catConf.shortLabel}
+                        </span>
                         <strong style={{ fontSize: 13, color: 'var(--navy)' }}>{m.title}</strong>
                         {isUpcoming ? (
                           <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: '#dbeafe', color: '#1e40af' }}>
@@ -811,7 +1023,73 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
           <>
             {/* Header Detail Card */}
             <div className="card" style={{ borderLeft: '4px solid var(--gold)', background: 'linear-gradient(135deg, #ffffff 0%, #fffdf9 100%)' }}>
-              <h2 style={{ margin: '0 0 4px', color: 'var(--navy)', fontWeight: 800 }}>{selectedMeeting.title}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
+                <span style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  padding: '3px 10px',
+                  borderRadius: 6,
+                  background: getMeetingCategoryConfig(selectedMeeting.title).badgeBg,
+                  color: getMeetingCategoryConfig(selectedMeeting.title).badgeColor,
+                  border: `1.5px solid ${getMeetingCategoryConfig(selectedMeeting.title).borderColor}`,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5
+                }}>
+                  {getMeetingCategoryConfig(selectedMeeting.title).icon} {getMeetingCategoryConfig(selectedMeeting.title).label}
+                </span>
+                <h2 style={{ margin: 0, color: 'var(--navy)', fontWeight: 800, fontSize: 20 }}>{selectedMeeting.title}</h2>
+              </div>
+
+              {getMeetingCategory(selectedMeeting.title) === 'TRUSTEES_MEETING' && (
+                <div style={{
+                  marginTop: 8,
+                  marginBottom: 10,
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+                  border: '1px solid #c4b5fd',
+                  color: '#5b21b6',
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10
+                }}>
+                  <span style={{ fontSize: 22 }}>🏛️</span>
+                  <div>
+                    <strong>Board of Trustees Monthly Session (Pre-Plenary):</strong>
+                    <div style={{ fontSize: 11, color: '#6d28d9' }}>
+                      This session precedes the monthly general meeting. Check-ins are audited for Trustees, Past Worthy Presidents, and Council Officers without penalizing the general member roll.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {getMeetingCategory(selectedMeeting.title) === 'EVENT' && (
+                <div style={{
+                  marginTop: 8,
+                  marginBottom: 10,
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                  border: '1px solid #fcd34d',
+                  color: '#92400e',
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10
+                }}>
+                  <span style={{ fontSize: 22 }}>🎖️</span>
+                  <div>
+                    <strong>Commandery Fraternal Event / Function:</strong>
+                    <div style={{ fontSize: 11, color: '#b45309' }}>
+                      Official turnout and participation log for church parade, drill inspection, mass, funeral, retreat, or special function.
+                    </div>
+                  </div>
+                </div>
+              )}
               {(() => {
                 const matched = getMatchingVenuePreset(selectedMeeting.latitude, selectedMeeting.longitude);
                 return (
@@ -1041,10 +1319,10 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                         📊 Attendance Data (Objective Facts)
                       </div>
                       <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>
-                        {presentCount} of {totalRoster} Attended
+                        {isSelectedMeetingUpcoming ? 'Session Has Not Yet Occurred' : `${presentCount} of ${totalRoster} Attended`}
                       </div>
                       <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>
-                        {excusedCount} Excused • {absentCount} Absent
+                        {isSelectedMeetingUpcoming ? `${totalRoster} Active Brothers on Roll • Check-in opens 1hr before start` : `${excusedCount} Excused • ${absentCount} Absent`}
                       </div>
                     </div>
                     <div>
@@ -1052,10 +1330,10 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                         ⚡ Attendance Assessment (Calculated Metrics)
                       </div>
                       <div style={{ fontSize: 16, fontWeight: 800, color: presentPct >= 60 ? '#16a34a' : '#dc2626' }}>
-                        {presentPct}% Attendance Rate
+                        {isSelectedMeetingUpcoming ? `${excusedCount} Advance Excuses Logged` : `${presentPct}% Attendance Rate`}
                       </div>
                       <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>
-                        {presentPct >= 60 ? '✓ Meeting Threshold Met' : '⚠️ Below 60% Threshold'}
+                        {isSelectedMeetingUpcoming ? (presentCount > 0 ? `${presentCount} early check-ins recorded` : 'Attendance assessed once session starts') : (presentPct >= 60 ? '✓ Meeting Threshold Met' : '⚠️ Below 60% Threshold')}
                       </div>
                     </div>
                   </div>
@@ -1073,9 +1351,9 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                       <div style={{ fontSize: 10, color: '#0369a1', fontWeight: 700 }}>Excused ({excusedPct}%)</div>
                     </div>
                     <div style={{ padding: '12px 6px', borderRadius: 10, background: 'rgba(239, 68, 68, 0.04)', border: '1px solid rgba(239, 68, 68, 0.08)', textAlign: 'center' }}>
-                      <div style={{ fontSize: 18, marginBottom: 4 }}>❌</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: '#ef4444' }}>{absentCount}</div>
-                      <div style={{ fontSize: 10, color: '#b91c1c', fontWeight: 700 }}>Absent ({absentPct}%)</div>
+                      <div style={{ fontSize: 18, marginBottom: 4 }}>{isSelectedMeetingUpcoming ? '⏳' : '❌'}</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: isSelectedMeetingUpcoming ? '#475569' : '#ef4444' }}>{isSelectedMeetingUpcoming ? (totalRoster - presentCount - excusedCount) : absentCount}</div>
+                      <div style={{ fontSize: 10, color: isSelectedMeetingUpcoming ? '#475569' : '#b91c1c', fontWeight: 700 }}>{isSelectedMeetingUpcoming ? 'Pending Session' : `Absent (${absentPct}%)`}</div>
                     </div>
                   </div>
 
@@ -1624,6 +1902,47 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
             </div>
 
             <form onSubmit={handleSaveEditMeeting} style={{ display: 'grid', gap: 14 }}>
+              <div style={{ display: 'grid', gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)' }}>Session Category</span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  {(['GENERAL_MEETING', 'TRUSTEES_MEETING', 'EVENT'] as MeetingCategory[]).map(catKey => {
+                    const conf = MEETING_CATEGORIES[catKey];
+                    const isSelected = getMeetingCategory(editTitle) === catKey;
+                    return (
+                      <button
+                        key={catKey}
+                        type="button"
+                        onClick={() => {
+                          const now = editDate ? new Date(editDate) : new Date();
+                          const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                          const month = monthNames[now.getMonth()];
+                          const year = now.getFullYear();
+                          if (catKey === 'TRUSTEES_MEETING') {
+                            setEditTitle(`Board of Trustees Meeting (${month} ${year})`);
+                          } else if (catKey === 'GENERAL_MEETING') {
+                            setEditTitle(`${month} ${year} General Meeting`);
+                          } else {
+                            setEditTitle(`Church Parade & Thanksgiving Mass (${month} ${year})`);
+                          }
+                        }}
+                        style={{
+                          padding: '6px 4px',
+                          borderRadius: 6,
+                          border: isSelected ? `2px solid ${conf.borderColor}` : '1px solid #cbd5e1',
+                          background: isSelected ? conf.badgeBg : '#ffffff',
+                          color: isSelected ? conf.badgeColor : '#475569',
+                          fontWeight: isSelected ? 800 : 600,
+                          fontSize: 11,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {conf.icon} {conf.shortLabel}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <label style={label}>
                 <span>Meeting Title</span>
                 <input
@@ -1696,6 +2015,22 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                 />
                 <span style={{ fontSize: 11, color: '#64748b' }}>
                   Recommended: 150m for full coverage of school campus and halls.
+                </span>
+              </label>
+
+              <label style={label}>
+                <span>Active Roll Count (Snapshot of Eligible Members)</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="500"
+                  value={editActiveRollCount}
+                  onChange={e => setEditActiveRollCount(e.target.value === '' ? '' : parseInt(e.target.value))}
+                  placeholder="e.g. 68 (Leave blank for auto-calculation)"
+                  style={input}
+                />
+                <span style={{ fontSize: 11, color: '#64748b' }}>
+                  Official membership size on this date used as the turnout denominator.
                 </span>
               </label>
 

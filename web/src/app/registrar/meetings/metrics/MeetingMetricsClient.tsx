@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { OverallMeetingMetrics, MeetingMetricItem } from '@/services/attendanceService';
-import { formatDisplayDate } from '@/lib/utils/ksji-logic';
+import { formatDisplayDate, MeetingCategory, MEETING_CATEGORIES, getMeetingCategory, getMeetingCategoryConfig } from '@/lib/utils/ksji-logic';
 
 interface Props {
   metrics: OverallMeetingMetrics;
@@ -21,6 +21,7 @@ export default function MeetingMetricsClient({
   hideTopBar = false,
 }: Props) {
   // Navigation & Filter States
+  const [categoryFilter, setCategoryFilter] = useState<'all' | MeetingCategory>('all');
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [turnoutFilter, setTurnoutFilter] = useState<'all' | 'high' | 'moderate' | 'low'>('all');
@@ -39,6 +40,7 @@ export default function MeetingMetricsClient({
     return metrics.meetings.filter(m => {
       // 1. Year filter
       if (selectedYear !== 'all' && m.year !== selectedYear) return false;
+      if (categoryFilter !== 'all' && (m.category || getMeetingCategory(m.title)) !== categoryFilter) return false;
 
       // 2. Search query (title, date)
       if (searchQuery.trim()) {
@@ -64,7 +66,17 @@ export default function MeetingMetricsClient({
       if (sortBy === 'attendees_desc') return b.presentCount - a.presentCount;
       return 0;
     });
-  }, [metrics.meetings, selectedYear, searchQuery, turnoutFilter, sortBy]);
+  }, [metrics.meetings, selectedYear, categoryFilter, searchQuery, turnoutFilter, sortBy]);
+
+  // Category counts map
+  const categoryCounts = useMemo(() => {
+    return {
+      all: metrics.meetings.length,
+      GENERAL_MEETING: metrics.meetings.filter(m => (m.category || getMeetingCategory(m.title)) === 'GENERAL_MEETING').length,
+      TRUSTEES_MEETING: metrics.meetings.filter(m => (m.category || getMeetingCategory(m.title)) === 'TRUSTEES_MEETING').length,
+      EVENT: metrics.meetings.filter(m => (m.category || getMeetingCategory(m.title)) === 'EVENT').length,
+    };
+  }, [metrics.meetings]);
 
   // Year counts map
   const yearCounts = useMemo(() => {
@@ -79,6 +91,7 @@ export default function MeetingMetricsClient({
   const exportMetricsCSV = () => {
     const headers = [
       'Meeting Date',
+      'Session Category',
       'Meeting Title',
       'Year',
       'Eligible Roll',
@@ -93,6 +106,7 @@ export default function MeetingMetricsClient({
 
     const rows = filteredMeetings.map(m => [
       formatDisplayDate(m.date),
+      `"${getMeetingCategoryConfig(m.title).shortLabel}"`,
       `"${(m.title || '').replace(/"/g, '""')}"`,
       m.year,
       m.totalRoll,
@@ -153,7 +167,16 @@ export default function MeetingMetricsClient({
   };
 
   // Helper for turnout color and badge
-  const getTurnoutBadge = (rate: number) => {
+  const getTurnoutBadge = (rate: number, isUpcoming?: boolean) => {
+    if (isUpcoming) {
+      return {
+        label: 'Upcoming Session',
+        bg: '#eff6ff',
+        text: '#1d4ed8',
+        border: '#bfdbfe',
+        bar: '#3b82f6',
+      };
+    }
     if (rate >= 40) {
       return {
         label: 'Strong Turnout',
@@ -239,13 +262,20 @@ export default function MeetingMetricsClient({
         <div className="card" style={{ padding: '20px', borderLeft: '4px solid #C9A84C', background: '#ffffff' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: '#64748b', letterSpacing: 0.5 }}>
-              Total Meetings on Record
+              Meetings Held on Record
             </span>
             <span style={{ fontSize: 20 }}>📅</span>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: '#0A1628' }}>{metrics.totalMeetings}</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: '#0A1628', display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span>{metrics.totalMeetings}</span>
+            {(metrics.upcomingMeetingsCount || 0) > 0 && (
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#2563eb' }}>
+                (+{metrics.upcomingMeetingsCount} upcoming)
+              </span>
+            )}
+          </div>
           <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-            Spanning {metrics.availableYears.join(', ')}
+            Sessions held across {metrics.availableYears.join(', ')}
           </div>
         </div>
 
@@ -300,7 +330,80 @@ export default function MeetingMetricsClient({
 
       {/* ── INTUITIVE FILTER & SEARCH BAR (PREVENTS OVERWHELM) ── */}
       <div className="card" style={{ padding: 20, background: '#ffffff', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Row 1: Year Pill Tabs */}
+        {/* Row 1: Session Category Tabs */}
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 8 }}>
+            Session Category:
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setCategoryFilter('all')}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 20,
+                border: categoryFilter === 'all' ? '2px solid #0A1628' : '1px solid #cbd5e1',
+                background: categoryFilter === 'all' ? '#0A1628' : '#f8fafc',
+                color: categoryFilter === 'all' ? '#ffffff' : '#475569',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              All Sessions ({categoryCounts.all})
+            </button>
+            <button
+              onClick={() => setCategoryFilter('GENERAL_MEETING')}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 20,
+                border: categoryFilter === 'GENERAL_MEETING' ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                background: categoryFilter === 'GENERAL_MEETING' ? '#e0f2fe' : '#f8fafc',
+                color: categoryFilter === 'GENERAL_MEETING' ? '#0369a1' : '#475569',
+                fontSize: 13,
+                fontWeight: categoryFilter === 'GENERAL_MEETING' ? 800 : 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              👑 General Meetings ({categoryCounts.GENERAL_MEETING})
+            </button>
+            <button
+              onClick={() => setCategoryFilter('TRUSTEES_MEETING')}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 20,
+                border: categoryFilter === 'TRUSTEES_MEETING' ? '2px solid #7e22ce' : '1px solid #cbd5e1',
+                background: categoryFilter === 'TRUSTEES_MEETING' ? '#f3e8ff' : '#f8fafc',
+                color: categoryFilter === 'TRUSTEES_MEETING' ? '#7e22ce' : '#475569',
+                fontSize: 13,
+                fontWeight: categoryFilter === 'TRUSTEES_MEETING' ? 800 : 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              🏛️ Board of Trustees ({categoryCounts.TRUSTEES_MEETING})
+            </button>
+            <button
+              onClick={() => setCategoryFilter('EVENT')}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 20,
+                border: categoryFilter === 'EVENT' ? '2px solid #d97706' : '1px solid #cbd5e1',
+                background: categoryFilter === 'EVENT' ? '#fef3c7' : '#f8fafc',
+                color: categoryFilter === 'EVENT' ? '#b45309' : '#475569',
+                fontSize: 13,
+                fontWeight: categoryFilter === 'EVENT' ? 800 : 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              🎖️ Events & Functions ({categoryCounts.EVENT})
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2: Year Pill Tabs */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 8 }}>
             Select Year:
@@ -471,8 +574,9 @@ export default function MeetingMetricsClient({
             </div>
           ) : (
             filteredMeetings.map(m => {
-              const badge = getTurnoutBadge(m.turnoutRate);
+              const badge = getTurnoutBadge(m.turnoutRate, m.isUpcoming);
               const mDateStr = formatDisplayDate(m.date);
+              const catConf = getMeetingCategoryConfig(m.title);
 
               return (
                 <div
@@ -494,6 +598,24 @@ export default function MeetingMetricsClient({
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
                       <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              padding: '2px 8px',
+                              borderRadius: 6,
+                              background: catConf.badgeBg,
+                              color: catConf.badgeColor,
+                              border: `1px solid ${catConf.borderColor}`,
+                              fontSize: 10,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {catConf.icon} {catConf.shortLabel}
+                          </span>
+                        </div>
                         <span
                           style={{
                             display: 'inline-block',
@@ -526,21 +648,23 @@ export default function MeetingMetricsClient({
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {m.turnoutRate}%
+                        {m.isUpcoming ? '⏳ Upcoming' : `${m.turnoutRate}%`}
                       </span>
                     </div>
 
                     {/* Turnout Progress Bar */}
                     <div style={{ margin: '14px 0 16px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, marginBottom: 4, color: '#64748b' }}>
-                        <span>TURNOUT RATE</span>
-                        <span style={{ color: badge.text }}>{m.presentCount} of {m.totalRoll} Brothers</span>
+                        <span>{m.isUpcoming ? 'SESSION STATUS' : 'TURNOUT RATE'}</span>
+                        <span style={{ color: badge.text }}>
+                          {m.isUpcoming ? 'Scheduled Meeting' : `${m.presentCount} of ${m.totalRoll} Brothers`}
+                        </span>
                       </div>
                       <div style={{ height: 8, width: '100%', background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
                         <div
                           style={{
                             height: '100%',
-                            width: `${Math.min(m.turnoutRate, 100)}%`,
+                            width: m.isUpcoming ? '100%' : `${Math.min(m.turnoutRate, 100)}%`,
                             background: badge.bar,
                             borderRadius: 4,
                             transition: 'width 0.3s ease',
@@ -565,8 +689,8 @@ export default function MeetingMetricsClient({
 
                       {/* Absent */}
                       <div style={{ background: '#f8fafc', padding: '10px 8px', borderRadius: 8, textAlign: 'center', border: '1px solid #f1f5f9' }}>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: '#dc2626' }}>{m.absentCount}</div>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Absent</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: m.isUpcoming ? '#64748b' : '#dc2626' }}>{m.isUpcoming ? '—' : m.absentCount}</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{m.isUpcoming ? 'Pending' : 'Absent'}</div>
                       </div>
                     </div>
 
@@ -658,11 +782,26 @@ export default function MeetingMetricsClient({
                   </tr>
                 ) : (
                   filteredMeetings.map(m => {
-                    const badge = getTurnoutBadge(m.turnoutRate);
+                    const badge = getTurnoutBadge(m.turnoutRate, m.isUpcoming);
                     return (
                       <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0A1628' }}>
-                          {m.title}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 800,
+                                padding: '1px 6px',
+                                borderRadius: 4,
+                                background: getMeetingCategoryConfig(m.title).badgeBg,
+                                color: getMeetingCategoryConfig(m.title).badgeColor,
+                                border: `1px solid ${getMeetingCategoryConfig(m.title).borderColor}`,
+                              }}
+                            >
+                              {getMeetingCategoryConfig(m.title).icon} {getMeetingCategoryConfig(m.title).shortLabel}
+                            </span>
+                            <span>{m.title}</span>
+                          </div>
                         </td>
                         <td style={{ padding: '12px 16px', color: '#64748b' }}>
                           {formatDisplayDate(m.date)}
@@ -679,7 +818,7 @@ export default function MeetingMetricsClient({
                               border: `1px solid ${badge.border}`,
                             }}
                           >
-                            {m.turnoutRate}%
+                            {m.isUpcoming ? '⏳ Upcoming' : `${m.turnoutRate}%`}
                           </span>
                         </td>
                         <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 800, color: '#16a34a' }}>
@@ -691,8 +830,8 @@ export default function MeetingMetricsClient({
                         <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 700, color: '#d97706' }}>
                           {m.excusedCount}
                         </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 700, color: '#dc2626' }}>
-                          {m.absentCount}
+                        <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 700, color: m.isUpcoming ? '#94a3b8' : '#dc2626' }}>
+                          {m.isUpcoming ? '—' : m.absentCount}
                         </td>
                         <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                           <div style={{ display: 'inline-flex', gap: 6 }}>
@@ -782,6 +921,20 @@ export default function MeetingMetricsClient({
               }}
             >
               <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      background: getMeetingCategoryConfig(drillDownMeeting.title).badgeBg,
+                      color: getMeetingCategoryConfig(drillDownMeeting.title).badgeColor,
+                    }}
+                  >
+                    {getMeetingCategoryConfig(drillDownMeeting.title).icon} {getMeetingCategoryConfig(drillDownMeeting.title).label}
+                  </span>
+                </div>
                 <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#C9A84C' }}>
                   {drillDownMeeting.title}
                 </h3>

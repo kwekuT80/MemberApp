@@ -74,7 +74,8 @@ export default function AttendanceLogAccordion({ records }: AttendanceLogAccordi
             <tbody>
               {records.map((r) => {
                 const isPresent = r.status.includes('Present');
-                const isExcused = r.status === 'Excused';
+                const isExcused = r.status.includes('Excused');
+                const isUpcoming = r.status.includes('Upcoming');
 
                 return (
                   <tr key={r.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
@@ -93,10 +94,10 @@ export default function AttendanceLogAccordion({ records }: AttendanceLogAccordi
                         borderRadius: 20,
                         fontSize: 12,
                         fontWeight: 800,
-                        background: isPresent ? '#DCFCE7' : (isExcused ? '#EFF6FF' : '#FEE2E2'),
-                        color: isPresent ? '#166534' : (isExcused ? '#1E40AF' : '#991B1B')
+                        background: isPresent ? '#DCFCE7' : (isExcused ? '#EFF6FF' : isUpcoming ? '#DBEAFE' : '#FEE2E2'),
+                        color: isPresent ? '#166534' : (isExcused ? '#1E40AF' : isUpcoming ? '#1E40AF' : '#991B1B')
                       }}>
-                        {r.status}
+                        {isUpcoming && !r.status.startsWith('⏳') ? `⏳ ${r.status}` : r.status}
                       </span>
                     </td>
                   </tr>

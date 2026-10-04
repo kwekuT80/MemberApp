@@ -1,7 +1,7 @@
 'use server';
 import { createClient } from '@/lib/supabase/server';
 import { Member } from '@/types/member';
-import { isSystemMember, getMemberInitiationRecord } from '@/lib/utils/ksji-logic';
+import { isSystemMember, getMemberInitiationRecord, getMeetingCategory, getMeetingCategoryConfig } from '@/lib/utils/ksji-logic';
 
 const FULL_SELECT = `
   *,
@@ -537,23 +537,63 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
     const checkInsList = checkInsRes.data || [];
     const excusesList = excusesRes.data || [];
 
-    totalMeetings = meetingsList.length;
+    const now = Date.now();
+    const joinDay = member.date_joined ? String(member.date_joined).substring(0, 10) : '';
+    const deathDay = member.date_of_death ? String(member.date_of_death).substring(0, 10) : '';
+
+    // Only count meetings that occurred during the member's active tenure in the Commandery
+    const pastMeetingsList = meetingsList.filter(m => {
+      const hasCheckedIn = checkInsList.some(c => c.meeting_id === m.id);
+      if (hasCheckedIn) return true;
+      const mDay = String(m.date).substring(0, 10);
+      if (joinDay && mDay < joinDay) return false;
+      if (deathDay && mDay >= deathDay) return false;
+      return new Date(m.date).getTime() <= now;
+    });
+    
+    // Core constitutional compliance applies to General Meetings
+    const generalPastMeetings = pastMeetingsList.filter(m => getMeetingCategory(m) === 'GENERAL_MEETING');
+    const complianceMeetings = generalPastMeetings.length > 0 ? generalPastMeetings : pastMeetingsList;
+    const complianceMeetingIds = new Set(complianceMeetings.map(m => m.id));
+    totalMeetings = complianceMeetings.length;
+
+    let complianceAttendedCount = 0;
+    let complianceExcusedCount = 0;
 
     attendanceRecords = meetingsList.map(m => {
       const checkIn = checkInsList.find(c => c.meeting_id === m.id);
       const excuse = excusesList.find(e => e.meeting_id === m.id);
+      const isUpcoming = new Date(m.date).getTime() > now && !checkIn;
+      const category = getMeetingCategory(m);
+      const catConfig = getMeetingCategoryConfig(m);
+      const isComplianceTarget = complianceMeetingIds.has(m.id);
+
+      const mDay = String(m.date).substring(0, 10);
+      const isPriorToJoin = Boolean(joinDay && mDay < joinDay && !checkIn);
+      const isPosthumous = Boolean(deathDay && mDay >= deathDay && !checkIn);
 
       let status = 'Absent';
       if (checkIn) {
         const isQr = checkIn.method === 'qr' || checkIn.method === 'qr_scan' || (checkIn.override_note && String(checkIn.override_note).includes('QR'));
         status = checkIn.method === 'gps' ? 'Present (GPS)' : isQr ? 'Present (QR Scan)' : 'Present (Manual)';
         attendedCount++;
+        if (isComplianceTarget) complianceAttendedCount++;
+      } else if (isPriorToJoin) {
+        status = 'Prior to Joining';
+      } else if (isPosthumous) {
+        status = 'Posthumous';
       } else if (excuse && excuse.status === 'approved') {
-        status = 'Excused';
-        excusedCount++;
+        status = isUpcoming ? 'Upcoming (Excused)' : 'Excused';
+        if (!isUpcoming) {
+          excusedCount++;
+          if (isComplianceTarget) complianceExcusedCount++;
+        }
       } else if (excuse && excuse.status === 'pending') {
-        status = 'Excuse Pending';
-        absentCount++;
+        status = isUpcoming ? 'Upcoming (Excuse Pending)' : 'Excuse Pending';
+        if (!isUpcoming) absentCount++;
+      } else if (isUpcoming) {
+        status = 'Upcoming';
+        // Note: Upcoming meetings that have not yet occurred are not counted as absent
       } else {
         absentCount++;
       }
@@ -563,11 +603,14 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
         meetingTitle: m.title,
         meetingDate: m.date,
         status,
+        category,
+        categoryLabel: catConfig.shortLabel,
+        categoryIcon: catConfig.icon,
         checkInTime: checkIn?.check_in_time || null
       };
     });
 
-    complianceRate = isMemberDeceased ? 100 : (totalMeetings > 0 ? Math.min(100, Math.round(((attendedCount + excusedCount) / totalMeetings) * 100)) : 100);
+    complianceRate = isMemberDeceased ? 100 : (totalMeetings > 0 ? Math.min(100, Math.round(((complianceAttendedCount + complianceExcusedCount) / totalMeetings) * 100)) : 100);
   }
 
   return {

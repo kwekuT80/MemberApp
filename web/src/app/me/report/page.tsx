@@ -467,11 +467,11 @@ export default async function PersonalReportPage() {
           {/* 4 Metric Cards Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
             <div style={metricCardStyle}>
-              <div style={metricLabelStyle}>TOTAL MEETINGS SCHEDULED</div>
+              <div style={metricLabelStyle}>TOTAL MEETINGS HELD</div>
               <div style={{ fontSize: 22, fontWeight: 900, color: '#0F172A', fontFamily: 'monospace' }}>
                 {attendance?.totalMeetings || 0}
               </div>
-              <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>Commandery Roll</div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>Commandery Roll (To Date)</div>
             </div>
 
             <div style={metricCardStyle}>
