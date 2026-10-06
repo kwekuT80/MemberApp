@@ -174,17 +174,32 @@ export default function MemberServiceJourneyTimeline({
       });
     });
 
-    // 4. UNIFORMED MILITARY RANKS
+    // 4. UNIFORMED MILITARY RANKS / COMMISSIONS
     const rawMilitary = Array.isArray(military) && military.length > 0 ? military : member?.military;
     const safeMilitary = toSafeArray<any>(rawMilitary);
     safeMilitary.forEach((m: any, idx: number) => {
-      const pDate = m.date_promoted || '9999-12-31';
+      // Strictly verify brother is in uniformed ranks and has a bona fide rank or commission date
+      const rankTitle = m.current_rank || m.rank;
+      const commissionDate = m.commission || m.date_promoted;
+      const isUniformed = m.is_military === true;
+
+      // If member is not uniformed and has no commissioned rank/date, do NOT generate any event
+      if (!isUniformed && !rankTitle && !commissionDate) {
+        return;
+      }
+
+      // If they are uniformed but have no officer rank or commission date, they are an uncommissioned uniformed knight (no officer commission event)
+      if (!rankTitle && !commissionDate) {
+        return;
+      }
+
+      const pDate = commissionDate || '9999-12-31';
       events.push({
         id: `ev-mil-${idx}`,
         category: 'rank',
         dateStr: pDate,
-        formattedDate: m.date_promoted ? formatDisplayDate(m.date_promoted) : 'Promotion Date Unrecorded',
-        title: `Promoted to ${m.rank || 'Officer Rank'}`,
+        formattedDate: commissionDate ? formatDisplayDate(commissionDate) : 'Commission Date Unrecorded',
+        title: rankTitle ? `Commissioned as ${rankTitle}` : 'Military Officer Commission',
         subtitle: m.authority ? `Authority: ${m.authority}` : 'Uniformed Ranks Commission',
         description: m.notes || `Commissioned officer rank advancement in the military ranks of KSJI.`,
         badge: 'Military Commission',
