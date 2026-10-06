@@ -9,14 +9,16 @@ export default function MemberSearchTable({
   members, 
   basePath = '/registrar/members', 
   emptyMessage = 'No member records found.',
-  initialCohort = ''
+  initialCohort = '',
+  initialStatus = 'active'
 }: { 
   members: any[]; 
   basePath?: string; 
   emptyMessage?: string;
   initialCohort?: string;
+  initialStatus?: 'all' | 'active' | 'deceased' | 'inactive';
 }) {
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'deceased' | 'inactive'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'deceased' | 'inactive'>(initialStatus || 'active');
   const [cohortFilter, setCohortFilter] = useState<string>(initialCohort || 'all');
 
   // Filter out system/fictitious operational accounts from all member table views
@@ -81,17 +83,17 @@ export default function MemberSearchTable({
           <span style={{ fontSize: 12, fontWeight: 700, color: '#53657d', marginRight: 2 }}>Status:</span>
           <button
             type="button"
-            onClick={() => setStatusFilter('all')}
-            style={chipStyle(statusFilter === 'all', '#10233f')}
-          >
-            All ({actualMembers.length})
-          </button>
-          <button
-            type="button"
             onClick={() => setStatusFilter('active')}
             style={chipStyle(statusFilter === 'active', '#1f6f43')}
           >
             Active ({activeCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            style={chipStyle(statusFilter === 'all', '#10233f')}
+          >
+            All ({actualMembers.length})
           </button>
           <button
             type="button"
@@ -104,9 +106,9 @@ export default function MemberSearchTable({
             <button
               type="button"
               onClick={() => setStatusFilter('inactive')}
-              style={chipStyle(statusFilter === 'inactive', '#991b1b')}
+              style={chipStyle(statusFilter === 'inactive', '#b45309')}
             >
-              Dismissed / Transfer-Out ({inactiveCount})
+              Transferred-Out / Inactive ({inactiveCount})
             </button>
           )}
         </div>
@@ -203,6 +205,17 @@ export default function MemberSearchTable({
               <tr>
                 <td colSpan={6} style={{ textAlign: 'center', padding: 24, color: '#64748b' }}>
                   No members found matching this filter criteria.
+                  {statusFilter === 'active' && actualMembers.length > 0 && (
+                    <div style={{ marginTop: 8 }}>
+                      <button
+                        type="button"
+                        onClick={() => setStatusFilter('all')}
+                        style={{ background: 'none', border: 'none', color: '#0284c7', textDecoration: 'underline', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
+                      >
+                        Show all {actualMembers.length} records (including Transferred-Out & Final Roll)
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ) : (
@@ -223,6 +236,9 @@ export default function MemberSearchTable({
                         </div>
                         {member.status === 'Deceased' && (
                           <span style={{ backgroundColor: '#111827', color: '#F3F4F6', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 6 }}>🕊️ RIP</span>
+                        )}
+                        {member.status === 'Transfer-Out' && (
+                          <span style={{ backgroundColor: '#FEF3C7', color: '#92400E', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 6 }}>TRANSFERRED</span>
                         )}
                         {member.status === 'Dismissed' && (
                           <span style={{ backgroundColor: '#FEE2E2', color: '#991B1B', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 6 }}>DISMISSED</span>
