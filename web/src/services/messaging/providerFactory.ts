@@ -14,6 +14,8 @@ function getResendConfig(): {
   return {
     apiKey: process.env.RESEND_API_KEY || '',
     senderEmail:
+      process.env.RESEND_FROM_EMAIL ||
+      process.env.RESEND_SENDER_EMAIL ||
       process.env.RESENDER_SENDER_EMAIL ||
       'communications.ksji500app@gmail.com',
   };
@@ -31,9 +33,9 @@ export function createMessagingProvider(): MessagingProvider {
     case 'resend': {
       const config = getResendConfig();
 
-      if (!config.apiKey) {
-        console.error(
-          '[messaging] Resend API key not configured. Set RESEND_API_KEY.'
+      if (!config.apiKey && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.warn(
+          '[messaging] Neither RESEND_API_KEY nor SUPABASE_SERVICE_ROLE_KEY is configured.'
         );
       }
 
