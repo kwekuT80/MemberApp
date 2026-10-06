@@ -356,72 +356,183 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
         )}
 
         {/* TAB 3: DEGREES */}
-        {activeTab === 3 && (
-          <div className="grid-cols-2">
-            <div style={{ gridColumn: '1 / -1', marginBottom: 20, padding: 16, background: 'rgba(212, 175, 55, 0.05)', borderRadius: 12, border: '1px dashed var(--gold)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-               <div>
-                 <div style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 15 }}>Detailed Degree & Exemplification Records</div>
-                 <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2 }}>
-                   {degreesList.length > 0 
-                     ? `${degreesList.length} exemplification record(s) on file. Click 'Manage Degrees' to edit dates, places, or add new degrees.`
-                     : 'Manage exemplification history and certificate details.'}
-                 </div>
-               </div>
-               {form.id ? (
-                 <Link href={mode === 'self' ? '/me/education' : `/registrar/members/${form.id}/education`} className="tab tab-active">
-                   Manage Degrees →
-                 </Link>
-               ) : <span style={{ fontSize: 12, fontStyle: 'italic' }}>Save member first to manage degrees.</span>}
-            </div>
+        {activeTab === 3 && (() => {
+          const deg1 = degreesList.find((d: any) => d.degree_type?.toLowerCase().includes('1st'));
+          const deg23 = degreesList.find((d: any) => d.degree_type?.toLowerCase().includes('2nd') || d.degree_type?.toLowerCase().includes('3rd'));
+          const deg4 = degreesList.find((d: any) => d.degree_type?.toLowerCase().includes('4th') || d.degree_type?.toLowerCase().includes('chevalier'));
+          const degNoble = degreesList.find((d: any) => d.degree_type?.toLowerCase().includes('noble') || d.degree_type?.toLowerCase().includes('5th'));
 
-            <InputField 
-              label="1st Degree Exemplification (Initiation into KSJI)" 
-              value={form.degree1_place} 
-              onChange={(v: string) => updateField('degree1_place', v)} 
-              placeholder="e.g. 1988-07-16 — St. Augustine's Commandery #374, Hohoe"
-            />
-            <InputField 
-              label="2nd & 3rd Degree" 
-              value={form.degree23_place} 
-              onChange={(v: string) => updateField('degree23_place', v)} 
-              placeholder="e.g. 2006-09-16 — OLAM Community 1 Tema"
-            />
-            <InputField 
-              label="4th Degree" 
-              value={form.degree4_place} 
-              onChange={(v: string) => updateField('degree4_place', v)} 
-              placeholder="e.g. 2013-04-20 — St. Thomas Aquinas - Cantonment"
-            />
-            <InputField 
-              label="Noble Degree" 
-              value={form.degree_noble_place} 
-              onChange={(v: string) => updateField('degree_noble_place', v)} 
-              placeholder="e.g. 2017-09-02 — Holy Spirit Cathedral - Accra"
-            />
+          const standardSlots = [
+            {
+              key: '1st',
+              title: '1st Degree Exemplification (Initiation into KSJI)',
+              icon: '⚔️',
+              record: deg1,
+              legacy: form.degree1_place,
+            },
+            {
+              key: '2nd3rd',
+              title: '2nd & 3rd Degree (Knighthood Advancement)',
+              icon: '🛡️',
+              record: deg23,
+              legacy: form.degree23_place,
+            },
+            {
+              key: '4th',
+              title: '4th Degree Exemplification (Chevalier Elevation)',
+              icon: '🏅',
+              record: deg4,
+              legacy: form.degree4_place,
+            },
+            {
+              key: 'noble',
+              title: 'Noble Degree (5th Degree Elevation)',
+              icon: '👑',
+              record: degNoble,
+              legacy: form.degree_noble_place,
+            },
+          ];
 
-            {/* STRUCTURED EXEMPLIFICATION RECORDS DISPLAY */}
-            {degreesList.length > 0 && (
-              <div style={{ gridColumn: '1 / -1', marginTop: 12, padding: 16, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--navy)', textTransform: 'uppercase', marginBottom: 10, letterSpacing: '0.5px' }}>
-                  Recorded Exemplification History
+          const otherDegrees = degreesList.filter(
+            (d: any) => d !== deg1 && d !== deg23 && d !== deg4 && d !== degNoble
+          );
+
+          const manageUrl = mode === 'self' 
+            ? '/me/exemplification' 
+            : `/registrar/members/${form.id}/exemplification`;
+
+          return (
+            <div style={{ display: 'grid', gridColumn: '1 / -1', gap: 16 }}>
+              {/* Detailed Degree Header & Navigation */}
+              <div style={{ padding: 16, background: 'rgba(212, 175, 55, 0.05)', borderRadius: 12, border: '1px dashed var(--gold)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <div style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 15 }}>Detailed Degree & Exemplification Records</div>
+                  <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2 }}>
+                    {degreesList.length > 0 
+                      ? `${degreesList.length} exemplification record(s) on file. Click 'Manage Degrees' to edit dates, places, or add new degrees.`
+                      : 'Exemplification records are displayed below. Click \'Manage Degrees\' to record or edit conferrals.'}
+                  </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
-                  {degreesList.map((d: any, idx: number) => (
-                    <div key={d.id || idx} style={{ background: '#ffffff', padding: '10px 14px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
-                      <strong style={{ fontSize: 13, color: 'var(--navy)', display: 'block' }}>{d.degree_type}</strong>
-                      <span style={{ fontSize: 12, color: '#64748b', display: 'block', marginTop: 2 }}>
-                        {formatDisplayDate(d.degree_date)}
-                      </span>
-                      <span style={{ fontSize: 12, color: '#334155', fontWeight: 600, display: 'block', marginTop: 2 }}>
-                        {d.degree_place || '—'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                {form.id ? (
+                  <Link href={manageUrl} className="tab tab-active">
+                    Manage Degrees →
+                  </Link>
+                ) : (
+                  <span style={{ fontSize: 12, fontStyle: 'italic' }}>Save member first to manage degrees.</span>
+                )}
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Read-Only Degree Display Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+                {standardSlots.map((slot) => {
+                  const hasRecord = Boolean(slot.record);
+                  const hasLegacy = Boolean(!hasRecord && slot.legacy);
+                  const isRecorded = hasRecord || hasLegacy;
+
+                  return (
+                    <div
+                      key={slot.key}
+                      style={{
+                        background: isRecorded ? '#ffffff' : '#f8fafc',
+                        border: isRecorded ? '1px solid #cbd5e1' : '1px dashed #e2e8f0',
+                        borderRadius: 10,
+                        padding: 16,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8,
+                        boxShadow: isRecorded ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 18 }}>{slot.icon}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>
+                            {slot.title}
+                          </span>
+                        </div>
+                        {isRecorded ? (
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: '#047857',
+                            background: '#ecfdf5',
+                            border: '1px solid #a7f3d0',
+                            borderRadius: 6,
+                            padding: '2px 8px',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            ✓ Recorded
+                          </span>
+                        ) : (
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: '#94a3b8',
+                            background: '#f1f5f9',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: 6,
+                            padding: '2px 8px',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            Not on file
+                          </span>
+                        )}
+                      </div>
+
+                      {hasRecord ? (
+                        <div style={{ marginTop: 4, display: 'grid', gap: 4, fontSize: 12 }}>
+                          {slot.record.degree_date && (
+                            <div style={{ color: '#475569' }}>
+                              <strong style={{ color: '#1e293b' }}>Date:</strong> {formatDisplayDate(slot.record.degree_date)}
+                            </div>
+                          )}
+                          <div style={{ color: '#475569' }}>
+                            <strong style={{ color: '#1e293b' }}>Place:</strong> {slot.record.degree_place || '—'}
+                          </div>
+                          {slot.record.certificate_number && (
+                            <div style={{ color: '#64748b', fontSize: 11 }}>
+                              Cert #: {slot.record.certificate_number}
+                            </div>
+                          )}
+                        </div>
+                      ) : hasLegacy ? (
+                        <div style={{ marginTop: 4, fontSize: 12, color: '#334155' }}>
+                          <strong style={{ color: '#1e293b' }}>On file:</strong> {slot.legacy}
+                        </div>
+                      ) : (
+                        <div style={{ marginTop: 4, fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
+                          No exemplification record logged yet.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Additional Degrees */}
+              {otherDegrees.length > 0 && (
+                <div style={{ marginTop: 4, padding: 16, background: '#ffffff', borderRadius: 10, border: '1px solid #cbd5e1' }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--navy)', textTransform: 'uppercase', marginBottom: 10, letterSpacing: '0.5px' }}>
+                    Additional Degree Conferrals
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
+                    {otherDegrees.map((d: any, idx: number) => (
+                      <div key={d.id || idx} style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                        <strong style={{ fontSize: 13, color: 'var(--navy)', display: 'block' }}>{d.degree_type}</strong>
+                        <span style={{ fontSize: 12, color: '#64748b', display: 'block', marginTop: 2 }}>
+                          {formatDisplayDate(d.degree_date)}
+                        </span>
+                        <span style={{ fontSize: 12, color: '#334155', fontWeight: 600, display: 'block', marginTop: 2 }}>
+                          {d.degree_place || '—'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* TAB 4: MILITARY */}
         {activeTab === 4 && (
