@@ -11,23 +11,25 @@ export async function getCurrentProfileRecord(): Promise<Profile | null> {
   return data || null; 
 }
 
-export async function getPendingProfilesWithMatches(): Promise<any[]> {
+export async function getRegistrarWaitingRoomData(): Promise<{ pending: any[]; unlinkedMembers: any[] }> {
   const supabase = await createClient();
-  const { data: profiles, error } = await supabase
-    .from('profiles')
-    .select('*, commanderies(name, number)')
-    .eq('status', 'pending');
-  
-  if (error) throw error;
-  if (!profiles || profiles.length === 0) return [];
+  const [profilesRes, unlinkedRes] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('*, commanderies(name, number)')
+      .eq('status', 'pending'),
+    supabase
+      .from('members')
+      .select('id, first_name, surname, email, phone, mobile, commandery_id, status')
+      .is('user_id', null)
+      .order('surname')
+  ]);
 
-  // Fetch all unlinked members for robust multi-criteria matching (contact & name)
-  const { data: unlinkedMembers } = await supabase
-    .from('members')
-    .select('id, first_name, surname, email, phone, mobile, commandery_id, status')
-    .is('user_id', null);
+  if (profilesRes.error) throw profilesRes.error;
+  if (unlinkedRes.error) throw unlinkedRes.error;
 
-  const unlinked = unlinkedMembers || [];
+  const profiles = profilesRes.data || [];
+  const unlinked = unlinkedRes.data || [];
 
   const profilesWithMatches = profiles.map((profile) => {
     const email = (profile.email || '').trim().toLowerCase();
@@ -58,7 +60,12 @@ export async function getPendingProfilesWithMatches(): Promise<any[]> {
     };
   });
 
-  return profilesWithMatches;
+  return { pending: profilesWithMatches, unlinkedMembers: unlinked };
+}
+
+export async function getPendingProfilesWithMatches(): Promise<any[]> {
+  const { pending } = await getRegistrarWaitingRoomData();
+  return pending;
 }
 
 export async function approveProfileLink(profileId: string, memberId: string): Promise<void> {

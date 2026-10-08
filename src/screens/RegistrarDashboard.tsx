@@ -39,9 +39,6 @@ export default function RegistrarDashboard({ navigation }) {
       fetchMembers();
       loadUpgrades();
     });
-    fetchMembers();
-    loadUpgrades();
-    
     return unsubscribe;
   }, [navigation]);
 
@@ -50,7 +47,7 @@ export default function RegistrarDashboard({ navigation }) {
     // Fetch members with children count and top positions
     const { data, error } = await supabase
       .from('members')
-      .select('*, children(id), positions(position_title, date_from, date_to)')
+      .select('id, title, first_name, surname, full_name, phone, mobile, status, is_deceased, marital_status, occupation, job_status, date_joined, children(id), positions(position_title, date_from, date_to)')
       .order('surname', { ascending: true });
       
     if (error) {

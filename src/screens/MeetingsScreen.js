@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../db/supabase';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
+import { fetchAllRows } from '../utils/pagination';
 
 // expo-location is optional — don't crash the app if it's not available in the APK build
 let Location = null;

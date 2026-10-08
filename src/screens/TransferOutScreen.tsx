@@ -99,47 +99,50 @@ export default function TransferOutScreen({ navigation }) {
 
     const selectedEntries = entries.filter(e => selectedIds.has(e.id));
 
-    for (const entry of selectedEntries) {
-      try {
+    try {
+      const newMembersPayload = selectedEntries.map(entry => {
         const rawName = (entry.raw_name || '').trim();
         const parts = rawName.split(/\s+/);
         let surname = parts[0] || 'Unknown';
         let firstName = parts.slice(1).join(' ') || '';
-        if (!firstName) firstName = surname; // Fallback if single name
+        if (!firstName) firstName = surname;
 
-        const newMember = {
+        return {
           user_id: user.id,
           surname: surname,
           first_name: firstName,
-          full_name: rawName, // Keep original intact just in case
+          full_name: rawName,
           date_joined: entry.date_of_initiation || null,
           status: 'Transfer-Out',
           transfer_to: selectedCommandery.name,
           transfer_date: selectedCommandery.date,
-          gender: 'Male', // Defaulting to Male for Commandery
+          gender: 'Male',
         };
+      });
 
-        const { data: memberData, error: memberErr } = await supabase
-          .from('members')
-          .insert([newMember])
-          .select('id')
-          .single();
+      // 1. Single batch insert for all new members
+      const { data: createdMembers, error: insertErr } = await supabase
+        .from('members')
+        .insert(newMembersPayload)
+        .select('id');
 
-        if (memberErr) throw memberErr;
+      if (insertErr) throw insertErr;
 
-        if (memberData && memberData.id) {
-          const { error: updateErr } = await supabase
-            .from('roll_book_entries')
-            .update({ enrolled_member_id: memberData.id })
-            .eq('id', entry.id);
-
-          if (updateErr) throw updateErr;
-          
-          successCount++;
-        }
-      } catch (err) {
-        console.error('Failed to transfer entry:', entry.id, err.message);
+      // 2. Parallel linking of roll book entries to new member IDs
+      if (createdMembers && createdMembers.length === selectedEntries.length) {
+        await Promise.all(
+          selectedEntries.map((entry, idx) =>
+            supabase
+              .from('roll_book_entries')
+              .update({ enrolled_member_id: createdMembers[idx].id })
+              .eq('id', entry.id)
+          )
+        );
+        successCount = createdMembers.length;
       }
+    } catch (err: any) {
+      console.error('Batch transfer error:', err.message);
+      Alert.alert('Transfer Error', err.message || 'An error occurred during bulk transfer.');
     }
 
     setProcessing(false);

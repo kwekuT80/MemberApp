@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../db/supabase';
 import { Colors, Spacing, Typography, Radii, Shadows } from '../styles/theme';
 import { AuthContext } from '../navigation/AppNavigator';
+import { fetchAllRows } from '../utils/pagination';
 
 const FINANCIAL_ROLES = ['super_admin', 'financial_registrar'];
 

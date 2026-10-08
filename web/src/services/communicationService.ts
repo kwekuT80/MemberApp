@@ -137,6 +137,7 @@ function renderTemplate(
 // Send a single communication to one member — records it in the database
 export async function sendCommunication(payload: {
   memberId: string;
+  member?: any;
   type: CommunicationType;
   templateId?: TemplateId;
   subject?: string;
@@ -153,12 +154,16 @@ export async function sendCommunication(payload: {
   try {
     const supabase = await createClient();
 
-    // Get member details
-    const { data: member }: any = await supabase
-      .from('members')
-      .select('*')
-      .eq('id', payload.memberId)
-      .single();
+    // Get member details (use provided member or fetch if not preloaded)
+    let member = payload.member;
+    if (!member) {
+      const { data: fetchedMember } = await supabase
+        .from('members')
+        .select('id, first_name, surname, email, phone, mobile')
+        .eq('id', payload.memberId)
+        .single();
+      member = fetchedMember;
+    }
 
     if (!member) {
       return { success: false, error: 'Member not found' };
@@ -305,6 +310,14 @@ export async function sendBulkCommunications(payload: {
   let failed = 0;
   const errors = new Map<string, string>();
 
+  // Pre-fetch all target members in a single query to eliminate N+1 queries
+  const supabase = await createClient();
+  const { data: memberRows } = await supabase
+    .from('members')
+    .select('id, first_name, surname, email, phone, mobile')
+    .in('id', payload.memberIds);
+  const memberMap = new Map((memberRows || []).map((m: any) => [m.id, m]));
+
   // For SMS, enforce the requested rate limit: 3 messages per minute (20 seconds between sends)
   const isSms = payload.type === 'sms';
   const rateLimit = payload.rateLimitPerMinute || 3;
@@ -317,6 +330,7 @@ export async function sendBulkCommunications(payload: {
 
     const result = await sendCommunication({
       memberId,
+      member: memberMap.get(memberId),
       type: payload.type,
       templateId: payload.templateId,
       variables: payload.variables?.[memberId] || { memberName: '' },

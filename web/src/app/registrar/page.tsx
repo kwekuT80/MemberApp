@@ -5,20 +5,19 @@ import RegistrarShell from '@/components/layout/RegistrarShell';
 import MemberSearchTable from '@/components/members/MemberSearchTable';
 import RegistrarSearchBar from '@/components/members/RegistrarSearchBar';
 import { requireRegistrar } from '@/lib/auth/requireRegistrar';
-import { getMemberCount, searchMembers, getUpcomingBirthdayMembers } from '@/services/memberService';
+import { searchMembers, getUpcomingBirthdayMembers } from '@/services/memberService';
 import WaitingRoom from '@/components/auth/WaitingRoom';
-import { getPendingProfilesWithMatches, getUnlinkedMembers } from '@/services/profileService';
+import { getRegistrarWaitingRoomData } from '@/services/profileService';
 import BirthdaysWidget from '@/components/dashboard/BirthdaysWidget';
 
 export default async function RegistrarPage() {
   await requireRegistrar();
-  const [members, memberCount, pending, unlinkedMembers, upcomingBirthdays] = await Promise.all([
+  const [members, waitingRoom, upcomingBirthdays] = await Promise.all([
     searchMembers(''),
-    getMemberCount(),
-    getPendingProfilesWithMatches(),
-    getUnlinkedMembers(),
+    getRegistrarWaitingRoomData(),
     getUpcomingBirthdayMembers()
   ]);
+  const { pending, unlinkedMembers } = waitingRoom;
 
   // Status Breakdown Calculation (Canonical KSJI Membership Statuses)
   const stats = {
@@ -120,7 +119,7 @@ export default async function RegistrarPage() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
-        <SummaryCard title='Total Registry' value={String(memberCount)} icon="👥" />
+        <SummaryCard title='Total Registry' value={String(members.length)} icon="👥" />
         <SummaryCard title='Onboarding' value='Bulk Import' link='/registrar/import' icon="📥" />
         <SummaryCard title='Registration' value='Create New' link='/registrar/members/new' icon="➕" />
         <SummaryCard title='Financial Ledger' value='Manage Dues' link='/registrar/financials' icon="💰" />

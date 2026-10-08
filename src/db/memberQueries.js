@@ -738,22 +738,28 @@ export async function saveSpouse(item) {
 
 // ── Lookups ────────────────────────────────────────────────────────────────────
 
+let cachedRegions = null;
 export async function getRegions() {
+  if (cachedRegions) return cachedRegions;
   const { data, error } = await supabase
     .from('regions')
     .select('region_name')
     .order('region_name');
   if (error) throw error;
-  return (data || []).map(r => r.region_name);
+  cachedRegions = (data || []).map(r => r.region_name);
+  return cachedRegions;
 }
 
+let cachedDegreeTypes = null;
 export async function getDegreeTypes() {
+  if (cachedDegreeTypes) return cachedDegreeTypes;
   const { data, error } = await supabase
     .from('degree_types')
     .select('degree_type_name')
     .order('id');
   if (error) throw error;
-  return (data || []).map(r => r.degree_type_name);
+  cachedDegreeTypes = (data || []).map(r => r.degree_type_name);
+  return cachedDegreeTypes;
 }
 
 export async function getUniformedRankRecords(memberId) {
@@ -892,15 +898,21 @@ export async function getBirthdayReminders() {
   const todayDay = String(currentDayNum).padStart(2, '0');
 
   let data = [];
+  // Target only living active members matching today's birth month & day
   const res = await supabase
     .from('members')
     .select('id, first_name, surname, title, date_of_birth, birth_month, birth_day')
-    .or('date_of_birth.not.is.null,birth_month.not.is.null');
+    .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+    .eq('is_deceased', false)
+    .eq('birth_month', currentMonthNum)
+    .eq('birth_day', currentDayNum);
 
   if (res.error && (res.error.message?.includes('birth_month') || res.error.message?.includes('birth_day'))) {
     const fallback = await supabase
       .from('members')
       .select('id, first_name, surname, title, date_of_birth')
+      .not('status', 'in', '("Dismissed","Transfer-Out","Deceased")')
+      .eq('is_deceased', false)
       .not('date_of_birth', 'is', null);
     if (fallback.error) throw fallback.error;
     data = fallback.data || [];
@@ -927,6 +939,11 @@ export async function getBirthdayReminders() {
         matched = parts[0] === todayDay && parts[1] === todayMonth;
       }
       if (matched) {
+        seenIds.add(m.id);
+        return true;
+      }
+      // If birth_month and birth_day matched from query, accept
+      if (Number(m.birth_month) === currentMonthNum && Number(m.birth_day) === currentDayNum) {
         seenIds.add(m.id);
         return true;
       }

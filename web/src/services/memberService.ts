@@ -71,10 +71,13 @@ export async function searchMembers(query = ''): Promise<Member[]> {
 
 export async function getMemberCount(): Promise<number> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('members').select('id, first_name, surname, title, email');
+  const { count, error } = await supabase
+    .from('members')
+    .select('*', { count: 'exact', head: true })
+    .neq('status', 'System')
+    .not('surname', 'ilike', '%Operational Outflows%');
   if (error) throw error;
-  const actualMembers = (data || []).filter(m => !isSystemMember(m));
-  return actualMembers.length;
+  return count || 0;
 }
 
 /**
@@ -83,8 +86,12 @@ export async function getMemberCount(): Promise<number> {
  */
 export async function getUpcomingBirthdayMembers(): Promise<Member[]> {
   const supabase = await createClient();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Crucial: remove time component so 'today' comparisons work correctly
+  const currentMonth = today.getMonth() + 1;
+  const nextMonth = (currentMonth % 12) + 1;
 
-  // Fetch active members who have a date_of_birth or birth_month/birth_day
+  // Fetch only active members whose celebration month is within the target window (current or next month)
   let membersData: any[] = [];
   const res = await supabase
     .from('members')
@@ -93,10 +100,11 @@ export async function getUpcomingBirthdayMembers(): Promise<Member[]> {
     `)
     .eq('status', 'Active')
     .neq('status', 'Deceased')
+    .in('birth_month', [currentMonth, nextMonth])
     .order('surname');
 
   if (res.error && (res.error.message?.includes('birth_month') || res.error.message?.includes('birth_day'))) {
-    // Fallback if schema migration hasn't been applied yet in Supabase
+    // Fallback if birth_month filter is not supported
     const fallback = await supabase
       .from('members')
       .select(`
@@ -115,8 +123,6 @@ export async function getUpcomingBirthdayMembers(): Promise<Member[]> {
   }
 
   const members = (membersData || []).filter(m => !isSystemMember(m));
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Crucial: remove time component so 'today' comparisons work correctly
 
   // Helper: extract month & day, strictly prioritizing date_of_birth to prevent any double-counting
   const getBirthdayParts = (m: Member): { month: number; day: number } | null => {

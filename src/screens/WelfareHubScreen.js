@@ -114,15 +114,27 @@ export default function WelfareHubScreen({ navigation }) {
         .limit(20);
       setDisbursements(disbData || []);
 
-      // Summary Totals
-      const totalC = (contribData || []).reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
-      const totalD = (disbData || []).reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+      // Summary Totals via direct database RPC (accurate across all time, 0 data-transfer overhead)
+      let totalC = (contribData || []).reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+      let totalD = (disbData || []).reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+      let catCount = (catData || []).length;
+
+      try {
+        const { data: rpcStats } = await supabase.rpc('get_welfare_summary_stats', { p_year: new Date().getFullYear() });
+        if (rpcStats) {
+          totalC = parseFloat(rpcStats.totalContributions || 0);
+          totalD = parseFloat(rpcStats.totalDisbursements || 0);
+          catCount = rpcStats.categoriesCount ?? catCount;
+        }
+      } catch (rpcErr) {
+        console.warn('Welfare RPC fallback:', rpcErr);
+      }
 
       setSummary({
         totalContributions: totalC,
         totalDisbursements: totalD,
         netBalance: totalC - totalD,
-        categoriesCount: (catData || []).length,
+        categoriesCount: catCount,
       });
 
     } catch (err) {
