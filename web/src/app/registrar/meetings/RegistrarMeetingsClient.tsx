@@ -77,22 +77,39 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const officersPresent = officerList.filter((o) => o.status === 'Present').length;
   const isOfficerQuorumMet = officersPresent >= 4;
 
-  const trusteeMemberIds = new Set(
-    (positions || [])
-      .filter((p: any) => {
-        if (p.level && p.level !== 'Local') return false;
-        const t = String(p.position_title || '').toLowerCase();
-        if (t.includes('grand') || t.includes('temple') || t.includes('battalion') || t.includes('regiment')) return false;
-        const isPWP = t.includes('past worthy president') || (t.includes('worthy president') && p.date_to);
-        const isElectedTrustee = t.includes('trustee');
-        if (isPWP) return true;
-        if (isElectedTrustee) return isPosActiveForMeeting(p);
-        return false;
-      })
-      .map((p: any) => p.member_id)
-  );
-  const trusteesTotal = trusteeMemberIds.size;
-  const trusteesPresent = attendanceReport.filter((a: any) => trusteeMemberIds.has(a.id || a.member_id) && a.status?.startsWith('Present')).length;
+  // Board of Trustees (Elected Commandery Trustees)
+  const TRUSTEE_ROLES = [
+    { title: '1st Trustee', short: '1st Trustee', icon: '📜', match: (t: string) => t.includes('1st trustee') || t.includes('first trustee') },
+    { title: '2nd Trustee', short: '2nd Trustee', icon: '📜', match: (t: string) => t.includes('2nd trustee') || t.includes('second trustee') },
+    { title: '3rd Trustee', short: '3rd Trustee', icon: '📜', match: (t: string) => t.includes('3rd trustee') || t.includes('third trustee') },
+  ];
+
+  const trusteeList = TRUSTEE_ROLES.map((role) => {
+    const pos = (positions || []).find((p: any) => isPosActiveForMeeting(p) && role.match(String(p.position_title || '').toLowerCase().trim()));
+    const member = pos ? members.find((m: any) => m.id === pos.member_id) : null;
+    const att = pos ? attendanceReport.find((a: any) => a.id === pos.member_id || a.member_id === pos.member_id) : null;
+
+    let status = 'Absent';
+    if (att) {
+      if (att.status?.startsWith('Present')) status = 'Present';
+      else if (att.status === 'Excused' || att.status === 'Excuse Pending') status = 'Excused';
+    }
+
+    return {
+      role: role.title,
+      short: role.short,
+      icon: role.icon,
+      memberName: member ? `${member.title || 'Bro.'} ${member.first_name || ''} ${member.surname || ''}`.trim() : null,
+      memberId: pos?.member_id,
+      status,
+      checkInTime: att?.checkInTime || null,
+      excuseReason: att?.excuseReason || null,
+      method: att?.status || null,
+    };
+  });
+
+  const trusteesPresent = trusteeList.filter((t) => t.status === 'Present').length;
+  const trusteesTotal = trusteeList.length;
 
   // Search Query & Status Filter for sign-in auditing
   const [attendanceQuery, setAttendanceQuery] = useState('');
@@ -1274,7 +1291,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
 
                   {/* Board of Trustees Quorum Count */}
                   <div
-                    title={trusteeMemberIds.size > 0 ? `Evaluated Trustees across living Commandery roll` : ''}
+                    title={trusteeList.length > 0 ? `Evaluated Trustees across living Commandery roll` : ''}
                     style={{
                       padding: '6px 14px',
                       borderRadius: 20,
@@ -1337,6 +1354,61 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Board of Trustees Roll Tiles */}
+              <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#C9A84C', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>📜 Board of Trustees Roll</span>
+                  </div>
+                  <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                    {trusteesPresent} of {trusteeList.length} Present
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
+                  {trusteeList.map((tr) => {
+                    const isPres = tr.status === 'Present';
+                    const isExc = tr.status === 'Excused';
+                    return (
+                      <div key={tr.role} style={{
+                        background: isPres ? 'rgba(34, 197, 94, 0.08)' : isExc ? 'rgba(234, 179, 8, 0.08)' : 'rgba(255, 255, 255, 0.04)',
+                        border: `1px solid ${isPres ? '#22c55e' : isExc ? '#f59e0b' : 'rgba(255,255,255,0.1)'}`,
+                        borderRadius: 10,
+                        padding: '8px 10px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2,
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: '#fef08a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {tr.icon} {tr.short}
+                          </span>
+                          <span style={{
+                            fontSize: 10,
+                            fontWeight: 800,
+                            color: isPres ? '#4ade80' : isExc ? '#fcd34d' : '#94a3b8',
+                          }}>
+                            {isPres ? '✓ Present' : isExc ? '⏳ Excused' : '— Absent'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {tr.memberName || 'Unassigned'}
+                        </div>
+                        {tr.checkInTime && (
+                          <div style={{ fontSize: 10, color: '#86efac', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            ⏱️ {new Date(tr.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        )}
+                        {tr.excuseReason && (
+                          <div style={{ fontSize: 10, color: '#fcd34d', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={tr.excuseReason}>
+                            📝 {tr.excuseReason}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
