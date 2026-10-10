@@ -42,11 +42,11 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const isPosActiveForMeeting = (p: any) => {
     // Strictly Local commandery level only — exclude battalion, regiment, and nobles temple
     if (p.level && p.level !== 'Local') return false;
-    if (!p.date_to) return true;
     const meetingDate = selectedMeeting?.date ? new Date(selectedMeeting.date) : new Date();
-    const to = new Date(p.date_to);
     const from = p.date_from ? new Date(p.date_from) : null;
     if (from && from > meetingDate) return false;
+    if (!p.date_to) return true;
+    const to = new Date(p.date_to);
     return to >= meetingDate;
   };
 
@@ -68,6 +68,9 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
       memberName: member ? `${member.title || 'Bro.'} ${member.first_name || ''} ${member.surname || ''}`.trim() : null,
       memberId: pos?.member_id,
       status,
+      checkInTime: att?.checkInTime || null,
+      excuseReason: att?.excuseReason || null,
+      method: att?.status || null,
     };
   });
 
@@ -288,10 +291,12 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
       setAttendanceReport([]);
       setAbsenceRequests([]);
     }
-  }, [selectedMeeting]);
+  }, [selectedMeeting?.id]);
 
   async function loadMeetingData(meetingId: string) {
     setLoadingReport(true);
+    setAttendanceReport([]);
+    setAbsenceRequests([]);
     try {
       const [report, requests] = await Promise.all([
         getAttendanceReport(meetingId, profile.commandery_id),
@@ -1240,7 +1245,11 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                     </h3>
                   </div>
                   <p style={{ margin: '4px 0 0', fontSize: 12, color: '#94a3b8' }}>
-                    Live quorum verification across executive council offices per KSJI constitutional procedure.
+                    {loadingReport ? (
+                      <span style={{ color: '#fef08a', fontWeight: 700 }}>⌛ Verifying check-in logs for {selectedMeeting?.title || 'meeting'}...</span>
+                    ) : (
+                      <>Live quorum verification for <strong style={{ color: '#e2e8f0' }}>{selectedMeeting?.title}</strong> ({formatDisplayDate(selectedMeeting?.date)})</>
+                    )}
                   </p>
                 </div>
 
@@ -1264,18 +1273,21 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                   </div>
 
                   {/* Board of Trustees Quorum Count */}
-                  <div style={{
-                    padding: '6px 14px',
-                    borderRadius: 20,
-                    background: 'rgba(201, 168, 76, 0.15)',
-                    border: '1.5px solid #C9A84C',
-                    color: '#fef08a',
-                    fontWeight: 800,
-                    fontSize: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}>
+                  <div
+                    title={trusteeMemberIds.size > 0 ? `Evaluated Trustees across living Commandery roll` : ''}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 20,
+                      background: 'rgba(201, 168, 76, 0.15)',
+                      border: '1.5px solid #C9A84C',
+                      color: '#fef08a',
+                      fontWeight: 800,
+                      fontSize: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
                     <span>📜 Trustees:</span>
                     <span style={{ color: '#ffffff' }}>{trusteesPresent} of {trusteesTotal} Present</span>
                   </div>
@@ -1289,7 +1301,7 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                   const isExc = off.status === 'Excused';
                   return (
                     <div key={off.role} style={{
-                      background: 'rgba(255, 255, 255, 0.05)',
+                      background: isPres ? 'rgba(34, 197, 94, 0.08)' : isExc ? 'rgba(234, 179, 8, 0.08)' : 'rgba(255, 255, 255, 0.04)',
                       border: `1px solid ${isPres ? '#22c55e' : isExc ? '#f59e0b' : 'rgba(255,255,255,0.1)'}`,
                       borderRadius: 10,
                       padding: '8px 10px',
@@ -1312,6 +1324,16 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {off.memberName || 'Unassigned'}
                       </div>
+                      {off.checkInTime && (
+                        <div style={{ fontSize: 10, color: '#86efac', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          ⏱️ {new Date(off.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      )}
+                      {off.excuseReason && (
+                        <div style={{ fontSize: 10, color: '#fcd34d', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={off.excuseReason}>
+                          📝 {off.excuseReason}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
