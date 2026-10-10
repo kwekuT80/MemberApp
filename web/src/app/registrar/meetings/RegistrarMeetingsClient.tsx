@@ -28,19 +28,30 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const [rosterSortOrder, setRosterSortOrder] = useState<'status_priority' | 'name' | 'checkin_time'>('status_priority');
   const [noticeInitialTarget, setNoticeInitialTarget] = useState<'all_active' | 'unconfirmed_only'>('all_active');
 
-  // Mandatory Officers Roll & Quorum Monitor logic
+  // Mandatory Officers Roll & Quorum Monitor logic (Strictly Local Commandery Officers)
   const MANDATORY_OFFICER_ROLES = [
-    { title: 'Worthy President', short: 'President', icon: '👑', match: (t: string) => (t === 'worthy president' || t === 'president') && !t.includes('past') },
-    { title: '1st Vice President', short: '1st VP', icon: '🎖️', match: (t: string) => t.includes('1st vice') || t.includes('first vice') },
-    { title: '2nd Vice President', short: '2nd VP', icon: '🎖️', match: (t: string) => t.includes('2nd vice') || t.includes('second vice') },
-    { title: 'Commander', short: 'Captain', icon: '⚔️', match: (t: string) => t.includes('commander') || t.includes('captain') },
-    { title: 'Recording Secretary', short: 'Rec Sec', icon: '📝', match: (t: string) => t.includes('recording sec') || (t.includes('secretary') && !t.includes('financial')) },
-    { title: 'Financial Secretary', short: 'Fin Sec', icon: '💰', match: (t: string) => t.includes('financial sec') },
-    { title: 'Treasurer', short: 'Treasurer', icon: '🪙', match: (t: string) => t.includes('treasurer') },
+    { title: 'Worthy President', short: 'President', icon: '👑', match: (t: string) => (t === 'worthy president' || t === 'president') && !t.includes('past') && !t.includes('grand') },
+    { title: '1st Vice President', short: '1st VP', icon: '🎖️', match: (t: string) => (t.includes('1st vice') || t.includes('first vice')) && !t.includes('commander') && !t.includes('grand') },
+    { title: '2nd Vice President', short: '2nd VP', icon: '🎖️', match: (t: string) => (t.includes('2nd vice') || t.includes('second vice')) && !t.includes('commander') && !t.includes('grand') },
+    { title: 'Commander', short: 'Captain', icon: '⚔️', match: (t: string) => (t.includes('commander') || t.includes('captain')) && !t.includes('vice') && !t.includes('grand') },
+    { title: 'Recording Secretary', short: 'Rec Sec', icon: '📝', match: (t: string) => (t.includes('recording') || (t.includes('secretary') && !t.includes('financial'))) && !t.includes('grand') },
+    { title: 'Financial Secretary', short: 'Fin Sec', icon: '💰', match: (t: string) => t.includes('financial') && !t.includes('grand') },
+    { title: 'Treasurer', short: 'Treasurer', icon: '🪙', match: (t: string) => t.includes('treasurer') && !t.includes('grand') },
   ];
 
+  const isPosActiveForMeeting = (p: any) => {
+    // Strictly Local commandery level only — exclude battalion, regiment, and nobles temple
+    if (p.level && p.level !== 'Local') return false;
+    if (!p.date_to) return true;
+    const meetingDate = selectedMeeting?.date ? new Date(selectedMeeting.date) : new Date();
+    const to = new Date(p.date_to);
+    const from = p.date_from ? new Date(p.date_from) : null;
+    if (from && from > meetingDate) return false;
+    return to >= meetingDate;
+  };
+
   const officerList = MANDATORY_OFFICER_ROLES.map((role) => {
-    const pos = (positions || []).find((p: any) => !p.date_to && role.match(String(p.position_title || '').toLowerCase().trim()));
+    const pos = (positions || []).find((p: any) => isPosActiveForMeeting(p) && role.match(String(p.position_title || '').toLowerCase().trim()));
     const member = pos ? members.find((m: any) => m.id === pos.member_id) : null;
     const att = pos ? attendanceReport.find((a: any) => a.id === pos.member_id || a.member_id === pos.member_id) : null;
 
@@ -66,8 +77,14 @@ export default function RegistrarMeetingsClient({ profile, initialMeetings, memb
   const trusteeMemberIds = new Set(
     (positions || [])
       .filter((p: any) => {
+        if (p.level && p.level !== 'Local') return false;
         const t = String(p.position_title || '').toLowerCase();
-        return t.includes('trustee') || t.includes('past worthy president') || (t.includes('worthy president') && p.date_to);
+        if (t.includes('grand') || t.includes('temple') || t.includes('battalion') || t.includes('regiment')) return false;
+        const isPWP = t.includes('past worthy president') || (t.includes('worthy president') && p.date_to);
+        const isElectedTrustee = t.includes('trustee');
+        if (isPWP) return true;
+        if (isElectedTrustee) return isPosActiveForMeeting(p);
+        return false;
       })
       .map((p: any) => p.member_id)
   );

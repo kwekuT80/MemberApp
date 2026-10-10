@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 import { useRouter } from 'next/navigation';
@@ -50,6 +50,12 @@ export default function PaymentsClient({
   const supabase = createClient();
   const [year, setYear] = useState(initialYear);
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
+
+  // Sync payments state whenever server delivers fresh initialPayments props
+  useEffect(() => {
+    setPayments(initialPayments);
+  }, [initialPayments]);
+
   const [members] = useState<Member[]>(initialMembers);
   const [dismissedMembersList] = useState<Member[]>(initialDismissedMembers);
   const [includeDismissed, setIncludeDismissed] = useState(false);
@@ -209,6 +215,7 @@ export default function PaymentsClient({
     const savedAmt = Number(amount).toFixed(2);
 
     setPayments(prev => [data as Payment, ...prev]);
+    router.refresh();
 
     // Handle dismissed brother toast & state update
     if (selectedMember?.isDismissed) {
@@ -292,7 +299,18 @@ export default function PaymentsClient({
     setDeleting(null);
     if (error) { showToast('Error deleting: ' + error.message, 'err'); return; }
     setPayments(prev => prev.filter(p => p.id !== id));
+    router.refresh();
     showToast('Payment deleted.', 'ok');
+  }
+
+  async function refreshPaymentsList() {
+    const { data } = await supabase
+      .from('financial_payments')
+      .select('*, members(first_name, surname, title)')
+      .eq('assessment_year', year)
+      .order('payment_date', { ascending: false });
+    if (data) setPayments(data as Payment[]);
+    router.refresh();
   }
 
   async function handleYearChange(newYear: number) {
@@ -802,22 +820,31 @@ export default function PaymentsClient({
               <h3 style={{ margin: 0, color: 'var(--navy)', fontWeight: 800, fontSize: 16 }}>
                 Payment Journal ({year})
               </h3>
-              {filteredPayments.length > 0 && (
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button 
-                    onClick={downloadPaymentsCSV}
+                    onClick={refreshPaymentsList}
+                    title="Fetch latest payments from server"
                     style={{ background: '#f8fafc', color: 'var(--navy)', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
                   >
-                    📥 CSV
+                    ↻ Refresh
                   </button>
-                  <button 
-                    onClick={printPaymentsPDF}
-                    style={{ background: 'var(--gold)', color: 'var(--navy)', border: 'none', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    🖨️ PDF
-                  </button>
+                  {filteredPayments.length > 0 && (
+                    <>
+                      <button 
+                        onClick={downloadPaymentsCSV}
+                        style={{ background: '#f8fafc', color: 'var(--navy)', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        📥 CSV
+                      </button>
+                      <button 
+                        onClick={printPaymentsPDF}
+                        style={{ background: 'var(--gold)', color: 'var(--navy)', border: 'none', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        🖨️ PDF
+                      </button>
+                    </>
+                  )}
                 </div>
-              )}
             </div>
             <input className="input" placeholder="Filter receipts..."
               value={paySearch} onChange={e => setPaySearch(e.target.value)}

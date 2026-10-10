@@ -41,7 +41,12 @@ export default async function RegistrarMeetingsPage() {
   const { data: positions } = await supabase
     .from('positions')
     .select('id, member_id, position_title, level, date_from, date_to')
-    .or(`commandery_id.eq.${profile.commandery_id},commandery_id.is.null`);
+    .eq('level', 'Local')
+    .order('date_from', { ascending: false });
+
+  // Filter positions for members belonging to this Commandery
+  const memberIdSet = new Set(commanderyMembers.map((m) => m.id));
+  const commanderyPositions = (positions || []).filter((p) => memberIdSet.has(p.member_id));
 
   return (
     <RegistrarShell title="Meeting & Attendance" subtitle="Schedule geofenced meetings, review excuses, and trigger manual check-in overrides.">
@@ -49,7 +54,7 @@ export default async function RegistrarMeetingsPage() {
         profile={profile}
         initialMeetings={meetings}
         members={commanderyMembers}
-        positions={positions || []}
+        positions={commanderyPositions}
       />
     </RegistrarShell>
   );
