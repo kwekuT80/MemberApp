@@ -80,7 +80,10 @@ export interface GovernanceHubData {
     title: string;
     firstName: string;
     surname: string;
+    otherNames?: string | null;
     status: string;
     isDeceased: boolean;
+    isTransferred?: boolean;
+    isDismissed?: boolean;
   }>;
 }

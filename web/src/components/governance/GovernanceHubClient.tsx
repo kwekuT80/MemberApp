@@ -21,24 +21,514 @@ import {
 } from '@/services/governanceService';
 import { formatDisplayDate } from '@/lib/utils/ksji-logic';
 
+interface GovernanceMemberPickerProps {
+  members: GovernanceHubData['allEligibleMembers'];
+  selectedMemberId: string;
+  onSelect: (id: string) => void;
+  label?: string;
+  required?: boolean;
+}
+
+function GovernanceMemberPicker({
+  members,
+  selectedMemberId,
+  onSelect,
+  label = 'Select Brother Knight:',
+  required = true,
+}: GovernanceMemberPickerProps) {
+  const [search, setSearch] = useState('');
+  const [filterMode, setFilterMode] = useState<'all' | 'active' | 'archived'>('all');
+
+  const selectedMember = useMemo(
+    () => members.find((m) => m.id === selectedMemberId) || null,
+    [members, selectedMemberId]
+  );
+
+  // Group members into active vs archived (tail end)
+  const { activeList, archivedList } = useMemo(() => {
+    const q = search.toLowerCase().trim();
+
+    const matchesQuery = (m: GovernanceHubData['allEligibleMembers'][0]) => {
+      if (!q) return true;
+      const full = `${m.surname} ${m.firstName} ${m.otherNames || ''} ${m.title} ${m.status}`.toLowerCase();
+      return full.includes(q);
+    };
+
+    const isArchived = (m: GovernanceHubData['allEligibleMembers'][0]) =>
+      m.isDeceased ||
+      m.isTransferred ||
+      m.isDismissed ||
+      ['deceased', 'transfer-out', 'transferred', 'dismissed'].includes(m.status.toLowerCase());
+
+    const active = members.filter((m) => !isArchived(m) && matchesQuery(m));
+    const archived = members.filter((m) => isArchived(m) && matchesQuery(m));
+
+    return { activeList: active, archivedList: archived };
+  }, [members, search]);
+
+  const totalMatches = activeList.length + archivedList.length;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
+        <label style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>
+          {label} {required && <span style={{ color: '#EF4444' }}>*</span>}
+        </label>
+        {selectedMember ? (
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#065F46',
+              background: '#ECFDF5',
+              padding: '2px 8px',
+              borderRadius: 8,
+              border: '1px solid #A7F3D0',
+            }}
+          >
+            ✓ Selected: {selectedMember.surname.toUpperCase()}, {selectedMember.firstName} ({selectedMember.title})
+          </span>
+        ) : (
+          <span style={{ fontSize: 11, color: '#94A3B8' }}>Click to select below</span>
+        )}
+      </div>
+
+      {/* Search and Filter Toolbar */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="🔍 Filter by surname, first name, or title..."
+            style={{
+              width: '100%',
+              padding: '8px 30px 8px 12px',
+              borderRadius: 8,
+              border: '1.5px solid #CBD5E1',
+              fontSize: 13,
+              fontWeight: 500,
+              outline: 'none',
+              background: '#F8FAFC',
+              boxSizing: 'border-box',
+            }}
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              style={{
+                position: 'absolute',
+                right: 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#94A3B8',
+                fontSize: 14,
+                padding: 0,
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Filter Pills */}
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button
+            type="button"
+            onClick={() => setFilterMode('all')}
+            style={{
+              padding: '6px 10px',
+              borderRadius: 8,
+              border: '1px solid',
+              borderColor: filterMode === 'all' ? '#0A1628' : '#CBD5E1',
+              background: filterMode === 'all' ? '#0A1628' : '#FFFFFF',
+              color: filterMode === 'all' ? '#FFFFFF' : '#475569',
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            All ({members.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterMode('active')}
+            style={{
+              padding: '6px 10px',
+              borderRadius: 8,
+              border: '1px solid',
+              borderColor: filterMode === 'active' ? '#059669' : '#CBD5E1',
+              background: filterMode === 'active' ? '#ECFDF5' : '#FFFFFF',
+              color: filterMode === 'active' ? '#065F46' : '#475569',
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Active Only
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterMode('archived')}
+            style={{
+              padding: '6px 10px',
+              borderRadius: 8,
+              border: '1px solid',
+              borderColor: filterMode === 'archived' ? '#6B21A8' : '#CBD5E1',
+              background: filterMode === 'archived' ? '#F3E8FF' : '#FFFFFF',
+              color: filterMode === 'archived' ? '#6B21A8' : '#475569',
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Archived / Tail End
+          </button>
+        </div>
+      </div>
+
+      {/* Selected Member Quick Card */}
+      {selectedMember && (
+        <div
+          style={{
+            background: '#F0FDF4',
+            border: '1px solid #86EFAC',
+            borderRadius: 10,
+            padding: '8px 12px',
+            marginBottom: 8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>👤</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#166534' }}>
+                <span style={{ textTransform: 'uppercase' }}>{selectedMember.surname}</span>, {selectedMember.firstName} {selectedMember.otherNames || ''}
+              </div>
+              <div style={{ fontSize: 11, color: '#15803D' }}>
+                {selectedMember.title} • Status: {selectedMember.status}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onSelect('')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#DC2626',
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: 'pointer',
+              padding: '2px 6px',
+            }}
+          >
+            Clear ✕
+          </button>
+        </div>
+      )}
+
+      {/* Scrollable Member List */}
+      <div
+        style={{
+          maxHeight: 200,
+          overflowY: 'auto',
+          border: '1.5px solid #CBD5E1',
+          borderRadius: 10,
+          background: '#FFFFFF',
+        }}
+      >
+        {totalMatches === 0 ? (
+          <div style={{ padding: '24px 16px', textAlign: 'center', color: '#94A3B8', fontSize: 13 }}>
+            No brothers found matching &quot;{search}&quot;
+          </div>
+        ) : (
+          <>
+            {/* Active & Living Group */}
+            {(filterMode === 'all' || filterMode === 'active') && activeList.length > 0 && (
+              <div>
+                <div
+                  style={{
+                    padding: '6px 12px',
+                    background: '#F1F5F9',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: '#475569',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                    borderBottom: '1px solid #E2E8F0',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 2,
+                  }}
+                >
+                  🟢 Active & Living Brothers ({activeList.length}) — Sorted A–Z by Surname
+                </div>
+                {activeList.map((m) => {
+                  const isSelected = selectedMemberId === m.id;
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => onSelect(m.id)}
+                      style={{
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderBottom: '1px solid #F1F5F9',
+                        background: isSelected ? '#EFF6FF' : '#FFFFFF',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) e.currentTarget.style.background = '#F8FAFC';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) e.currentTarget.style.background = '#FFFFFF';
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: 16,
+                            height: 16,
+                            borderRadius: '50%',
+                            border: `2px solid ${isSelected ? '#2563EB' : '#CBD5E1'}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: isSelected ? '#2563EB' : '#FFFFFF',
+                            color: '#FFFFFF',
+                            fontSize: 10,
+                            fontWeight: 900,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {isSelected && '✓'}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{ fontWeight: 800, color: '#0F172A', fontSize: 13, textTransform: 'uppercase' }}>
+                            {m.surname}
+                          </span>
+                          <span style={{ fontWeight: 600, color: '#334155', fontSize: 13 }}>
+                            , {m.firstName} {m.otherNames ? `${m.otherNames} ` : ''}
+                          </span>
+                          <span style={{ fontSize: 11, color: '#64748B', marginLeft: 4 }}>
+                            ({m.title})
+                          </span>
+                        </div>
+                      </div>
+
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: 8,
+                          background: m.status.toLowerCase() === 'active' ? '#ECFDF5' : '#F1F5F9',
+                          color: m.status.toLowerCase() === 'active' ? '#059669' : '#64748B',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {m.status}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Archived / Transferred / Deceased Group (Tail End) */}
+            {(filterMode === 'all' || filterMode === 'archived') && archivedList.length > 0 && (
+              <div>
+                <div
+                  style={{
+                    padding: '6px 12px',
+                    background: '#FEF2F2',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: '#991B1B',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                    borderTop: filterMode === 'all' ? '2px solid #FCA5A5' : 'none',
+                    borderBottom: '1px solid #FEE2E2',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 2,
+                  }}
+                >
+                  ⚠️ Archived, Transferred & Deceased (Tail End — {archivedList.length})
+                </div>
+                {archivedList.map((m) => {
+                  const isSelected = selectedMemberId === m.id;
+                  const st = m.status.toLowerCase();
+                  const isDeceased = m.isDeceased || st === 'deceased';
+                  const isTransferred = m.isTransferred || st === 'transfer-out' || st === 'transferred';
+                  const isDismissed = m.isDismissed || st === 'dismissed';
+
+                  const badgeColor = isDeceased
+                    ? { bg: '#F3E8FF', text: '#6B21A8', label: 'Deceased ✝' }
+                    : isTransferred
+                    ? { bg: '#FEF3C7', text: '#92400E', label: 'Transferred ↗' }
+                    : isDismissed
+                    ? { bg: '#FEE2E2', text: '#991B1B', label: 'Dismissed 🚫' }
+                    : { bg: '#F1F5F9', text: '#64748B', label: m.status };
+
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => onSelect(m.id)}
+                      style={{
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderBottom: '1px solid #F1F5F9',
+                        background: isSelected ? '#EFF6FF' : '#FAFAFA',
+                        opacity: isSelected ? 1 : 0.85,
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) e.currentTarget.style.background = '#F1F5F9';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) e.currentTarget.style.background = '#FAFAFA';
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: 16,
+                            height: 16,
+                            borderRadius: '50%',
+                            border: `2px solid ${isSelected ? '#2563EB' : '#CBD5E1'}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: isSelected ? '#2563EB' : '#FFFFFF',
+                            color: '#FFFFFF',
+                            fontSize: 10,
+                            fontWeight: 900,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {isSelected && '✓'}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{ fontWeight: 800, color: '#334155', fontSize: 13, textTransform: 'uppercase' }}>
+                            {m.surname}
+                          </span>
+                          <span style={{ fontWeight: 600, color: '#475569', fontSize: 13 }}>
+                            , {m.firstName} {m.otherNames ? `${m.otherNames} ` : ''}
+                          </span>
+                          <span style={{ fontSize: 11, color: '#94A3B8', marginLeft: 4 }}>
+                            ({m.title})
+                          </span>
+                        </div>
+                      </div>
+
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: 8,
+                          background: badgeColor.bg,
+                          color: badgeColor.text,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {badgeColor.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Hidden input for form validation */}
+      <input
+        type="text"
+        value={selectedMemberId}
+        onChange={() => {}}
+        required={required}
+        style={{
+          position: 'absolute',
+          opacity: 0,
+          pointerEvents: 'none',
+          height: 0,
+          width: 0,
+        }}
+      />
+    </div>
+  );
+}
+
 interface Props {
   initialData: GovernanceHubData;
   isRegistrar?: boolean;
   defaultTab?: 'officers' | 'trustees' | 'temples' | 'committees';
+  defaultTermKey?: string;
 }
 
 export default function GovernanceHubClient({
   initialData,
   isRegistrar = false,
   defaultTab = 'officers',
+  defaultTermKey,
 }: Props) {
   const [data, setData] = useState<GovernanceHubData>(initialData);
   const [activeTab, setActiveTab] = useState<'officers' | 'trustees' | 'temples' | 'committees'>(defaultTab);
 
-  // Officers tab state
-  const [selectedTermKey, setSelectedTermKey] = useState<string>(
-    data.officers.currentTerm?.termKey || data.officers.administrations[0]?.termKey || '2026-2027'
-  );
+  // Officers tab state: restore from prop, url, sessionStorage, or default to current
+  const [selectedTermKey, setSelectedTermKey] = useState<string>(() => {
+    if (defaultTermKey) return defaultTermKey;
+    if (typeof window !== 'undefined') {
+      const urlTerm = new URLSearchParams(window.location.search).get('term');
+      if (urlTerm) return urlTerm;
+      const stored = sessionStorage.getItem('ksji_governance_term');
+      if (stored) return stored;
+    }
+    return (
+      data.officers.currentTerm?.termKey ||
+      data.officers.administrations[0]?.termKey ||
+      '2026-2027'
+    );
+  });
+
+  function handleSelectTerm(termKey: string) {
+    setSelectedTermKey(termKey);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('ksji_governance_term', termKey);
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', activeTab);
+      url.searchParams.set('term', termKey);
+      window.history.replaceState({}, '', url.toString());
+    }
+  }
+
+  function handleSelectTab(tab: 'officers' | 'trustees' | 'temples' | 'committees') {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      if (tab === 'officers' && selectedTermKey) {
+        url.searchParams.set('term', selectedTermKey);
+      }
+      window.history.replaceState({}, '', url.toString());
+    }
+  }
 
   // Active administration
   const activeAdmin = useMemo(() => {
@@ -162,8 +652,14 @@ export default function GovernanceHubClient({
 
       setFeedback({ text: `Officer assignment for "${assigningRole}" saved successfully.`, type: 'success' });
       setIsAssignOfficerOpen(false);
-      // Refresh page data silently
-      window.location.reload();
+      // Refresh page data silently while preserving active administration
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('ksji_governance_term', selectedTermKey);
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', 'officers');
+        url.searchParams.set('term', selectedTermKey);
+        window.location.href = url.toString();
+      }
     } catch (err: any) {
       setFeedback({ text: err.message || 'Failed to save officer position.', type: 'error' });
     } finally {
@@ -177,7 +673,13 @@ export default function GovernanceHubClient({
     try {
       await deleteOfficerPosition(positionId);
       setFeedback({ text: `Removed assignment for ${title}.`, type: 'success' });
-      window.location.reload();
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('ksji_governance_term', selectedTermKey);
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', 'officers');
+        url.searchParams.set('term', selectedTermKey);
+        window.location.href = url.toString();
+      }
     } catch (err: any) {
       setFeedback({ text: err.message || 'Failed to delete position.', type: 'error' });
     } finally {
@@ -200,7 +702,11 @@ export default function GovernanceHubClient({
 
       setFeedback({ text: 'Committee member assigned successfully.', type: 'success' });
       setIsAssignCommitteeOpen(false);
-      window.location.reload();
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', 'committees');
+        window.location.href = url.toString();
+      }
     } catch (err: any) {
       setFeedback({ text: err.message || 'Failed to assign committee member.', type: 'error' });
     } finally {
@@ -214,7 +720,11 @@ export default function GovernanceHubClient({
     try {
       await removeCommitteeMember(positionId);
       setFeedback({ text: `Removed ${name} from committee.`, type: 'success' });
-      window.location.reload();
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', 'committees');
+        window.location.href = url.toString();
+      }
     } catch (err: any) {
       setFeedback({ text: err.message || 'Failed to remove committee member.', type: 'error' });
     } finally {
@@ -237,7 +747,11 @@ export default function GovernanceHubClient({
 
       setFeedback({ text: 'Temple leadership officer assigned successfully.', type: 'success' });
       setIsAssignTempleOfficerOpen(false);
-      window.location.reload();
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', 'temples');
+        window.location.href = url.toString();
+      }
     } catch (err: any) {
       setFeedback({ text: err.message || 'Failed to assign temple officer.', type: 'error' });
     } finally {
@@ -251,7 +765,11 @@ export default function GovernanceHubClient({
     try {
       await removeTempleOfficer(positionId);
       setFeedback({ text: `Removed ${title}.`, type: 'success' });
-      window.location.reload();
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', 'temples');
+        window.location.href = url.toString();
+      }
     } catch (err: any) {
       setFeedback({ text: err.message || 'Failed to remove temple officer.', type: 'error' });
     } finally {
@@ -399,7 +917,7 @@ export default function GovernanceHubClient({
         }}
       >
         <button
-          onClick={() => setActiveTab('officers')}
+          onClick={() => handleSelectTab('officers')}
           style={{
             flex: 1,
             minWidth: 180,
@@ -424,7 +942,7 @@ export default function GovernanceHubClient({
         </button>
 
         <button
-          onClick={() => setActiveTab('trustees')}
+          onClick={() => handleSelectTab('trustees')}
           style={{
             flex: 1,
             minWidth: 180,
@@ -449,7 +967,7 @@ export default function GovernanceHubClient({
         </button>
 
         <button
-          onClick={() => setActiveTab('temples')}
+          onClick={() => handleSelectTab('temples')}
           style={{
             flex: 1,
             minWidth: 180,
@@ -474,7 +992,7 @@ export default function GovernanceHubClient({
         </button>
 
         <button
-          onClick={() => setActiveTab('committees')}
+          onClick={() => handleSelectTab('committees')}
           style={{
             flex: 1,
             minWidth: 180,
@@ -533,7 +1051,7 @@ export default function GovernanceHubClient({
               <label style={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>Select Biennial Term:</label>
               <select
                 value={selectedTermKey}
-                onChange={(e) => setSelectedTermKey(e.target.value)}
+                onChange={(e) => handleSelectTerm(e.target.value)}
                 style={{
                   padding: '9px 14px',
                   borderRadius: 10,
@@ -559,7 +1077,7 @@ export default function GovernanceHubClient({
                     setSelectedMemberId('');
                     setEditingPositionId(null);
                     setTermDateFrom(`${activeAdmin?.startYear || 2026}-01-01`);
-                    setTermDateTo('');
+                    setTermDateTo(activeAdmin ? `${activeAdmin.endYear}-12-31` : '');
                     setIsAssignOfficerOpen(true);
                   }}
                   style={{
@@ -740,7 +1258,7 @@ export default function GovernanceHubClient({
                                 setSelectedMemberId(officer?.memberId || '');
                                 setEditingPositionId(officer?.positionId || null);
                                 setTermDateFrom(officer?.dateFrom || `${activeAdmin?.startYear || 2026}-01-01`);
-                                setTermDateTo(officer?.dateTo || '');
+                                setTermDateTo(officer?.dateTo || (activeAdmin ? `${activeAdmin.endYear}-12-31` : ''));
                                 setIsAssignOfficerOpen(true);
                               }}
                               style={{
@@ -1648,7 +2166,9 @@ export default function GovernanceHubClient({
               background: '#FFFFFF',
               borderRadius: 20,
               width: '100%',
-              maxWidth: 480,
+              maxWidth: 540,
+              maxHeight: '90vh',
+              overflowY: 'auto',
               padding: '28px',
               boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
             }}
@@ -1686,31 +2206,13 @@ export default function GovernanceHubClient({
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6, color: '#334155' }}>
-                  Select Brother Knight:
-                </label>
-                <select
-                  value={selectedMemberId}
-                  onChange={(e) => setSelectedMemberId(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: 10,
-                    border: '1.5px solid #CBD5E1',
-                    fontSize: 14,
-                    fontWeight: 600,
-                  }}
-                >
-                  <option value="">-- Choose Member --</option>
-                  {data.allEligibleMembers.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.title} {m.firstName} {m.surname} ({m.status})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <GovernanceMemberPicker
+                members={data.allEligibleMembers}
+                selectedMemberId={selectedMemberId}
+                onSelect={(id) => setSelectedMemberId(id)}
+                label="Select Brother Knight:"
+                required={true}
+              />
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
@@ -1808,7 +2310,9 @@ export default function GovernanceHubClient({
               background: '#FFFFFF',
               borderRadius: 20,
               width: '100%',
-              maxWidth: 480,
+              maxWidth: 540,
+              maxHeight: '90vh',
+              overflowY: 'auto',
               padding: '28px',
               boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
             }}
@@ -1876,31 +2380,13 @@ export default function GovernanceHubClient({
                 </select>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6, color: '#334155' }}>
-                  Select Brother Knight:
-                </label>
-                <select
-                  value={selectedMemberId}
-                  onChange={(e) => setSelectedMemberId(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: 10,
-                    border: '1.5px solid #CBD5E1',
-                    fontSize: 14,
-                    fontWeight: 600,
-                  }}
-                >
-                  <option value="">-- Choose Member --</option>
-                  {data.allEligibleMembers.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.title} {m.firstName} {m.surname}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <GovernanceMemberPicker
+                members={data.allEligibleMembers}
+                selectedMemberId={selectedMemberId}
+                onSelect={(id) => setSelectedMemberId(id)}
+                label="Select Brother Knight:"
+                required={true}
+              />
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
                 <button
@@ -1960,7 +2446,9 @@ export default function GovernanceHubClient({
               background: '#FFFFFF',
               borderRadius: 20,
               width: '100%',
-              maxWidth: 480,
+              maxWidth: 540,
+              maxHeight: '90vh',
+              overflowY: 'auto',
               padding: '28px',
               boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
             }}
@@ -2021,31 +2509,13 @@ export default function GovernanceHubClient({
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6, color: '#334155' }}>
-                  Select Conferred Knight:
-                </label>
-                <select
-                  value={selectedMemberId}
-                  onChange={(e) => setSelectedMemberId(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: 10,
-                    border: '1.5px solid #CBD5E1',
-                    fontSize: 14,
-                    fontWeight: 600,
-                  }}
-                >
-                  <option value="">-- Choose Member --</option>
-                  {data.allEligibleMembers.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.title} {m.firstName} {m.surname}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <GovernanceMemberPicker
+                members={data.allEligibleMembers}
+                selectedMemberId={selectedMemberId}
+                onSelect={(id) => setSelectedMemberId(id)}
+                label="Select Conferred Knight:"
+                required={true}
+              />
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
                 <button

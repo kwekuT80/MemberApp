@@ -7,12 +7,12 @@ import { getGovernanceHubData } from '@/services/governanceService';
 import GovernanceHubClient from '@/components/governance/GovernanceHubClient';
 
 interface Props {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; term?: string }>;
 }
 
 export default async function MemberGovernancePage({ searchParams }: Props) {
   await requireUser();
-  const { tab } = await searchParams;
+  const { tab, term } = await searchParams;
 
   const initialData = await getGovernanceHubData();
 
@@ -28,6 +28,7 @@ export default async function MemberGovernancePage({ searchParams }: Props) {
         initialData={initialData}
         isRegistrar={false}
         defaultTab={activeTab}
+        defaultTermKey={term}
       />
     </MemberShell>
   );

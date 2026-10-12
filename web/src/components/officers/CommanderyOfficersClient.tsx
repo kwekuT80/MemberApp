@@ -77,7 +77,26 @@ export default function CommanderyOfficersClient({
     });
   }, [positions, currentTermStart]);
 
-  const [selectedTerm, setSelectedTerm] = useState<string>(currentTermKey);
+  const [selectedTerm, setSelectedTerm] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const urlTerm = new URLSearchParams(window.location.search).get('term');
+      if (urlTerm) return urlTerm;
+      const stored = sessionStorage.getItem('ksji_officers_term');
+      if (stored) return stored;
+    }
+    return currentTermKey;
+  });
+
+  function handleSelectTerm(term: string) {
+    setSelectedTerm(term);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('ksji_officers_term', term);
+      const url = new URL(window.location.href);
+      url.searchParams.set('term', term);
+      window.history.replaceState({}, '', url.toString());
+    }
+  }
+
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'commandery' | 'trustees' | 'military' | 'appointed' | 'board_of_trustees'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -247,15 +266,34 @@ export default function CommanderyOfficersClient({
     });
   }, [roleSlots, selectedCategory, searchQuery]);
 
-  // Filter active members for assignment picker
+  // Filter and sort members for assignment picker (Active living first, archived at tail end, sorted A-Z by surname)
   const filteredMembersForPicker = useMemo(() => {
-    if (!memberSearchTerm.trim()) {
-      return allMembers;
-    }
     const q = memberSearchTerm.toLowerCase().trim();
-    return allMembers.filter((m) => {
-      const full = `${m.title || ''} ${m.first_name || ''} ${m.other_names || ''} ${m.surname || ''}`.toLowerCase();
+    const matches = allMembers.filter((m) => {
+      if (!q) return true;
+      const full = `${m.title || ''} ${m.first_name || ''} ${m.other_names || ''} ${m.surname || ''} ${m.status || ''}`.toLowerCase();
       return full.includes(q);
+    });
+
+    return matches.sort((a, b) => {
+      // 1. Status tier: Active (0) -> Inactive (1) -> Transferred (2) -> Dismissed (3) -> Deceased (4)
+      const getTier = (item: any) => {
+        const s = (item.status || '').toLowerCase();
+        if (item.is_deceased || s === 'deceased') return 4;
+        if (s === 'dismissed') return 3;
+        if (s === 'transfer-out' || s === 'transferred') return 2;
+        if (s === 'inactive') return 1;
+        return 0;
+      };
+      const tierA = getTier(a);
+      const tierB = getTier(b);
+      if (tierA !== tierB) return tierA - tierB;
+
+      // 2. Alphabetical by Surname, then First Name
+      const surA = (a.surname || '').trim().toLowerCase();
+      const surB = (b.surname || '').trim().toLowerCase();
+      if (surA !== surB) return surA.localeCompare(surB);
+      return (a.first_name || '').trim().toLowerCase().localeCompare((b.first_name || '').trim().toLowerCase());
     });
   }, [allMembers, memberSearchTerm]);
 
@@ -458,7 +496,7 @@ export default function CommanderyOfficersClient({
             <span style={{ fontSize: 13, fontWeight: 800, color: '#0A1628' }}>📆 Administration Term:</span>
             <select
               value={selectedTerm}
-              onChange={(e) => setSelectedTerm(e.target.value)}
+              onChange={(e) => handleSelectTerm(e.target.value)}
               style={{
                 padding: '8px 14px',
                 borderRadius: 8,

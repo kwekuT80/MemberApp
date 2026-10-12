@@ -501,14 +501,50 @@ export async function getGovernanceHubData(): Promise<GovernanceHubData> {
       },
     },
     committees,
-    allEligibleMembers: eligibleMembers.map((m) => ({
-      id: m.id,
-      title: m.title || 'Bro.',
-      firstName: m.first_name || '',
-      surname: m.surname || '',
-      status: m.status || 'Active',
-      isDeceased: m.is_deceased || String(m.status).toLowerCase() === 'deceased',
-    })),
+    allEligibleMembers: eligibleMembers
+      .map((m) => {
+        const isDeceased = Boolean(m.is_deceased || String(m.status).toLowerCase() === 'deceased');
+        const st = String(m.status || '').toLowerCase();
+        const isTransferred = st === 'transfer-out' || st === 'transferred';
+        const isDismissed = st === 'dismissed';
+        return {
+          id: m.id,
+          title: m.title || 'Bro.',
+          firstName: m.first_name || '',
+          surname: m.surname || '',
+          otherNames: m.other_names || '',
+          status: m.status || (isDeceased ? 'Deceased' : 'Active'),
+          isDeceased,
+          isTransferred,
+          isDismissed,
+        };
+      })
+      .sort((a, b) => {
+        // Status tier ranking:
+        // Tier 0: Active / Regular good standing
+        // Tier 1: Inactive
+        // Tier 2: Transferred
+        // Tier 3: Dismissed
+        // Tier 4: Deceased
+        const getTier = (item: { isDeceased?: boolean; isTransferred?: boolean; isDismissed?: boolean; status?: string }) => {
+          const s = (item.status || '').toLowerCase();
+          if (item.isDeceased || s === 'deceased') return 4;
+          if (item.isDismissed || s === 'dismissed') return 3;
+          if (item.isTransferred || s === 'transfer-out' || s === 'transferred') return 2;
+          if (s === 'inactive') return 1;
+          return 0;
+        };
+
+        const tierA = getTier(a);
+        const tierB = getTier(b);
+        if (tierA !== tierB) return tierA - tierB;
+
+        // Within tier: Sort alphabetically by Surname, then First Name
+        const surA = (a.surname || '').trim().toLowerCase();
+        const surB = (b.surname || '').trim().toLowerCase();
+        if (surA !== surB) return surA.localeCompare(surB);
+        return (a.firstName || '').trim().toLowerCase().localeCompare((b.firstName || '').trim().toLowerCase());
+      }),
   };
 }
 
