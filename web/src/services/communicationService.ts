@@ -432,7 +432,7 @@ export async function broadcastMeetingNotice({
   // 2. Fetch target members
   const { data: allActive } = await admin
     .from('members')
-    .select('id, first_name, surname, phone, mobile, email, status')
+    .select('id, title, first_name, other_names, surname, phone, mobile, email, status, degrees(degree_type)')
     .eq('status', 'Active')
     .order('surname');
 
@@ -453,7 +453,6 @@ export async function broadcastMeetingNotice({
     return { success: true, totalQueued: 0, message: 'No target members found for broadcast.' };
   }
 
-  const memberIds = targetMembers.map(m => m.id);
   const mDateStr = formatDisplayDate(meeting.date);
   const mTimeStr = (meetingTime && meetingTime.trim()) || formatDisplayTime(meeting.date) || '';
 
@@ -469,8 +468,9 @@ export async function broadcastMeetingNotice({
 
   const variablesMap: Record<string, TemplateVariables> = {};
   targetMembers.forEach(m => {
+    const salutation = getCanonicalFraternalSalutation(m);
     variablesMap[m.id] = {
-      memberName: `${m.first_name || ''} ${m.surname}`.trim(),
+      memberName: salutation,
       meetingTitle: meeting.title,
       meetingDate: mDateStr,
       meetingTime: mTimeStr,
@@ -484,33 +484,36 @@ export async function broadcastMeetingNotice({
 
   let totalQueued = 0;
 
+  // Filter by channel eligibility
+  const emailEligibleIds = targetMembers.filter(m => Boolean(m.email && m.email.trim())).map(m => m.id);
+  const smsEligibleIds = targetMembers.filter(m => Boolean((m.phone || m.mobile) && (m.phone || m.mobile).trim())).map(m => m.id);
+
   // Dispatch Email
-  if (channel === 'email' || channel === 'both') {
+  if ((channel === 'email' || channel === 'both') && emailEligibleIds.length > 0) {
     await sendBulkCommunications({
-      memberIds,
+      memberIds: emailEligibleIds,
       type: 'email',
       templateId: 'meeting_notice',
       variables: variablesMap,
     });
-    totalQueued += memberIds.length;
+    totalQueued += emailEligibleIds.length;
   }
 
-  // Dispatch SMS with 3 messages/minute rate limiting
-  if (channel === 'sms' || channel === 'both') {
+  // Dispatch SMS
+  if ((channel === 'sms' || channel === 'both') && smsEligibleIds.length > 0) {
     await sendBulkCommunications({
-      memberIds,
+      memberIds: smsEligibleIds,
       type: 'sms',
       templateId: 'meeting_notice',
       variables: variablesMap,
-      rateLimitPerMinute: 3, // 1 message every 20 seconds
     });
-    totalQueued += memberIds.length;
+    totalQueued += smsEligibleIds.length;
   }
 
   return {
     success: true,
     totalQueued,
-    message: `Broadcast initiated for ${targetMembers.length} brothers (${channel.toUpperCase()}) queued at 3 SMS/min.`,
+    message: `Broadcast initiated for ${targetMembers.length} active brothers (${channel.toUpperCase()}).`,
   };
 }
 
