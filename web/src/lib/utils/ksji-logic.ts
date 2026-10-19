@@ -1587,3 +1587,86 @@ export function getPhoneQueryVariants(rawPhone: string | null | undefined): stri
   return Array.from(variants);
 }
 
+/**
+ * Resolves the canonical fraternal salutation address for a member:
+ * - 5th Degree / Noble Brother: "Noble Brother {First} {Surname}"
+ * - Clerical or Military title (e.g. Rev. Fr., Capt., Col., Sir Kt.): "{Title} {First} {Surname}"
+ * - Standard pre-Noble brother: "Brother {First} {Surname}"
+ */
+export function getCanonicalFraternalSalutation(member: {
+  title?: string | null;
+  first_name?: string | null;
+  firstName?: string | null;
+  other_names?: string | null;
+  otherNames?: string | null;
+  surname?: string | null;
+  isNoble?: boolean;
+  degrees?: Array<{ degree_type?: string | null }> | null;
+  highestDegree?: string;
+}): string {
+  const fName = member.first_name || member.firstName || '';
+  const oName = member.other_names || member.otherNames || '';
+  const sName = member.surname || '';
+  const cleanName = [fName, oName, sName].filter(Boolean).join(' ').trim() || sName || 'Brother';
+
+  const rawTitle = (member.title || '').trim();
+  const titleLower = rawTitle.toLowerCase();
+
+  const isNoble =
+    member.isNoble === true ||
+    (member.highestDegree && member.highestDegree.includes('Noble')) ||
+    titleLower.includes('noble') ||
+    titleLower === 'n/b' ||
+    hasAchieved5thDegree(member.degrees);
+
+  if (isNoble) {
+    return `Noble Brother ${cleanName}`;
+  }
+
+  // Clerical or military officer titles
+  if (
+    titleLower.startsWith('rev') ||
+    titleLower.startsWith('capt') ||
+    titleLower.startsWith('col') ||
+    titleLower.startsWith('maj') ||
+    titleLower.startsWith('lt') ||
+    titleLower.startsWith('sir kt')
+  ) {
+    return `${rawTitle} ${cleanName}`;
+  }
+
+  return `Brother ${cleanName}`;
+}
+
+/**
+ * Resolves template tags/placeholders like {memberName}, {degree}, {balance}, {fullName}, {firstName}, {title}
+ * with case-insensitive matching and duplicate title cleanup (e.g. "Dear Brother Bro. John" -> "Dear Brother John").
+ */
+export function interpolateTemplateVariables(
+  content: string,
+  variables: Record<string, any>
+): string {
+  if (!content) return '';
+  let result = content.replace(/\{(\w+)\}/g, (match, key) => {
+    if (variables[key] !== undefined && variables[key] !== null) {
+      return String(variables[key]);
+    }
+    const lowerKey = key.toLowerCase();
+    const found = Object.keys(variables).find((k) => k.toLowerCase() === lowerKey);
+    if (found && variables[found] !== undefined && variables[found] !== null) {
+      return String(variables[found]);
+    }
+    return match;
+  });
+
+  // Normalize duplicate or clashing fraternal greetings
+  result = result.replace(/Dear\s+Brother\s+Brother\s+/gi, 'Dear Brother ');
+  result = result.replace(/Dear\s+Brother\s+Bro\.\s+/gi, 'Dear Brother ');
+  result = result.replace(/Dear\s+Brother\s+Noble\s+Brother\s+/gi, 'Dear Noble Brother ');
+  result = result.replace(/Worthy\s+Brother\s+Noble\s+Brother\s+/gi, 'Worthy Noble Brother ');
+  result = result.replace(/Worthy\s+Brother\s+Brother\s+/gi, 'Worthy Brother ');
+  result = result.replace(/Worthy\s+Brother\s+Bro\.\s+/gi, 'Worthy Brother ');
+
+  return result;
+}
+

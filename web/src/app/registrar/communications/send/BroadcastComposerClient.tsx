@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { KSJI_COMMANDERY_COMMITTEES, CommitteeDefinition } from '@/lib/constants/committees';
+import { getCanonicalFraternalSalutation } from '@/lib/utils/ksji-logic';
 import { EnrichedBroadcastMember } from './page';
 
 interface Props {
@@ -25,10 +26,10 @@ export default function BroadcastComposerClient({ members }: Props) {
   const [channel, setChannel] = useState<ChannelType>('both');
   const [subject, setSubject] = useState('KSJI Commandery #500 Official Notice');
   const [emailBody, setEmailBody] = useState(
-    'Dear Brother {memberName},\n\nPlease be informed of the following update regarding our Commandery activities and fraternity obligations.\n\nFraternally Yours in Christ,\nKSJI Commandery #500 Secretariat'
+    'Dear {memberName},\n\nPlease be informed of the following update regarding our Commandery activities and fraternity obligations.\n\nFraternally Yours in Christ,\nKSJI Commandery #500 Secretariat'
   );
   const [smsBody, setSmsBody] = useState(
-    'KSJI #500: Worthy Brother {memberName}, please take note of this official Commandery communication. Check email or app for details.'
+    'KSJI #500: Dear {memberName}, please take note of this official Commandery communication. Check email or app for details.'
   );
 
   // Dispatch & feedback states
@@ -150,13 +151,33 @@ export default function BroadcastComposerClient({ members }: Props) {
       return;
     }
 
+    const eligibleEmailMembers = targetMembers.filter((m) => Boolean(m.email && m.email.trim()));
+    const eligibleSmsMembers = targetMembers.filter((m) => Boolean(m.phone && m.phone.trim()));
+
+    const wantsEmail = channel === 'email' || channel === 'both';
+    const wantsSms = channel === 'sms' || channel === 'both';
+
+    if (wantsEmail && !wantsSms && eligibleEmailMembers.length === 0) {
+      alert('None of the selected brothers have an email address recorded. Please select members with email or switch to SMS channel.');
+      return;
+    }
+
+    if (wantsSms && !wantsEmail && eligibleSmsMembers.length === 0) {
+      alert('None of the selected brothers have a phone number recorded. Please select members with phone numbers or switch to Email channel.');
+      return;
+    }
+
+    if (wantsEmail && wantsSms && eligibleEmailMembers.length === 0 && eligibleSmsMembers.length === 0) {
+      alert('None of the selected brothers have email or phone numbers recorded.');
+      return;
+    }
+
     const confirmMsg =
       `📢 CONFIRM BROADCAST DISPATCH:\n\n` +
-      `• Target Audience: ${segment.toUpperCase()} (${targetMembers.length} brothers)\n` +
+      `• Target Audience: ${segment.toUpperCase()} (${targetMembers.length} brothers total)\n` +
       `• Channel: ${channel.toUpperCase()}\n` +
-      `• Eligible Emails: ${emailEligibleCount}\n` +
-      `• Eligible SMS: ${smsEligibleCount}\n` +
-      (channel !== 'email' ? `• Carrier Protection: SMS will be paced at 3 msgs/min (approx ${estimatedSmsMinutes} mins total)\n\n` : '\n\n') +
+      `• Eligible Emails: ${eligibleEmailMembers.length} ${targetMembers.length > eligibleEmailMembers.length ? `(${targetMembers.length - eligibleEmailMembers.length} skipped - no email)` : ''}\n` +
+      `• Eligible SMS: ${eligibleSmsMembers.length} ${targetMembers.length > eligibleSmsMembers.length ? `(${targetMembers.length - eligibleSmsMembers.length} skipped - no phone)` : ''}\n\n` +
       `Proceed with dispatch?`;
 
     if (!window.confirm(confirmMsg)) return;
@@ -165,13 +186,19 @@ export default function BroadcastComposerClient({ members }: Props) {
     setDispatchResult(null);
 
     try {
-      const memberIds = targetMembers.map((m) => m.id);
-
       // Create variable substitutions for each member
       const variablesMap: Record<string, any> = {};
       targetMembers.forEach((m) => {
+        const salutation = getCanonicalFraternalSalutation(m);
+        const cleanName = [m.firstName, m.otherNames, m.surname].filter(Boolean).join(' ') || m.fullName;
         variablesMap[m.id] = {
-          memberName: m.fullName,
+          memberName: salutation,
+          salutation,
+          cleanName,
+          fullName: m.fullName,
+          firstName: m.firstName || cleanName,
+          surname: m.surname || '',
+          title: m.title || 'Bro.',
           degree: m.highestDegree,
           balance: `GHS ${m.outstandingBalance.toFixed(2)}`,
         };
@@ -179,14 +206,16 @@ export default function BroadcastComposerClient({ members }: Props) {
 
       let totalSent = 0;
       let totalFailed = 0;
+      let emailSent = 0;
+      let smsSent = 0;
 
-      // Send Email if requested
-      if (channel === 'email' || channel === 'both') {
+      // Send Email if requested and eligible members exist
+      if (wantsEmail && eligibleEmailMembers.length > 0) {
         const emailResponse = await fetch('/api/communications/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            memberIds,
+            memberIds: eligibleEmailMembers.map((m) => m.id),
             type: 'email',
             templateId: 'general',
             subject,
@@ -204,18 +233,19 @@ export default function BroadcastComposerClient({ members }: Props) {
         });
         const emailRes = await emailResponse.json();
         if (emailRes.success) {
-          totalSent += emailRes.sent || 0;
+          emailSent = emailRes.sent || 0;
+          totalSent += emailSent;
           totalFailed += emailRes.failed || 0;
         }
       }
 
-      // Send SMS if requested
-      if (channel === 'sms' || channel === 'both') {
+      // Send SMS if requested and eligible members exist
+      if (wantsSms && eligibleSmsMembers.length > 0) {
         const smsResponse = await fetch('/api/communications/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            memberIds,
+            memberIds: eligibleSmsMembers.map((m) => m.id),
             type: 'sms',
             templateId: 'general',
             smsBody,
@@ -224,16 +254,28 @@ export default function BroadcastComposerClient({ members }: Props) {
         });
         const smsRes = await smsResponse.json();
         if (smsRes.success) {
-          totalSent += smsRes.sent || 0;
+          smsSent = smsRes.sent || 0;
+          totalSent += smsSent;
           totalFailed += smsRes.failed || 0;
         }
+      }
+
+      const skippedEmailCount = wantsEmail ? targetMembers.length - eligibleEmailMembers.length : 0;
+      const skippedSmsCount = wantsSms ? targetMembers.length - eligibleSmsMembers.length : 0;
+
+      const summaryParts: string[] = [];
+      if (wantsEmail) {
+        summaryParts.push(`Emails: ${emailSent} sent${skippedEmailCount > 0 ? ` (${skippedEmailCount} skipped - no email)` : ''}`);
+      }
+      if (wantsSms) {
+        summaryParts.push(`SMS: ${smsSent} queued${skippedSmsCount > 0 ? ` (${skippedSmsCount} skipped - no phone)` : ''}`);
       }
 
       setDispatchResult({
         success: true,
         sent: totalSent,
         failed: totalFailed,
-        message: `Broadcast successfully enqueued for ${targetMembers.length} brothers (${channel.toUpperCase()}). Carrier pacing active at 3 SMS/min.`,
+        message: `Broadcast dispatch completed! ${summaryParts.join(' | ')}.`,
       });
     } catch (err: any) {
       setDispatchResult({
@@ -610,14 +652,31 @@ export default function BroadcastComposerClient({ members }: Props) {
               <h3 style={{ margin: 0, fontSize: 16, color: 'var(--navy)', fontWeight: 800 }}>
                 3. Message Content & Personalization
               </h3>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Insert tag:</span>
                 <button
                   type="button"
+                  title="Inserts Brother's name without duplicate prefix, e.g. Nii Armah Tagoe"
                   onClick={() => handleInsertTag('{memberName}', channel === 'sms' ? 'sms' : 'email')}
                   style={{ padding: '3px 8px', borderRadius: 4, background: '#f1f5f9', border: '1px solid #cbd5e1', fontSize: 11, cursor: 'pointer', fontWeight: 700 }}
                 >
                   +{'{memberName}'}
+                </button>
+                <button
+                  type="button"
+                  title="Inserts Brother's full title & name, e.g. Bro. Nii Armah Tagoe"
+                  onClick={() => handleInsertTag('{fullName}', channel === 'sms' ? 'sms' : 'email')}
+                  style={{ padding: '3px 8px', borderRadius: 4, background: '#f1f5f9', border: '1px solid #cbd5e1', fontSize: 11, cursor: 'pointer', fontWeight: 700 }}
+                >
+                  +{'{fullName}'}
+                </button>
+                <button
+                  type="button"
+                  title="Inserts Brother's first name, e.g. Nii Armah"
+                  onClick={() => handleInsertTag('{firstName}', channel === 'sms' ? 'sms' : 'email')}
+                  style={{ padding: '3px 8px', borderRadius: 4, background: '#f1f5f9', border: '1px solid #cbd5e1', fontSize: 11, cursor: 'pointer', fontWeight: 700 }}
+                >
+                  +{'{firstName}'}
                 </button>
                 <button
                   type="button"
@@ -739,58 +798,81 @@ export default function BroadcastComposerClient({ members }: Props) {
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: channel === 'both' ? '1fr 1fr' : '1fr', gap: 14 }}>
-              {/* SMS Sample */}
-              {(channel === 'sms' || channel === 'both') && (
-                <div style={{ background: '#f1f5f9', padding: 14, borderRadius: 12, border: '1px solid #cbd5e1' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>SMS Preview</div>
-                  <div
-                    style={{
-                      background: '#ffffff',
-                      padding: 12,
-                      borderRadius: 10,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                      fontSize: 12,
-                      color: '#0f172a',
-                      lineHeight: 1.4,
-                      borderLeft: '4px solid #059669',
-                    }}
-                  >
-                    {smsBody
-                      .replace(/{memberName}/g, targetMembers[0]?.fullName || 'Bro. John Doe')
-                      .replace(/{degree}/g, targetMembers[0]?.highestDegree || 'Knight (1st Degree)')
-                      .replace(/{balance}/g, `GHS ${(targetMembers[0]?.outstandingBalance || 0).toFixed(2)}`)}
-                  </div>
-                </div>
-              )}
+            {(() => {
+              const sampleMember = targetMembers[0];
+              const sampleSalutation = sampleMember ? getCanonicalFraternalSalutation(sampleMember) : 'Brother John Doe';
+              const sampleCleanName = sampleMember ? ([sampleMember.firstName, sampleMember.otherNames, sampleMember.surname].filter(Boolean).join(' ') || sampleMember.fullName) : 'John Doe';
+              const sampleFullName = sampleMember?.fullName || 'Bro. John Doe';
+              const sampleFirstName = sampleMember?.firstName || 'Brother';
+              const sampleDegree = sampleMember?.highestDegree || 'Knight (1st Degree)';
+              const sampleBalance = `GHS ${(sampleMember?.outstandingBalance || 0).toFixed(2)}`;
 
-              {/* Email Sample */}
-              {(channel === 'email' || channel === 'both') && (
-                <div style={{ background: '#f8fafc', padding: 14, borderRadius: 12, border: '1px solid #cbd5e1' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>Email Preview</div>
-                  <div
-                    style={{
-                      background: '#ffffff',
-                      padding: 12,
-                      borderRadius: 10,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                      fontSize: 12,
-                      color: '#0f172a',
-                      lineHeight: 1.5,
-                      borderLeft: '4px solid #1d4ed8',
-                    }}
-                  >
-                    <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: 6 }}>{subject}</div>
-                    <div style={{ whiteSpace: 'pre-line' }}>
-                      {emailBody
-                        .replace(/{memberName}/g, targetMembers[0]?.fullName || 'Bro. John Doe')
-                        .replace(/{degree}/g, targetMembers[0]?.highestDegree || 'Knight (1st Degree)')
-                        .replace(/{balance}/g, `GHS ${(targetMembers[0]?.outstandingBalance || 0).toFixed(2)}`)}
+              const renderPreview = (text: string) => {
+                return text
+                  .replace(/{memberName}/gi, sampleSalutation)
+                  .replace(/{salutation}/gi, sampleSalutation)
+                  .replace(/{cleanName}/gi, sampleCleanName)
+                  .replace(/{fullName}/gi, sampleFullName)
+                  .replace(/{firstName}/gi, sampleFirstName)
+                  .replace(/{degree}/gi, sampleDegree)
+                  .replace(/{balance}/gi, sampleBalance)
+                  .replace(/Dear\s+Brother\s+Brother\s+/gi, 'Dear Brother ')
+                  .replace(/Dear\s+Brother\s+Bro\.\s+/gi, 'Dear Brother ')
+                  .replace(/Dear\s+Brother\s+Noble\s+Brother\s+/gi, 'Dear Noble Brother ')
+                  .replace(/Worthy\s+Brother\s+Noble\s+Brother\s+/gi, 'Worthy Noble Brother ')
+                  .replace(/Worthy\s+Brother\s+Brother\s+/gi, 'Worthy Brother ')
+                  .replace(/Worthy\s+Brother\s+Bro\.\s+/gi, 'Worthy Brother ');
+              };
+
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: channel === 'both' ? '1fr 1fr' : '1fr', gap: 14 }}>
+                  {/* SMS Sample */}
+                  {(channel === 'sms' || channel === 'both') && (
+                    <div style={{ background: '#f1f5f9', padding: 14, borderRadius: 12, border: '1px solid #cbd5e1' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>SMS Preview</div>
+                      <div
+                        style={{
+                          background: '#ffffff',
+                          padding: 12,
+                          borderRadius: 10,
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                          fontSize: 12,
+                          color: '#0f172a',
+                          lineHeight: 1.4,
+                          borderLeft: '4px solid #059669',
+                        }}
+                      >
+                        {renderPreview(smsBody)}
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Email Sample */}
+                  {(channel === 'email' || channel === 'both') && (
+                    <div style={{ background: '#f8fafc', padding: 14, borderRadius: 12, border: '1px solid #cbd5e1' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>Email Preview</div>
+                      <div
+                        style={{
+                          background: '#ffffff',
+                          padding: 12,
+                          borderRadius: 10,
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                          fontSize: 12,
+                          color: '#0f172a',
+                          lineHeight: 1.5,
+                          borderLeft: '4px solid #1d4ed8',
+                        }}
+                      >
+                        <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: 6 }}>{renderPreview(subject)}</div>
+                        <div style={{ whiteSpace: 'pre-line' }}>
+                          {renderPreview(emailBody)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })()}
           </div>
 
         </div>

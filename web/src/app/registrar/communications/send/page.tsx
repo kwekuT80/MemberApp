@@ -10,6 +10,9 @@ import BroadcastComposerClient from './BroadcastComposerClient';
 export interface EnrichedBroadcastMember {
   id: string;
   fullName: string;
+  firstName: string;
+  otherNames?: string;
+  surname: string;
   title: string;
   email: string | null;
   phone: string | null;
@@ -145,6 +148,9 @@ export default async function BroadcastComposerPage() {
       return {
         id: m.id,
         fullName: [m.title, m.first_name, m.other_names, m.surname].filter(Boolean).join(' '),
+        firstName: m.first_name || '',
+        otherNames: m.other_names || '',
+        surname: m.surname || '',
         title: m.title || 'Bro.',
         email: m.email || null,
         phone: m.phone || null,

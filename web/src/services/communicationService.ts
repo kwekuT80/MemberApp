@@ -8,7 +8,15 @@ import {
   DeliveryResult,
 } from '@/services/messaging';
 import { getAllMemberSummaries } from '@/services/financialService';
-import { isSystemMember, formatDisplayDate, formatDisplayTime, formatDisplayDateTime, getMatchingVenuePreset } from '@/lib/utils/ksji-logic';
+import {
+  isSystemMember,
+  formatDisplayDate,
+  formatDisplayTime,
+  formatDisplayDateTime,
+  getMatchingVenuePreset,
+  interpolateTemplateVariables,
+  getCanonicalFraternalSalutation,
+} from '@/lib/utils/ksji-logic';
 
 // Communication template types and renderers
 export type CommunicationType = 'email' | 'sms';
@@ -159,7 +167,7 @@ export async function sendCommunication(payload: {
     if (!member) {
       const { data: fetchedMember } = await supabase
         .from('members')
-        .select('id, first_name, surname, email, phone, mobile')
+        .select('id, title, first_name, other_names, surname, email, phone, mobile')
         .eq('id', payload.memberId)
         .single();
       member = fetchedMember;
@@ -169,9 +177,24 @@ export async function sendCommunication(payload: {
       return { success: false, error: 'Member not found' };
     }
 
+    const salutationName = getCanonicalFraternalSalutation(member);
+    const cleanMemberName = [member.first_name, member.other_names, member.surname].filter(Boolean).join(' ') || member.surname || 'Brother';
+    const fullMemberName = [member.title, member.first_name, member.other_names, member.surname].filter(Boolean).join(' ') || cleanMemberName;
+
+    const mergedVariables: TemplateVariables = {
+      memberName: salutationName,
+      salutation: salutationName,
+      cleanName: cleanMemberName,
+      fullName: fullMemberName,
+      firstName: member.first_name || cleanMemberName,
+      surname: member.surname || '',
+      title: member.title || 'Bro.',
+      ...(payload.variables || {}),
+    };
+
     let payloadData: MessagePayload = {
       to: '',
-      name: `${member.first_name || ''} ${member.surname}`.trim(),
+      name: fullMemberName,
       body: payload.smsBody || '',
       sendAt: payload.sendAt,
     };
@@ -185,9 +208,9 @@ export async function sendCommunication(payload: {
       payloadData.to = member.phone || member.mobile || '';
     }
 
-    // If template provided, render it
-    if (payload.templateId && payload.variables) {
-      const rendered = renderTemplate(payload.templateId, payload.variables);
+    // If template provided, render it if custom content was not supplied
+    if (payload.templateId) {
+      const rendered = renderTemplate(payload.templateId, mergedVariables);
 
       if (!payload.htmlContent) {
         payloadData.html = rendered.html;
@@ -203,6 +226,20 @@ export async function sendCommunication(payload: {
       }
     }
 
+    // Always interpolate placeholders across subject, body, text, and html
+    if (payloadData.subject) {
+      payloadData.subject = interpolateTemplateVariables(payloadData.subject, mergedVariables);
+    }
+    if (payloadData.body) {
+      payloadData.body = interpolateTemplateVariables(payloadData.body, mergedVariables);
+    }
+    if (payloadData.text) {
+      payloadData.text = interpolateTemplateVariables(payloadData.text, mergedVariables);
+    }
+    if (payloadData.html) {
+      payloadData.html = interpolateTemplateVariables(payloadData.html, mergedVariables);
+    }
+
     // Send via provider
     let result: DeliveryResult;
 
@@ -214,13 +251,22 @@ export async function sendCommunication(payload: {
       result = await smsProvider.sendSMS(payloadData);
     }
 
+    // Prepare human-readable plain text preview for database
+    const rawPreview = payloadData.body || payloadData.text || (payloadData.html ? payloadData.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ') : '');
+    const cleanPreview = rawPreview.trim().substring(0, 255);
+
     // Record in database for audit trail
+    // For SMS, 'sent' means queued for transmission on the Android device
+    const initialStatus = payload.type === 'sms'
+      ? (result.status === 'failed' ? 'failed' : 'sent')
+      : (result.status === 'sent' ? 'delivered' : result.status);
+
     await supabase.from('member_communications').insert({
       member_id: payload.memberId,
       type: payload.type,
       subject: payloadData.subject || (payload.type === 'sms' ? 'SMS Notification' : 'Notice'),
-      content_preview: (payloadData.html || payloadData.body || payloadData.text || '').substring(0, 255),
-      status: result.status === 'sent' ? 'delivered' : result.status,
+      content_preview: cleanPreview,
+      status: initialStatus,
       provider_message_id: result.messageId,
       template_id: payload.templateId,
     });
@@ -314,19 +360,14 @@ export async function sendBulkCommunications(payload: {
   const supabase = await createClient();
   const { data: memberRows } = await supabase
     .from('members')
-    .select('id, first_name, surname, email, phone, mobile')
+    .select('id, title, first_name, other_names, surname, email, phone, mobile')
     .in('id', payload.memberIds);
   const memberMap = new Map((memberRows || []).map((m: any) => [m.id, m]));
 
-  // For SMS, enforce the requested rate limit: 3 messages per minute (20 seconds between sends)
-  const isSms = payload.type === 'sms';
-  const rateLimit = payload.rateLimitPerMinute || 3;
-  const intervalMs = Math.round(60_000 / rateLimit); // 20,000 ms
-  const baseTime = Date.now();
+  const rateLimit = payload.rateLimitPerMinute || 10;
 
   for (let i = 0; i < payload.memberIds.length; i++) {
     const memberId = payload.memberIds[i];
-    const scheduledSendAt = isSms ? new Date(baseTime + i * intervalMs) : undefined;
 
     const result = await sendCommunication({
       memberId,
@@ -338,7 +379,6 @@ export async function sendBulkCommunications(payload: {
       htmlContent: payload.htmlContent,
       textContent: payload.textContent,
       smsBody: payload.smsBody,
-      sendAt: scheduledSendAt,
     });
 
     if (result.success) {

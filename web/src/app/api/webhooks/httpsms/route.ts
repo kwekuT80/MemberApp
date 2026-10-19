@@ -30,7 +30,9 @@ export async function POST(req: NextRequest) {
       const statusMap: Record<string, string> = {
         'message.sent': 'sent',
         'message.delivered': 'delivered',
+        'message.phone.delivered': 'delivered',
         'message.failed': 'failed',
+        'message.send.failed': 'failed',
       };
 
       const mappedStatus = statusMap[eventType] || 'sent';
