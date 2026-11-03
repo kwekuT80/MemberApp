@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Member } from '@/types/member';
-import { formatDisplayDate, isSystemMember } from '@/lib/utils/ksji-logic';
+import { formatDisplayDate, isSystemMember, resolveMemberLatestPosition } from '@/lib/utils/ksji-logic';
 
 export default function MemberSearchTable({ 
   members, 
@@ -220,9 +220,7 @@ export default function MemberSearchTable({
               </tr>
             ) : (
               filteredMembers.map((member) => {
-                const latestPos = (member.positions || []).sort((a: any, b: any) => 
-                  String(b.date_from || '').localeCompare(String(a.date_from || ''))
-                )[0];
+                const latestPos = resolveMemberLatestPosition(member.positions, member.uniform_positions);
 
                 const batchSize = member.date_joined ? (cohortCounts[member.date_joined] || 0) : 0;
                 const isSelectedCohort = cohortFilter === member.date_joined;
@@ -268,8 +266,13 @@ export default function MemberSearchTable({
                       ) : '—'}
                     </td>
                     <td>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)' }}>
-                        {latestPos?.position_title || '—'}
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span>{latestPos?.title || '—'}</span>
+                        {latestPos?.isCurrent && (
+                          <span style={{ fontSize: 9.5, fontWeight: 700, backgroundColor: '#dcfce7', color: '#166534', padding: '1px 6px', borderRadius: 4 }}>
+                            Active
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td style={{ fontSize: 12 }}>

@@ -712,11 +712,105 @@ export interface LeadershipOfficeSummary {
   allOfficesHeld: string[];
 }
 
+export interface MemberLatestPositionResult {
+  title: string;
+  isCurrent: boolean;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  level?: string | null;
+}
+
+/**
+ * Resolves the true latest / current executive office or leadership position held by a member.
+ * 
+ * Rules:
+ * 1. Currently active positions with official dates covering the current year take highest priority.
+ * 2. Past positions with official dates take second priority, ordered descending by date_from.
+ * 3. Undated position claims from forms (where neither date_from nor date_to are provided) have lowest priority
+ *    and NEVER supersede dated appointments or official administration positions.
+ * 4. If no relational positions exist, gracefully falls back to uniform_positions if populated.
+ */
+export function resolveMemberLatestPosition(
+  positions?: Array<{
+    position_title?: string | null;
+    date_from?: string | null;
+    date_to?: string | null;
+    level?: string | null;
+  }> | null,
+  fallbackUniformPositions?: string | null
+): MemberLatestPositionResult | null {
+  const currentYear = new Date().getFullYear();
+
+  const valid = (positions || []).filter(
+    (p) => p && typeof p.position_title === 'string' && p.position_title.trim() !== ''
+  );
+
+  if (valid.length === 0) {
+    if (fallbackUniformPositions && fallbackUniformPositions.trim()) {
+      const parts = fallbackUniformPositions.split(',').map((p) => p.trim()).filter(Boolean);
+      return {
+        title: parts[0] || fallbackUniformPositions.trim(),
+        isCurrent: false,
+      };
+    }
+    return null;
+  }
+
+  const sorted = [...valid].sort((a, b) => {
+    const aFrom = a.date_from ? parseInt(a.date_from.substring(0, 4), 10) : null;
+    const aTo = a.date_to ? parseInt(a.date_to.substring(0, 4), 10) : null;
+    const bFrom = b.date_from ? parseInt(b.date_from.substring(0, 4), 10) : null;
+    const bTo = b.date_to ? parseInt(b.date_to.substring(0, 4), 10) : null;
+
+    const aHasDates = !!(aFrom || aTo);
+    const bHasDates = !!(bFrom || bTo);
+
+    // Dated appointments always supersede undated claims
+    if (aHasDates && !bHasDates) return -1;
+    if (!aHasDates && bHasDates) return 1;
+
+    // Both dated: check if currently active
+    const aIsActive = (aFrom && aFrom <= currentYear && (!aTo || aTo >= currentYear)) || (aTo && aTo >= currentYear);
+    const bIsActive = (bFrom && bFrom <= currentYear && (!bTo || bTo >= currentYear)) || (bTo && bTo >= currentYear);
+
+    if (aIsActive && !bIsActive) return -1;
+    if (!aIsActive && bIsActive) return 1;
+
+    // Sort by most recent start year
+    const aStart = a.date_from || '';
+    const bStart = b.date_from || '';
+    if (bStart !== aStart) return bStart.localeCompare(aStart);
+
+    const aEnd = a.date_to || '';
+    const bEnd = b.date_to || '';
+    return bEnd.localeCompare(aEnd);
+  });
+
+  const best = sorted[0];
+  if (!best) return null;
+
+  const bFrom = best.date_from ? parseInt(best.date_from.substring(0, 4), 10) : null;
+  const bTo = best.date_to ? parseInt(best.date_to.substring(0, 4), 10) : null;
+  const isCurrent = !!(
+    (bFrom && bFrom <= currentYear && (!bTo || bTo >= currentYear)) ||
+    (bTo && bTo >= currentYear)
+  );
+
+  return {
+    title: best.position_title!.trim(),
+    isCurrent,
+    dateFrom: best.date_from,
+    dateTo: best.date_to,
+    level: best.level,
+  };
+}
+
 /**
  * Evaluates leadership history to extract active executive offices and Past Worthy President status.
+ * Undated claims from forms never supersede dated records and are never assumed active.
  */
 export function getLeadershipOfficeSummary(
-  positions?: Array<{ position_title?: string | null; date_from?: string | null; date_to?: string | null }> | null
+  positions?: Array<{ position_title?: string | null; date_from?: string | null; date_to?: string | null; level?: string | null }> | null
 ): LeadershipOfficeSummary {
   if (!positions || !Array.isArray(positions) || positions.length === 0) {
     return { activeOffice: null, isPastPresident: false, pastPresidentTitle: null, allOfficesHeld: [] };
@@ -727,7 +821,33 @@ export function getLeadershipOfficeSummary(
   let isPastPresident = false;
   const allOfficesHeld: string[] = [];
 
-  for (const pos of positions) {
+  // Sort positions so dated active positions rank first, then past dated, then undated
+  const sorted = [...positions].sort((a, b) => {
+    const aFrom = a.date_from ? parseInt(a.date_from.substring(0, 4), 10) : null;
+    const aTo = a.date_to ? parseInt(a.date_to.substring(0, 4), 10) : null;
+    const bFrom = b.date_from ? parseInt(b.date_from.substring(0, 4), 10) : null;
+    const bTo = b.date_to ? parseInt(b.date_to.substring(0, 4), 10) : null;
+
+    const aHasDates = !!(aFrom || aTo);
+    const bHasDates = !!(bFrom || bTo);
+
+    if (aHasDates && !bHasDates) return -1;
+    if (!aHasDates && bHasDates) return 1;
+
+    const aIsActive = (aFrom && aFrom <= currentYear && (!aTo || aTo >= currentYear)) || (aTo && aTo >= currentYear);
+    const bIsActive = (bFrom && bFrom <= currentYear && (!bTo || bTo >= currentYear)) || (bTo && bTo >= currentYear);
+
+    if (aIsActive && !bIsActive) return -1;
+    if (!aIsActive && bIsActive) return 1;
+
+    const aStart = a.date_from || '';
+    const bStart = b.date_from || '';
+    if (bStart !== aStart) return bStart.localeCompare(aStart);
+
+    return (b.date_to || '').localeCompare(a.date_to || '');
+  });
+
+  for (const pos of sorted) {
     const title = (pos.position_title || '').trim();
     if (!title) continue;
 
@@ -739,10 +859,15 @@ export function getLeadershipOfficeSummary(
       isPastPresident = true;
     }
 
-    // Check if active: date_to is null or end year >= currentYear
+    // Check if active: MUST have dates and encompass currentYear
+    const fromYear = pos.date_from ? parseInt(pos.date_from.substring(0, 4), 10) : null;
     const endYear = pos.date_to ? parseInt(pos.date_to.substring(0, 4), 10) : null;
-    if (!endYear || endYear >= currentYear) {
-      if (!activeOffice) {
+
+    // Undated claims (no date_from and no date_to) are NEVER active offices
+    if (fromYear || endYear) {
+      const isActive = (fromYear && fromYear <= currentYear && (!endYear || endYear >= currentYear)) ||
+                       (endYear && endYear >= currentYear);
+      if (isActive && !activeOffice) {
         activeOffice = title;
       }
     }

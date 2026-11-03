@@ -125,9 +125,10 @@ export default function CommanderyOfficersClient({
       const fromYear = p.date_from ? parseInt(p.date_from.substring(0, 4), 10) : null;
       const toYear = p.date_to ? parseInt(p.date_to.substring(0, 4), 10) : null;
 
-      // If both dates are empty, match current term only if active
+      // Undated claims from member forms (missing date_from and date_to) must never supersede
+      // or automatically populate into the official officers list on the app.
       if (!fromYear && !toYear) {
-        return selectedTerm === currentTermKey;
+        return false;
       }
 
       // Check overlap with term [termStartYear, termEndYear]
@@ -147,7 +148,14 @@ export default function CommanderyOfficersClient({
           const norm = normalizePositionTitle(p.position_title);
           return norm.toLowerCase() === role.title.toLowerCase();
         })
-        .sort((a, b) => (a.date_from || '').localeCompare(b.date_from || ''));
+        .sort((a, b) => {
+          // Official appointments with dates ALWAYS supersede undated claims
+          const aHas = !!(a.date_from || a.date_to);
+          const bHas = !!(b.date_from || b.date_to);
+          if (aHas && !bHas) return 1;
+          if (!aHas && bHas) return -1;
+          return (a.date_from || '').localeCompare(b.date_from || '');
+        });
 
       return {
         role,

@@ -77,12 +77,19 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
     }
   }, [degreesList]);
 
-  // Auto-populate uniform positions from positionsList if empty
+  // Auto-populate uniform positions from positionsList if empty (ordered most recent / current first)
   useEffect(() => {
     if (positionsList.length > 0) {
       setForm((prev: any) => {
         if (!prev.uniform_positions) {
-          const titles = positionsList.map((p: any) => p.position_title).filter(Boolean).join(', ');
+          const sorted = [...positionsList].sort((a: any, b: any) => {
+            const aHas = !!(a.date_from || a.date_to);
+            const bHas = !!(b.date_from || b.date_to);
+            if (aHas && !bHas) return -1;
+            if (!aHas && bHas) return 1;
+            return String(b.date_from || '').localeCompare(String(a.date_from || ''));
+          });
+          const titles = Array.from(new Set(sorted.map((p: any) => p.position_title).filter(Boolean))).join(', ');
           return titles ? { ...prev, uniform_positions: titles } : prev;
         }
         return prev;

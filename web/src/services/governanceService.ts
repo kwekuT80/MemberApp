@@ -90,6 +90,10 @@ export async function getGovernanceHubData(): Promise<GovernanceHubData> {
     const m = pos.members as any;
     if (!m) return;
 
+    // Undated claims from member forms (missing date_from and date_to) must never supersede
+    // or populate into the official officers list on the app.
+    if (!pos.date_from && !pos.date_to) return;
+
     const fromYear = pos.date_from ? parseInt(pos.date_from.substring(0, 4), 10) : currentTermStart;
     const termStart = fromYear % 2 === 0 ? fromYear : fromYear - 1;
     const termEnd = termStart + 1;

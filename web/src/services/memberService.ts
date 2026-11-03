@@ -58,7 +58,7 @@ export async function getMemberById(id: string): Promise<any | null> {
 
 export async function searchMembers(query = ''): Promise<Member[]> {
   const supabase = await createClient();
-  let builder = supabase.from('members').select('*, children(id), positions(position_title)').order('surname').order('first_name');
+  let builder = supabase.from('members').select('*, children(id), positions(id, position_title, level, date_from, date_to, rank)').order('surname').order('first_name');
   const safeQuery = sanitizeQuery(query);
   if (safeQuery) {
     builder = builder.or(`surname.ilike.%${safeQuery}%,first_name.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%,phone.ilike.%${safeQuery}%,mobile.ilike.%${safeQuery}%`);
