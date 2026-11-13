@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import React from 'react';
 import RegistrarShell from '@/components/layout/RegistrarShell';
 import { requireRegistrar } from '@/lib/auth/requireRegistrar';
-import { getAllCommunications } from '@/services/communicationService';
+import { getAllCommunications, getHttpSmsGatewayStatus } from '@/services/communicationService';
 
 // Calculate summary statistics
 function calculateStats(communications: any[]) {
@@ -32,6 +32,7 @@ export default async function CommunicationsHubPage() {
 
   let stats = null;
   let recentCommunications: any[] = [];
+  const gatewayStatus = await getHttpSmsGatewayStatus();
 
   try {
     recentCommunications = await getAllCommunications({ dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] });
@@ -73,6 +74,46 @@ export default async function CommunicationsHubPage() {
           <StatCard label="Failed" value={String(stats.failedCount)} icon="❌" color="#dc2626" />
         </div>
       )}
+
+      {/* Cellular SMS Gateway Monitor */}
+      <div className="card" style={{
+        marginBottom: 32,
+        padding: '18px 24px',
+        borderLeft: gatewayStatus.isOnline ? '4px solid #16a34a' : '4px solid #f59e0b',
+        background: gatewayStatus.isOnline ? 'rgba(22, 163, 74, 0.02)' : 'rgba(245, 158, 11, 0.02)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 24 }}>📱</span>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <strong style={{ fontSize: 14, color: 'var(--navy)' }}>Cellular SMS Gateway (HttpSMS)</strong>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  backgroundColor: gatewayStatus.isOnline ? '#dcfce7' : '#fef3c7',
+                  color: gatewayStatus.isOnline ? '#166534' : '#92400e',
+                }}>
+                  {gatewayStatus.isOnline ? '🟢 Connected / Online' : '⚠️ Gateway Warning'}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                Transmitting SIM: <strong>{gatewayStatus.activePhone}</strong> (SIM1)
+                {gatewayStatus.lastHeartbeat && (
+                  <span> • Last phone check-in: <strong>{gatewayStatus.ageMinutes ?? 0}m ago</strong></span>
+                )}
+                <span> • Queue Pacing: <strong>2 SMS/min (30s interval)</strong></span>
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: 11.5, color: '#475569', textAlign: 'right' }}>
+            <div>Carrier: <strong>MTN Ghana</strong></div>
+            <div style={{ color: '#059669', fontWeight: 600 }}>Webhooks: Real-time Outbound Active</div>
+          </div>
+        </div>
+      </div>
 
       {/* Quick Actions */}
       <div className="grid-cols-2" style={{ marginBottom: 32 }}>

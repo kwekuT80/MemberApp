@@ -335,7 +335,7 @@ export async function getAllCommunications(filters?: {
   return data || [];
 }
 
-// Send bulk communications with 3 SMS/minute queue pacing
+// Send bulk communications with 30-second queue pacing (2 SMS/minute) for cellular modem & multipart safety
 export async function sendBulkCommunications(payload: {
   memberIds: string[];
   type: CommunicationType;
@@ -364,10 +364,19 @@ export async function sendBulkCommunications(payload: {
     .in('id', payload.memberIds);
   const memberMap = new Map((memberRows || []).map((m: any) => [m.id, m]));
 
-  const rateLimit = payload.rateLimitPerMinute || 10;
+  const isSms = payload.type === 'sms';
+  // Default to 2 SMS/minute (30-second interval) to allow multipart SMS segments to fully clear the cellular radio
+  const rateLimit = payload.rateLimitPerMinute || (isSms ? 2 : 10);
+  const pacingSeconds = isSms ? 30 : Math.max(1, Math.floor(60 / rateLimit));
+  const baseTime = Date.now();
 
   for (let i = 0; i < payload.memberIds.length; i++) {
     const memberId = payload.memberIds[i];
+
+    // For SMS, stagger scheduled delivery time across the queue with a 30-second safety window
+    const sendAt = isSms && i > 0
+      ? new Date(baseTime + i * pacingSeconds * 1000)
+      : undefined;
 
     const result = await sendCommunication({
       memberId,
@@ -379,6 +388,7 @@ export async function sendBulkCommunications(payload: {
       htmlContent: payload.htmlContent,
       textContent: payload.textContent,
       smsBody: payload.smsBody,
+      sendAt,
     });
 
     if (result.success) {
@@ -399,7 +409,7 @@ export async function sendBulkCommunications(payload: {
 
 /**
  * High-Level Action: Broadcast Meeting Notice & Reminders via SMS, Email, or Both.
- * Automatically paces SMS messages at 3/min to protect cellular carrier health.
+ * Automatically paces SMS messages at 2/min (30s interval) to protect cellular carrier health.
  */
 export async function broadcastMeetingNotice({
   meetingId,
@@ -499,13 +509,14 @@ export async function broadcastMeetingNotice({
     totalQueued += emailEligibleIds.length;
   }
 
-  // Dispatch SMS
+  // Dispatch SMS with 30-second rate limiting (2 SMS/min)
   if ((channel === 'sms' || channel === 'both') && smsEligibleIds.length > 0) {
     await sendBulkCommunications({
       memberIds: smsEligibleIds,
       type: 'sms',
       templateId: 'meeting_notice',
       variables: variablesMap,
+      rateLimitPerMinute: 2, // 1 message every 30 seconds
     });
     totalQueued += smsEligibleIds.length;
   }
@@ -519,7 +530,7 @@ export async function broadcastMeetingNotice({
 
 /**
  * High-Level Action: Broadcast Assessment Standing Statements via Email, SMS, or Both.
- * Automatically paces SMS messages at 3/min.
+ * Automatically paces SMS messages at 2/min (30-second interval).
  */
 export async function broadcastFinancialStatements({
   channel = 'both',
@@ -574,14 +585,14 @@ export async function broadcastFinancialStatements({
     totalQueued += memberIds.length;
   }
 
-  // Dispatch SMS with 3 messages/minute rate limiting
+  // Dispatch SMS with 2 messages/minute rate limiting (30-second interval for multipart safety)
   if (channel === 'sms' || channel === 'both') {
     await sendBulkCommunications({
       memberIds,
       type: 'sms',
       templateId: 'financial_statement',
       variables: variablesMap,
-      rateLimitPerMinute: 3, // 1 message every 20 seconds
+      rateLimitPerMinute: 2, // 1 message every 30 seconds
     });
     totalQueued += memberIds.length;
   }
@@ -589,7 +600,7 @@ export async function broadcastFinancialStatements({
   return {
     success: true,
     totalQueued,
-    message: `Dispatched statements to ${targetSummaries.length} brothers (${channel.toUpperCase()}) queued at 3 SMS/min.`,
+    message: `Dispatched statements to ${targetSummaries.length} brothers (${channel.toUpperCase()}) queued at 2 SMS/min (30s interval).`,
   };
 }
 
@@ -646,7 +657,7 @@ export async function sendSingleMemberStatement({
  * High-Level Action: Broadcast a Custom Segment Announcement or Directive via SMS, Email, or Both.
  * Strictly adheres to statutory compliance & data protection:
  * Excludes deceased, dismissed, or transferred members from communications.
- * Automatically paces SMS messages at 3/min (20-second interval) to prevent cellular carrier blocks.
+ * Automatically paces SMS messages at 2/min (30-second interval) to prevent cellular carrier blocks.
  */
 export async function broadcastCustomSegmentMessage({
   memberIds,
@@ -701,14 +712,14 @@ export async function broadcastCustomSegmentMessage({
     totalQueued += safeMemberIds.length;
   }
 
-  // Dispatch SMS with 3 messages/minute rate limiting
+  // Dispatch SMS with 2 messages/minute rate limiting (30-second interval for multipart safety)
   if (channel === 'sms' || channel === 'both') {
     await sendBulkCommunications({
       memberIds: safeMemberIds,
       type: 'sms',
       templateId: 'general',
       smsBody: smsBody || textContent || subject || 'Commandery Announcement',
-      rateLimitPerMinute: 3, // 1 message every 20 seconds
+      rateLimitPerMinute: 2, // 1 message every 30 seconds
     });
     totalQueued += safeMemberIds.length;
   }
@@ -716,6 +727,82 @@ export async function broadcastCustomSegmentMessage({
   return {
     success: true,
     totalQueued,
-    message: `Dispatched message to ${safeMemberIds.length} brothers (${channel.toUpperCase()}) queued at 3 SMS/min.`,
+    message: `Dispatched message to ${safeMemberIds.length} brothers (${channel.toUpperCase()}) queued at 2 SMS/min (30s interval).`,
   };
+}
+
+/**
+ * Diagnostic helper: Checks the live connectivity and heartbeat of the HttpSMS Android cellular gateway.
+ */
+export async function getHttpSmsGatewayStatus(): Promise<{
+  configured: boolean;
+  activePhone?: string;
+  sim?: string;
+  lastHeartbeat?: string;
+  isOnline: boolean;
+  ageMinutes?: number;
+  error?: string;
+}> {
+  const apiKey = process.env.HTTPSMS_API_KEY;
+  if (!apiKey) {
+    return { configured: false, isOnline: false, error: 'HTTPSMS_API_KEY not configured in environment variables' };
+  }
+
+  const fromPhone = process.env.HTTPSMS_FROM_PHONE || '+233246258166';
+
+  try {
+    const res = await fetch(`https://api.httpsms.com/v1/heartbeats?owner=${encodeURIComponent(fromPhone)}`, {
+      headers: {
+        'x-api-key': apiKey,
+        'Accept': 'application/json',
+      },
+      next: { revalidate: 60 },
+    });
+
+    if (!res.ok) {
+      return {
+        configured: true,
+        activePhone: fromPhone,
+        sim: 'SIM1',
+        isOnline: false,
+        error: `HttpSMS API returned HTTP ${res.status}`,
+      };
+    }
+
+    const json = await res.json();
+    const heartbeats = json.data || [];
+    const latest = heartbeats[0];
+
+    if (!latest || !latest.timestamp) {
+      return {
+        configured: true,
+        activePhone: fromPhone,
+        sim: 'SIM1',
+        isOnline: false,
+        error: 'No heartbeat received from Android device yet. Please open HttpSMS app on the gateway phone.',
+      };
+    }
+
+    const ageMs = Date.now() - new Date(latest.timestamp).getTime();
+    const ageMinutes = Math.round(ageMs / 60000);
+    // Considered online if checked in within the last 60 minutes
+    const isOnline = ageMinutes <= 60;
+
+    return {
+      configured: true,
+      activePhone: fromPhone,
+      sim: 'SIM1',
+      lastHeartbeat: latest.timestamp,
+      ageMinutes,
+      isOnline,
+    };
+  } catch (err: any) {
+    return {
+      configured: true,
+      activePhone: fromPhone,
+      sim: 'SIM1',
+      isOnline: false,
+      error: err.message || 'Failed to query HttpSMS gateway',
+    };
+  }
 }

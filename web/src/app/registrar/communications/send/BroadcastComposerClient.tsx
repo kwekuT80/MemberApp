@@ -113,10 +113,10 @@ export default function BroadcastComposerClient({ members }: Props) {
   const emailEligibleCount = useMemo(() => targetMembers.filter((m) => Boolean(m.email)).length, [targetMembers]);
   const smsEligibleCount = useMemo(() => targetMembers.filter((m) => Boolean(m.phone)).length, [targetMembers]);
 
-  // SMS length calculation
+  // SMS length calculation & 30-second pacing estimate (2 SMS/minute for multipart carrier safety)
   const smsLength = smsBody.length;
   const smsSegments = Math.ceil(smsLength / 160) || 1;
-  const estimatedSmsMinutes = Math.ceil((smsEligibleCount * smsSegments) / 3);
+  const estimatedSmsMinutes = Math.ceil(smsEligibleCount * 0.5);
 
   // Toggle custom recipient selection
   const handleToggleMember = (id: string) => {
@@ -636,7 +636,7 @@ export default function BroadcastComposerClient({ members }: Props) {
               </div>
               {channel !== 'email' && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, paddingTop: 6, borderTop: '1px dashed #cbd5e1' }}>
-                  <span style={{ color: '#64748b' }}>Carrier Pacing (3 SMS/min):</span>
+                  <span style={{ color: '#64748b' }}>Carrier Pacing (2 SMS/min):</span>
                   <span style={{ fontWeight: 700, color: '#d97706' }}>~{estimatedSmsMinutes} mins</span>
                 </div>
               )}
@@ -737,7 +737,7 @@ export default function BroadcastComposerClient({ members }: Props) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: 16 }}>💬</span>
-                    <strong style={{ fontSize: 13, color: '#92400e' }}>SMS Text Message (Paced at 3/min)</strong>
+                    <strong style={{ fontSize: 13, color: '#92400e' }}>SMS Text Message (Paced at 2/min • 30s gap)</strong>
                   </div>
                   <span style={{ fontSize: 11, fontWeight: 700, color: smsLength > 160 ? '#b45309' : '#15803d' }}>
                     {smsLength} chars • {smsSegments} segment{smsSegments === 1 ? '' : 's'}
@@ -756,7 +756,7 @@ export default function BroadcastComposerClient({ members }: Props) {
 
                 <div style={{ fontSize: 11, color: '#78350f', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span>⏱️</span>
-                  <span>Carrier Protection: Enqueued messages will be automatically spaced at 20-second intervals (3 SMS/min).</span>
+                  <span>Carrier Protection: Enqueued messages are automatically spaced at 30-second intervals (2 SMS/min) to accommodate multipart segments.</span>
                 </div>
               </div>
             )}

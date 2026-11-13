@@ -35,7 +35,7 @@ export default function BroadcastStatementsModal({
   });
 
   const targetCount = target === 'outstanding_only' ? outstandingMembers.length : eligibleMembers.length;
-  const estimatedSmsMinutes = Math.ceil(targetCount / 3);
+  const estimatedSmsMinutes = Math.ceil(targetCount * 0.5); // 30 seconds per message (2 SMS/min)
 
   const handleDispatch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,8 +227,8 @@ export default function BroadcastStatementsModal({
             >
               <span style={{ fontSize: 18 }}>⏱️</span>
               <div style={{ fontSize: 12, color: '#1e40af', lineHeight: 1.4 }}>
-                <strong>Strict Queue Rate Limiter (3 SMS/min):</strong> Outbound messages will be spaced by{' '}
-                <strong>20 seconds</strong> using native scheduling via SIM 1 (+233246258166).{' '}
+                <strong>Strict Queue Rate Limiter (2 SMS/min):</strong> Outbound messages will be spaced by{' '}
+                <strong>30 seconds</strong> (accommodating multipart SMS segments) using native scheduling via SIM 1 (+233246258166).{' '}
                 {targetCount > 0 && (
                   <span>
                     Queue duration: ~{estimatedSmsMinutes} {estimatedSmsMinutes === 1 ? 'minute' : 'minutes'} for {targetCount} brothers.

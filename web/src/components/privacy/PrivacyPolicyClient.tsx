@@ -49,7 +49,7 @@ export default function PrivacyPolicyClient({ isAuthenticated }: { isAuthenticat
             </div>
             <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.6 }}>
               Brothers consent to official fraternal SMS and email broadcasts exclusively for:
-              official meeting notices, annual dues assessments, welfare benefit updates, emergency fraternity appeals, and bereavement announcements. Carrier-grade rate-limiting (3 SMS/min) is enforced to ensure spam-free, compliant message delivery.
+              official meeting notices, annual dues assessments, welfare benefit updates, emergency fraternity appeals, and bereavement announcements. Carrier-grade rate-limiting (2 SMS/min with 30-second spacing) is enforced to ensure spam-free, compliant message delivery.
             </p>
           </div>
         </div>

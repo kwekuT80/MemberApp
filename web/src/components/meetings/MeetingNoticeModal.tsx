@@ -49,7 +49,7 @@ export default function MeetingNoticeModal({
   if (!isOpen || !meeting) return null;
 
   const recipientCount = target === 'all_active' ? activeCount : unconfirmedCount;
-  const estimatedSmsMinutes = Math.ceil(recipientCount / 3);
+  const estimatedSmsMinutes = Math.ceil(recipientCount * 0.5); // 30 seconds per message (2 SMS/min)
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -377,7 +377,7 @@ export default function MeetingNoticeModal({
               <span style={{ fontSize: 18 }}>⏱️</span>
               <div style={{ fontSize: 12, color: '#1e40af', lineHeight: 1.4 }}>
                 <strong>Queue Rate Limiter Active:</strong> Outbound SMS messages are queued safely at{' '}
-                <strong>3 messages per minute</strong> (1 message every 20 seconds) via SIM 1 (+233246258166).{' '}
+                <strong>2 messages per minute</strong> (1 message every 30 seconds for multipart safety) via SIM 1 (+233246258166).{' '}
                 {recipientCount > 0 && (
                   <span>
                     Estimated dispatch duration: ~{estimatedSmsMinutes} {estimatedSmsMinutes === 1 ? 'minute' : 'minutes'} for {recipientCount} brothers.
