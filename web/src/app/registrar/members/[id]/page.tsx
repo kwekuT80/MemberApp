@@ -41,6 +41,12 @@ export default async function RegistrarMemberDetailPage({ params }: { params: Pr
               <Link href={`/registrar/members/${member.id}/id-card`} style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>
                 🪪 ID Card
               </Link>
+              <Link href={`/registrar/members/${member.id}/certificate`} style={{ textDecoration: 'none', color: '#16a34a', fontWeight: 700 }}>
+                📜 Certificate
+              </Link>
+              <Link href={`/registrar/members/${member.id}/statement`} style={{ textDecoration: 'none', color: '#0284c7', fontWeight: 700 }}>
+                📄 Dues Statement
+              </Link>
               <Link href={`/registrar/members/${member.id}/bio`} style={{ textDecoration: 'none', color: '#d4af37', fontWeight: 700 }}>
                 📜 Service Bio
               </Link>

@@ -4,6 +4,8 @@ export default function RegistrarMemberActions({ memberId }: { memberId: string 
   const sections = [
     ['Edit main record', `/registrar/members/${memberId}/edit`],
     ['Digital ID Card', `/registrar/members/${memberId}/id-card`],
+    ['Certificate of Standing', `/registrar/members/${memberId}/certificate`],
+    ['Annual Dues Statement', `/registrar/members/${memberId}/statement`],
     ['Family', `/registrar/members/${memberId}/family`],
     ['Exemplification', `/registrar/members/${memberId}/exemplification`],
     ['Positions', `/registrar/members/${memberId}/positions`],

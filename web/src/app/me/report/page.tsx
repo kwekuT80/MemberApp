@@ -47,11 +47,43 @@ export default async function PersonalReportPage() {
       <div style={{ maxWidth: 960, margin: '0 auto', paddingBottom: 48, fontFamily: 'Inter, sans-serif' }}>
         
         {/* Navigation Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
           <Link href="/me" style={{ textDecoration: 'none', color: '#1E293B', fontWeight: 700, fontSize: 14 }}>
             ← Back to Overview
           </Link>
-          <PrintReportButton />
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Link 
+              href="/me/certificate"
+              style={{
+                textDecoration: 'none',
+                background: '#F0FDF4',
+                color: '#15803D',
+                border: '1px solid #BBF7D0',
+                padding: '8px 14px',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 800
+              }}
+            >
+              📜 Certificate of Standing
+            </Link>
+            <Link 
+              href="/me/financials/statement"
+              style={{
+                textDecoration: 'none',
+                background: '#F0F9FF',
+                color: '#0369A1',
+                border: '1px solid #BAE6FD',
+                padding: '8px 14px',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 800
+              }}
+            >
+              📄 Dues Statement
+            </Link>
+            <PrintReportButton />
+          </div>
         </div>
 
         {/* Hero Card: Standing in the Order */}

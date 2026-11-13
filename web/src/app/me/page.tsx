@@ -134,6 +134,8 @@ export default async function MePage() {
           <Link href='/me/id-card' style={{ textDecoration: 'none', color: '#0f172a', fontWeight: 900, background: '#D4AF37', padding: '6px 16px', borderRadius: 8, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>🪪 Digital ID Card</Link>
           <Link href='/me/payments/upload' style={{ textDecoration: 'none', color: '#FFFFFF', fontWeight: 900, background: '#10233F', padding: '6px 16px', borderRadius: 8, boxShadow: '0 2px 6px rgba(0,0,0,0.12)' }}>📱 Submit MoMo Receipt</Link>
           <Link href='/me/report' style={{ textDecoration: 'none', color: '#2563EB', fontWeight: 900, background: '#EFF6FF', padding: '6px 16px', borderRadius: 8 }}>📊 Personal Report</Link>
+          <Link href='/me/certificate' style={{ textDecoration: 'none', color: '#15803D', fontWeight: 900, background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '6px 16px', borderRadius: 8 }}>📜 Certificate of Standing</Link>
+          <Link href='/me/financials/statement' style={{ textDecoration: 'none', color: '#0369A1', fontWeight: 900, background: '#F0F9FF', border: '1px solid #BAE6FD', padding: '6px 16px', borderRadius: 8 }}>📄 Dues Statement</Link>
           <Link href='/me/edit' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Edit Main Record</Link>
           <Link href='/me/attendance' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Attendance</Link>
           <Link href='/me/exemplification' style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>Exemplification</Link>

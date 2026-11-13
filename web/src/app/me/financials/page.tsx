@@ -200,9 +200,51 @@ export default function FinancialsPage() {
   return (
     <MemberShell title="Financial Ledger" subtitle="Your complete dues and voluntary contribution records">
       <div style={{ display: 'grid', gap: 24, fontFamily: 'Inter, sans-serif', color: '#1E293B' }}>
-        <Link href='/me' className="no-print" style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>
-          ← Back to Overview
-        </Link>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <Link href='/me' className="no-print" style={{ textDecoration: 'none', color: '#10233f', fontWeight: 700 }}>
+            ← Back to Overview
+          </Link>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Link
+              href="/me/financials/statement"
+              className="no-print"
+              style={{
+                textDecoration: 'none',
+                background: '#10233F',
+                color: '#ffffff',
+                padding: '8px 16px',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 2px 8px rgba(16, 35, 63, 0.2)'
+              }}
+            >
+              <span>📄</span> Official Dues Statement (PDF)
+            </Link>
+            <Link
+              href="/me/certificate"
+              className="no-print"
+              style={{
+                textDecoration: 'none',
+                background: '#F0FDF4',
+                color: '#15803D',
+                border: '1px solid #BBF7D0',
+                padding: '8px 16px',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <span>📜</span> Certificate
+            </Link>
+          </div>
+        </div>
 
         {/* ── Current Year Dues Summary Banner ── */}
         <div style={{
