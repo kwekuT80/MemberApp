@@ -27,9 +27,31 @@ export default function MemberSummaryCard({ member, editHref='/me/edit', showOwn
     <div style={card}>
       <div style={{ display:'flex', justifyContent:'space-between', gap:16, alignItems:'start', flexWrap:'wrap' }}>
         <div>
-          <h2 style={{ margin:'0 0 8px' }}>
-            {[member.title, member.first_name, member.other_names, member.surname].filter(Boolean).join(' ') || 'Unnamed member'}
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '0 0 8px' }}>
+            <h2 style={{ margin: 0 }}>
+              {[member.title, member.first_name, member.other_names, member.surname].filter(Boolean).join(' ') || 'Unnamed member'}
+            </h2>
+            {member.status === 'Suspended' && (
+              <span style={{ fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+                ⚠️ Suspended {member.date_of_suspension ? `(${formatDisplayDate(member.date_of_suspension)})` : ''}
+              </span>
+            )}
+            {member.status === 'Dismissed' && (
+              <span style={{ fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>
+                🚫 Dismissed {member.date_of_dismissal ? `(${formatDisplayDate(member.date_of_dismissal)})` : ''}
+              </span>
+            )}
+            {(member.status === 'Deceased' || member.is_deceased) && (
+              <span style={{ fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: '#fdf4dc', color: '#854d0e', border: '1px solid #fde68a' }}>
+                🕊️ Deceased
+              </span>
+            )}
+            {member.status === 'Transfer-Out' && (
+              <span style={{ fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}>
+                📦 Transferred Out
+              </span>
+            )}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', fontSize: 14, color: '#53657d' }}>
             {emailText && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -134,6 +156,20 @@ export default function MemberSummaryCard({ member, editHref='/me/edit', showOwn
             </div>
           )}
         </div>
+
+        {/* 3. LIFECYCLE & DISCIPLINARY STANDING */}
+        {member.date_of_suspension && (
+          <Field label='Date of suspension' value={formatDisplayDate(member.date_of_suspension)} />
+        )}
+        {member.date_of_dismissal && (
+          <Field label='Date of dismissal' value={formatDisplayDate(member.date_of_dismissal)} />
+        )}
+        {member.date_of_reinstatement && (
+          <Field label='Date of reinstatement' value={formatDisplayDate(member.date_of_reinstatement)} />
+        )}
+        {member.transfer_date && (
+          <Field label='Date of transfer out' value={formatDisplayDate(member.transfer_date)} />
+        )}
       </div>
     </div>
   );

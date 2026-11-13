@@ -13,7 +13,7 @@ import {
 
 export interface JourneyEvent {
   id: string;
-  category: 'initiation' | 'transfer' | 'degree' | 'rank' | 'office' | 'jubilee' | 'memorial';
+  category: 'initiation' | 'transfer' | 'degree' | 'rank' | 'office' | 'jubilee' | 'memorial' | 'lifecycle';
   dateStr: string;
   formattedDate: string;
   title: string;
@@ -53,7 +53,7 @@ export default function MemberServiceJourneyTimeline({
   showTitle = true,
   compact = false
 }: MemberServiceJourneyTimelineProps) {
-  const [filter, setFilter] = useState<'all' | 'degree' | 'office' | 'rank' | 'jubilee'>('all');
+  const [filter, setFilter] = useState<'all' | 'degree' | 'office' | 'rank' | 'jubilee' | 'lifecycle'>('all');
   const [sortAsc, setSortAsc] = useState<boolean>(true);
 
   const initInfo = useMemo(() => getMemberInitiationRecord(member), [member]);
@@ -305,7 +305,87 @@ export default function MemberServiceJourneyTimeline({
       });
     }
 
-    // 7. IN MEMORIAM / MEMORIAL ROLL (DECEASED BROTHERS)
+    // 7. DISCIPLINARY & FRATERNAL LIFECYCLE EVENTS
+    // A. SUSPENSION EVENT
+    if (member.date_of_suspension || member.status === 'Suspended') {
+      const sDate = member.date_of_suspension || member.updated_at || member.created_at || '9999-12-28';
+      events.push({
+        id: 'ev-suspension',
+        category: 'lifecycle',
+        dateStr: sDate,
+        formattedDate: member.date_of_suspension ? formatDisplayDate(member.date_of_suspension) : 'Date Unrecorded',
+        title: 'Fraternal Suspension Enacted',
+        subtitle: member.status === 'Suspended' ? 'Current Standing: Suspended' : 'Disciplinary Action',
+        description: 'Official fraternal standing suspended under KSJI constitutional discipline. Fraternal privileges, voting rights, and active benefits temporarily suspended.',
+        badge: '⚠️ Disciplinary Suspension',
+        icon: '⚠️',
+        color: '#b45309',
+        bgColor: '#fffbeb',
+        borderColor: '#fde68a',
+        isMilestone: true
+      });
+    }
+
+    // B. REINSTATEMENT EVENT
+    if (member.date_of_reinstatement) {
+      events.push({
+        id: 'ev-reinstatement',
+        category: 'lifecycle',
+        dateStr: member.date_of_reinstatement,
+        formattedDate: formatDisplayDate(member.date_of_reinstatement),
+        title: 'Reinstated to Full Fraternal Fellowship',
+        subtitle: 'Restoration of Good Standing',
+        description: 'Disciplinary suspension cleared upon fulfillment of constitutional requirements. Restored to full fraternal rights, brotherhood communion, and good standing.',
+        badge: '🤝 Reinstated',
+        icon: '🤝',
+        color: '#15803d',
+        bgColor: '#f0fdf4',
+        borderColor: '#bbf7d0',
+        isMilestone: true
+      });
+    }
+
+    // C. DISMISSAL EVENT
+    if (member.date_of_dismissal || member.status === 'Dismissed') {
+      const dDate = member.date_of_dismissal || member.updated_at || member.created_at || '9999-12-29';
+      events.push({
+        id: 'ev-dismissal',
+        category: 'lifecycle',
+        dateStr: dDate,
+        formattedDate: member.date_of_dismissal ? formatDisplayDate(member.date_of_dismissal) : 'Date Unrecorded',
+        title: 'Dishonorable Discharge / Formal Dismissal',
+        subtitle: 'Severance of Fraternal Membership Under KSJI Constitution',
+        description: 'Fraternal fellowship formally severed and terminated. Excluded from active rosters, commandery meetings, rituals, and fraternal benefits.',
+        badge: '🚫 Formal Dismissal',
+        icon: '🚫',
+        color: '#991b1b',
+        bgColor: '#fef2f2',
+        borderColor: '#fecaca',
+        isMilestone: true
+      });
+    }
+
+    // D. TRANSFER OUT EVENT
+    if (member.status === 'Transfer-Out' || member.transfer_to) {
+      const toDate = member.transfer_date || '9999-12-30';
+      events.push({
+        id: 'ev-transfer-out',
+        category: 'lifecycle',
+        dateStr: toDate,
+        formattedDate: member.transfer_date ? formatDisplayDate(member.transfer_date) : 'Transfer Date Unrecorded',
+        title: 'Transferred Out of Commandery #500',
+        subtitle: member.transfer_to ? `Affiliated to: ${member.transfer_to}` : 'Transferred to Sister Commandery',
+        description: 'Departed St. Margaret-Mary Commandery #500 upon official fraternal transfer to another commandery.',
+        badge: '📦 Transfer Out',
+        icon: '📦',
+        color: '#475569',
+        bgColor: '#f8fafc',
+        borderColor: '#cbd5e1',
+        isMilestone: true
+      });
+    }
+
+    // 8. IN MEMORIAM / MEMORIAL ROLL (DECEASED BROTHERS)
     if (member.is_deceased || member.status === 'Deceased') {
       const dDate = member.date_of_death || '9999-12-31';
       events.push({
@@ -335,6 +415,7 @@ export default function MemberServiceJourneyTimeline({
   // Filter events
   const filteredEvents = useMemo(() => {
     if (filter === 'all') return timelineEvents;
+    if (filter === 'lifecycle') return timelineEvents.filter(e => e.category === 'lifecycle' || e.category === 'memorial');
     return timelineEvents.filter(e => e.category === filter);
   }, [timelineEvents, filter]);
 
@@ -342,6 +423,7 @@ export default function MemberServiceJourneyTimeline({
   const totalOffices = timelineEvents.filter(e => e.category === 'office').length;
   const totalRanks = timelineEvents.filter(e => e.category === 'rank').length;
   const totalJubilees = timelineEvents.filter(e => e.category === 'jubilee').length;
+  const totalLifecycle = timelineEvents.filter(e => e.category === 'lifecycle' || e.category === 'memorial').length;
 
   return (
     <div style={{
@@ -371,7 +453,7 @@ export default function MemberServiceJourneyTimeline({
               Lifelong Fraternal Service Journey
             </h3>
             <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#64748b' }}>
-              Chronological record of Initiation, Exemplifications, Uniformed Ranks, Leadership Offices & Jubilees.
+              Chronological record of Initiation, Exemplifications, Leadership Offices, Uniformed Ranks & Fraternal Lifecycle.
             </p>
           </div>
 
@@ -494,6 +576,25 @@ export default function MemberServiceJourneyTimeline({
             }}
           >
             Jubilees ({totalJubilees})
+          </button>
+        )}
+
+        {totalLifecycle > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilter('lifecycle')}
+            style={{
+              padding: '5px 12px',
+              borderRadius: '20px',
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: filter === 'lifecycle' ? '1px solid #991b1b' : '1px solid #e2e8f0',
+              background: filter === 'lifecycle' ? '#991b1b' : '#f8fafc',
+              color: filter === 'lifecycle' ? '#ffffff' : '#64748b'
+            }}
+          >
+            Lifecycle & Status ({totalLifecycle})
           </button>
         )}
       </div>

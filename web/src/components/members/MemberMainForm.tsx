@@ -620,6 +620,12 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
             {form.status === 'Dismissed' && (
               <>
                 <InputField 
+                  label="Date of Prior Suspension (if applicable)" 
+                  type="date" 
+                  value={form.date_of_suspension} 
+                  onChange={(v: string) => updateField('date_of_suspension', v)} 
+                />
+                <InputField 
                   label="Date of Dismissal" 
                   type="date" 
                   value={form.date_of_dismissal} 
@@ -635,6 +641,14 @@ export default function MemberMainForm({ initialMember, mode, redirectTo }: Prop
                   }}
                 />
               </>
+            )}
+            {form.status !== 'Suspended' && form.status !== 'Dismissed' && form.date_of_suspension && (
+              <InputField 
+                label="Historical Date of Suspension" 
+                type="date" 
+                value={form.date_of_suspension} 
+                onChange={(v: string) => updateField('date_of_suspension', v)} 
+              />
             )}
             {form.date_of_reinstatement && (
               <InputField 
