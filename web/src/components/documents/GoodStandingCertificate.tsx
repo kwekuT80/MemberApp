@@ -53,9 +53,17 @@ export default function GoodStandingCertificate({
 
   const certNumber = `CERT-500-${today.getFullYear()}-${(member.id || '0000').slice(0, 8).toUpperCase()}`;
 
-  const verifyUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/verify/${member.id}`
-    : `https://app.ksji500.org/verify/${member.id}`;
+  const isLocalHost = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1' || 
+    window.location.hostname.endsWith('.local')
+  );
+
+  const baseOrigin = typeof window !== 'undefined' && !isLocalHost
+    ? window.location.origin
+    : 'https://app.ksji500.org';
+
+  const verifyUrl = `${baseOrigin}/verify/${member.id}`;
 
   const qrCodeUrl = `https://quickchart.io/qr?text=${encodeURIComponent(verifyUrl)}&size=200&margin=1&ecLevel=Q`;
 
@@ -378,7 +386,7 @@ export default function GoodStandingCertificate({
                 {attendance.complianceRate}% Active Presence
               </div>
               <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                {attendance.attendedCount} of {attendance.totalMeetings} Assemblies Attended
+                {attendance.attendedCount} of {attendance.totalMeetings} Meetings Attended
               </div>
             </div>
 

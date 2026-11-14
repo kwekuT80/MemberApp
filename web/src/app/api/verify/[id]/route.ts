@@ -32,32 +32,55 @@ export async function GET(
       supabase = await createClient();
     }
 
-    // Support short ID prefix (e.g. KSJI-589578EF)
-    let searchId = id.trim();
-    if (searchId.toUpperCase().startsWith('KSJI-')) {
-      const shortCode = searchId.slice(5).toLowerCase();
-      const { data: matchedMember } = await supabase
-        .from('members')
-        .select('id')
-        .ilike('id', `${shortCode}%`)
-        .limit(1)
-        .maybeSingle();
+    // Support full UUID, short ID prefix (e.g. KSJI-CC9F12AB or CC9F12AB), or member_number
+    let rawInput = id.trim();
+    if (rawInput.toUpperCase().startsWith('KSJI-')) {
+      rawInput = rawInput.slice(5).trim();
+    }
 
-      if (matchedMember) {
-        searchId = matchedMember.id;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let searchId = rawInput;
+
+    if (!uuidRegex.test(rawInput)) {
+      // It's a short code (e.g. "CC9F12AB") or member_number
+      const shortHex = rawInput.toLowerCase().replace(/[^0-9a-f]/g, '');
+      const { data: allMembers, error: listErr } = await supabase
+        .from('members')
+        .select('id, member_number');
+
+      if (listErr) {
+        console.error('Error fetching member id list for shortCode resolution:', listErr);
+      }
+
+      if (allMembers && allMembers.length > 0) {
+        const found = allMembers.find(m => 
+          (m.id && m.id.toLowerCase().replace(/-/g, '').startsWith(shortHex)) ||
+          (m.member_number && String(m.member_number).toLowerCase() === rawInput.toLowerCase())
+        );
+        if (found) {
+          searchId = found.id;
+        }
       }
     }
 
-    // Fetch member profile along with degrees, positions, and commandery name
+    // Fetch member profile along with degrees and positions (safe without external table joins)
     const { data: member, error } = await supabase
       .from('members')
-      .select('*, degrees(*), positions(*), commanderies(name, code)')
+      .select('*, degrees(*), positions(*)')
       .eq('id', searchId)
-      .single();
+      .maybeSingle();
 
-    if (error || !member) {
+    if (error) {
+      console.error('Database query error in /api/verify/[id]:', error);
       return NextResponse.json(
-        { error: 'Membership record not found' },
+        { error: 'Database error verifying membership credential' },
+        { status: 500 }
+      );
+    }
+
+    if (!member) {
+      return NextResponse.json(
+        { error: 'Membership record not found in Commandery registry' },
         { status: 404 }
       );
     }

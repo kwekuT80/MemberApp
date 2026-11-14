@@ -313,7 +313,7 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
   
   const { data: member, error: memberErr } = await supabase
     .from('members')
-    .select('*')
+    .select('*, degrees(*), positions(*)')
     .eq('id', memberId)
     .maybeSingle();
 

@@ -41,9 +41,17 @@ export default function IDCardPage() {
   const isActive = String(member.status || '').toLowerCase() === 'active';
 
   const shortCode = `KSJI-${member.id?.slice(0, 8).toUpperCase()}`;
-  const verifyTarget = typeof window !== 'undefined'
-    ? `${window.location.origin}/verify/${member.id}`
-    : `https://ksji-members.vercel.app/verify/${member.id}`;
+  const isLocalHost = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1' || 
+    window.location.hostname.endsWith('.local')
+  );
+
+  const baseOrigin = typeof window !== 'undefined' && !isLocalHost
+    ? window.location.origin
+    : 'https://app.ksji500.org';
+
+  const verifyTarget = `${baseOrigin}/verify/${member.id}`;
   const qrCodeUrl = `https://quickchart.io/qr?text=${encodeURIComponent(verifyTarget)}&size=300&margin=1&ecLevel=Q`;
 
   return (
