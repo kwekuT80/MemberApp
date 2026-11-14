@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { PersonalReportData } from '@/services/memberService';
 import { 
@@ -8,12 +8,14 @@ import {
   getOfficialDegreeDetail, 
   formatDisplayDate 
 } from '@/lib/utils/ksji-logic';
+import { downloadSinglePdf } from '@/lib/utils/pdfGenerator';
 
 interface AnnualDuesStatementProps {
   report: PersonalReportData;
   payments: any[];
   backHref?: string;
   hideNav?: boolean;
+  containerId?: string;
 }
 
 const MONTH_NAMES = [
@@ -35,9 +37,11 @@ export default function AnnualDuesStatement({
   report,
   payments = [],
   backHref = '/me/financials',
-  hideNav = false
+  hideNav = false,
+  containerId
 }: AnnualDuesStatementProps) {
   const { member, financial, welfare, financialStanding, welfareStanding } = report;
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const title = formatMemberTitle(member.title, member.degrees);
   const degreeDetail = getOfficialDegreeDetail(member.degrees);
@@ -47,6 +51,33 @@ export default function AnnualDuesStatement({
     .join(' ');
 
   const currentYear = financial.currentYear || new Date().getFullYear();
+  const docId = containerId || `statement-doc-${member.id || 'current'}`;
+
+  const handlePrint = () => {
+    const prevTitle = document.title;
+    document.title = `Annual Dues Statement - ${fullName} (${currentYear})`;
+    window.print();
+    setTimeout(() => {
+      document.title = prevTitle;
+    }, 1000);
+  };
+
+  const handleDownloadPdf = async () => {
+    const element = document.getElementById(docId);
+    if (!element) return;
+    setDownloadingPdf(true);
+    try {
+      const cleanName = [member.first_name, member.surname].filter(Boolean).join('_').replace(/\s+/g, '_');
+      const filename = `Annual_Dues_Statement_${cleanName}_${currentYear}.pdf`;
+      await downloadSinglePdf(element, filename);
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      // Fallback to browser print if script loading is blocked
+      handlePrint();
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   // Helper to distinguish voluntary/appeal payments from standard annual dues
   const isVoluntary = (p: any) => {
@@ -132,7 +163,29 @@ export default function AnnualDuesStatement({
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={handleDownloadPdf}
+              disabled={downloadingPdf}
+              style={{
+                background: '#047857',
+                color: '#ffffff',
+                border: 'none',
+                padding: '9px 18px',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 800,
+                cursor: downloadingPdf ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                boxShadow: '0 2px 8px rgba(4, 120, 87, 0.25)'
+              }}
+            >
+              <span>{downloadingPdf ? '⏳ Generating PDF...' : '⬇️ Download PDF'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handlePrint}
               style={{
                 background: '#10233F',
                 color: '#ffffff',
@@ -148,7 +201,7 @@ export default function AnnualDuesStatement({
                 boxShadow: '0 2px 8px rgba(16, 35, 63, 0.25)'
               }}
             >
-              <span>🖨️</span> Print / Download Statement (PDF)
+              <span>🖨️</span> Print / Save (PDF)
             </button>
           </div>
         </div>
@@ -156,6 +209,7 @@ export default function AnnualDuesStatement({
 
       {/* FORMAL STATEMENT DOCUMENT (A4 PORTRAIT) */}
       <div 
+        id={docId}
         className="statement-print-area"
         style={{
           background: '#ffffff',
