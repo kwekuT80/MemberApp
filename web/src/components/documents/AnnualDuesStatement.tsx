@@ -13,14 +13,31 @@ interface AnnualDuesStatementProps {
   report: PersonalReportData;
   payments: any[];
   backHref?: string;
+  hideNav?: boolean;
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+function formatMethod(method?: string | null): string {
+  if (!method) return 'Direct / Bank';
+  const m = String(method).toLowerCase();
+  if (m === 'mobile_money' || m === 'momo') return 'Mobile Money (MoMo)';
+  if (m === 'bank_transfer') return 'Bank Transfer';
+  if (m === 'cash') return 'Cash';
+  if (m === 'cheque') return 'Cheque';
+  return method;
 }
 
 export default function AnnualDuesStatement({
   report,
   payments = [],
-  backHref = '/me/financials'
+  backHref = '/me/financials',
+  hideNav = false
 }: AnnualDuesStatementProps) {
-  const { member, financial, financialStanding } = report;
+  const { member, financial, welfare, financialStanding, welfareStanding } = report;
 
   const title = formatMemberTitle(member.title, member.degrees);
   const degreeDetail = getOfficialDegreeDetail(member.degrees);
@@ -31,14 +48,36 @@ export default function AnnualDuesStatement({
 
   const currentYear = financial.currentYear || new Date().getFullYear();
 
-  // Filter payments for this assessment year (or show recent payments)
+  // Helper to distinguish voluntary/appeal payments from standard annual dues
+  const isVoluntary = (p: any) => {
+    const m = String(p.month || '').toLowerCase();
+    const type = String(p.payment_type || p.payment_category || '').toLowerCase();
+    const notes = String(p.notes || '').toLowerCase();
+    return m.includes('voluntary') || m.includes('appeal') || m.includes('relief') || m.includes('donation') ||
+           type.includes('voluntary') || type.includes('appeal') || type.includes('relief') || type.includes('donation') ||
+           notes.includes('voluntary') || notes.includes('appeal') || notes.includes('relief') || notes.includes('donation');
+  };
+
+  // 1. STATUTORY ANNUAL DUES PAYMENTS
   const duesPayments = payments.filter(
-    (p: any) => Number(p.assessment_year) === currentYear
+    (p: any) => Number(p.assessment_year) === currentYear && !isVoluntary(p)
   );
 
-  const priorPayments = payments.filter(
-    (p: any) => Number(p.assessment_year) < currentYear
+  // 2. VOLUNTARY CONTRIBUTIONS & RELIEF APPEALS
+  const voluntaryPayments = payments.filter(
+    (p: any) => isVoluntary(p) && (Number(p.assessment_year) === currentYear || new Date(p.payment_date).getFullYear() === currentYear)
   );
+
+  // 3. WELFARE SCHEME CONTRIBUTIONS
+  const welfarePayments = (welfare?.contributions || []).filter(
+    (c: any) => Number(c.period_year) === currentYear || new Date(c.payment_date).getFullYear() === currentYear
+  );
+
+  // Totals calculations
+  const totalDuesPaid = duesPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const totalVoluntaryPaid = voluntaryPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const totalWelfarePaid = welfarePayments.reduce((sum, c) => sum + Number(c.amount || 0), 0);
+  const grandTotalOutflows = totalDuesPaid + totalVoluntaryPaid + totalWelfarePaid;
 
   const today = new Date();
   const statementDateFormatted = today.toLocaleDateString('en-GB', {
@@ -52,65 +91,68 @@ export default function AnnualDuesStatement({
   const formatCurrency = (val: number) =>
     `GH₵ ${(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const isGoodStanding = financialStanding === 'In Good Standing';
+  const isDuesGood = financialStanding === 'In Good Standing';
+  const isWelfareGood = welfareStanding === 'In Good Standing';
 
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto', padding: '16px' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: hideNav ? '0' : '16px' }}>
       {/* ACTION BAR (Hidden on Print) */}
-      <div 
-        className="no-print" 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          flexWrap: 'wrap', 
-          gap: 12, 
-          marginBottom: 20,
-          background: '#ffffff',
-          padding: '14px 18px',
-          borderRadius: 12,
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-        }}
-      >
-        <Link 
-          href={backHref}
-          style={{
-            textDecoration: 'none',
-            color: '#10233F',
-            fontWeight: 700,
-            fontSize: 13,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6
+      {!hideNav && (
+        <div 
+          className="no-print" 
+          style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            flexWrap: 'wrap', 
+            gap: 12, 
+            marginBottom: 20,
+            background: '#ffffff',
+            padding: '14px 18px',
+            borderRadius: 12,
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
           }}
         >
-          <span>←</span> Back
-        </Link>
-
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button
-            type="button"
-            onClick={() => window.print()}
+          <Link 
+            href={backHref}
             style={{
-              background: '#10233F',
-              color: '#ffffff',
-              border: 'none',
-              padding: '9px 20px',
-              borderRadius: 8,
+              textDecoration: 'none',
+              color: '#10233F',
+              fontWeight: 700,
               fontSize: 13,
-              fontWeight: 800,
-              cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 8,
-              boxShadow: '0 2px 8px rgba(16, 35, 63, 0.25)'
+              gap: 6
             }}
           >
-            <span>🖨️</span> Print / Download Statement (PDF)
-          </button>
+            <span>←</span> Back
+          </Link>
+
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              style={{
+                background: '#10233F',
+                color: '#ffffff',
+                border: 'none',
+                padding: '9px 20px',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                boxShadow: '0 2px 8px rgba(16, 35, 63, 0.25)'
+              }}
+            >
+              <span>🖨️</span> Print / Download Statement (PDF)
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* FORMAL STATEMENT DOCUMENT (A4 PORTRAIT) */}
       <div 
@@ -123,7 +165,8 @@ export default function AnnualDuesStatement({
           boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
           fontFamily: "'Segoe UI', Arial, sans-serif",
           color: '#0F172A',
-          lineHeight: 1.5
+          lineHeight: 1.5,
+          marginBottom: 30
         }}
       >
         {/* OFFICIAL COMMANDERY LETTERHEAD */}
@@ -157,10 +200,10 @@ export default function AnnualDuesStatement({
               St. Margaret-Mary Commandery #500
             </h1>
             <div style={{ fontSize: 12, color: '#475569' }}>
-              Dansoman, Accra • Accra West Grand Commandery
+              Dansoman, Accra • Under the Jurisdiction of Accra West Grand Commandery
             </div>
             <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 2 }}>
-              Office of the Financial Registrar & Secretariat
+              Office of the Financial Registrar & Treasury Secretariat
             </div>
           </div>
 
@@ -197,10 +240,10 @@ export default function AnnualDuesStatement({
             textTransform: 'uppercase', 
             letterSpacing: '0.8px' 
           }}>
-            Official Annual Fraternal Dues Statement
+            Official Annual Fraternal Dues & Financial Statement
           </h2>
           <div style={{ fontSize: 12, color: '#64748B' }}>
-            Permanent Accounting Record & Assessment Ledger
+            Comprehensive Record of Dues Assessments, Voluntary Relief, and Welfare Scheme Subscriptions
           </div>
         </div>
 
@@ -245,9 +288,9 @@ export default function AnnualDuesStatement({
             </span>
             <span style={{ 
               fontWeight: 800, 
-              color: isGoodStanding ? '#15803D' : '#991B1B' 
+              color: isDuesGood && isWelfareGood ? '#15803D' : '#991B1B' 
             }}>
-              {isGoodStanding ? '✓ In Good Standing' : financialStanding}
+              {isDuesGood && isWelfareGood ? '✓ Fully in Good Standing' : `${financialStanding} (Dues) • ${welfareStanding} (Welfare)`}
             </span>
           </div>
         </div>
@@ -262,7 +305,7 @@ export default function AnnualDuesStatement({
             letterSpacing: '0.5px',
             marginBottom: 8
           }}>
-            Financial Balance Equation ({currentYear})
+            Annual Dues Reconciliation ({currentYear})
           </div>
 
           <div style={{
@@ -315,11 +358,11 @@ export default function AnnualDuesStatement({
               borderRadius: 8,
               padding: '10px 14px'
             }}>
-              <div style={{ fontSize: 11, color: '#166534', fontWeight: 600 }}>Total Payments Made</div>
+              <div style={{ fontSize: 11, color: '#166534', fontWeight: 600 }}>Annual Dues Paid</div>
               <div style={{ fontSize: 15, fontWeight: 800, color: '#15803D', marginTop: 2 }}>
-                {formatCurrency(financial.paymentsThisYear)}
+                {formatCurrency(totalDuesPaid)}
               </div>
-              <div style={{ fontSize: 10, color: '#166534', marginTop: 1 }}>Verified Installments</div>
+              <div style={{ fontSize: 10, color: '#166534', marginTop: 1 }}>Applied to Assessment</div>
             </div>
 
             <div style={{
@@ -333,7 +376,7 @@ export default function AnnualDuesStatement({
                 color: financial.outstandingThisYear > 0 ? '#991B1B' : '#166534', 
                 fontWeight: 600 
               }}>
-                Net Standing Balance
+                Net Dues Standing
               </div>
               <div style={{ 
                 fontSize: 15, 
@@ -358,39 +401,46 @@ export default function AnnualDuesStatement({
           </div>
         </div>
 
-        {/* ITEMIZED PAYMENTS TABLE */}
-        <div style={{ marginBottom: 26 }}>
+        {/* ══════════════════════════════════════════════════════════════════════════ */}
+        {/* TABLE 1: STATUTORY ANNUAL DUES ASSESSMENT PAYMENTS */}
+        {/* ══════════════════════════════════════════════════════════════════════════ */}
+        <div style={{ marginBottom: 28, pageBreakInside: 'avoid' }}>
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center', 
             marginBottom: 8 
           }}>
-            <div style={{ 
-              fontSize: 12, 
-              fontWeight: 800, 
-              color: '#10233F', 
-              textTransform: 'uppercase', 
-              letterSpacing: '0.5px' 
-            }}>
-              Itemized Payment Records ({currentYear})
+            <div>
+              <div style={{ 
+                fontSize: 13, 
+                fontWeight: 900, 
+                color: '#10233F', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.5px' 
+              }}>
+                1. Statutory Annual Dues Assessment Payments ({currentYear})
+              </div>
+              <div style={{ fontSize: 11, color: '#64748B' }}>
+                Verified payments applied strictly against annual dues assessment and arrears.
+              </div>
             </div>
-            <div style={{ fontSize: 11, color: '#64748B' }}>
-              {duesPayments.length} installment{duesPayments.length === 1 ? '' : 's'} recorded
+            <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>
+              {duesPayments.length} installment{duesPayments.length === 1 ? '' : 's'}
             </div>
           </div>
 
           {duesPayments.length === 0 ? (
             <div style={{ 
-              padding: '16px', 
+              padding: '14px', 
               textAlign: 'center', 
               color: '#64748B', 
               background: '#F8FAFC', 
               borderRadius: 8, 
               border: '1px dashed #CBD5E1',
-              fontSize: 12.5 
+              fontSize: 12 
             }}>
-              No payment installments recorded for the {currentYear} assessment cycle.
+              No payments recorded towards statutory annual dues for the {currentYear} period.
             </div>
           ) : (
             <table style={{ 
@@ -403,8 +453,8 @@ export default function AnnualDuesStatement({
                 <tr style={{ background: '#10233F', color: '#ffffff' }}>
                   <th style={{ padding: '8px 10px', borderRadius: '6px 0 0 0' }}>Date</th>
                   <th style={{ padding: '8px 10px' }}>Receipt #</th>
-                  <th style={{ padding: '8px 10px' }}>Mode / Channel</th>
-                  <th style={{ padding: '8px 10px' }}>Purpose / Month</th>
+                  <th style={{ padding: '8px 10px' }}>Channel / Mode</th>
+                  <th style={{ padding: '8px 10px' }}>Assessment Allocation</th>
                   <th style={{ padding: '8px 10px', textAlign: 'right', borderRadius: '0 6px 0 0' }}>Amount</th>
                 </tr>
               </thead>
@@ -424,7 +474,7 @@ export default function AnnualDuesStatement({
                       {p.receipt_no || p.reference_no || '—'}
                     </td>
                     <td style={{ padding: '8px 10px', color: '#475569' }}>
-                      {p.payment_method || p.channel || 'Direct / Bank'}
+                      {formatMethod(p.payment_method || p.channel)}
                     </td>
                     <td style={{ padding: '8px 10px', color: '#334155' }}>
                       {p.month || p.payment_type || 'Annual Assessment'}
@@ -439,15 +489,267 @@ export default function AnnualDuesStatement({
               <tfoot>
                 <tr style={{ background: '#F1F5F9', borderTop: '2px solid #10233F', fontWeight: 800 }}>
                   <td colSpan={4} style={{ padding: '8px 10px', textAlign: 'right', textTransform: 'uppercase', fontSize: 11 }}>
-                    Total {currentYear} Contributions:
+                    Total Annual Dues Assessment Paid:
                   </td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', color: '#15803D', fontSize: 13 }}>
-                    {formatCurrency(financial.paymentsThisYear)}
+                    {formatCurrency(totalDuesPaid)}
                   </td>
                 </tr>
               </tfoot>
             </table>
           )}
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════════════════════ */}
+        {/* TABLE 2: VOLUNTARY FRATERNAL CONTRIBUTIONS & RELIEF APPEALS */}
+        {/* ══════════════════════════════════════════════════════════════════════════ */}
+        <div style={{ marginBottom: 28, pageBreakInside: 'avoid' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: 8 
+          }}>
+            <div>
+              <div style={{ 
+                fontSize: 13, 
+                fontWeight: 900, 
+                color: '#800020', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.5px' 
+              }}>
+                2. Voluntary Fraternal Contributions & Relief Appeals ({currentYear})
+              </div>
+              <div style={{ fontSize: 11, color: '#64748B' }}>
+                Benevolent offerings, convention levies, building funds, and emergency relief donations.
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>
+              {voluntaryPayments.length} contribution{voluntaryPayments.length === 1 ? '' : 's'}
+            </div>
+          </div>
+
+          {voluntaryPayments.length === 0 ? (
+            <div style={{ 
+              padding: '14px', 
+              textAlign: 'center', 
+              color: '#64748B', 
+              background: '#FDFBF7', 
+              borderRadius: 8, 
+              border: '1px dashed #E2E8F0',
+              fontSize: 12 
+            }}>
+              No voluntary appeal or relief contributions recorded for the {currentYear} fraternal year.
+            </div>
+          ) : (
+            <table style={{ 
+              width: '100%', 
+              borderCollapse: 'collapse', 
+              fontSize: 12, 
+              textAlign: 'left' 
+            }}>
+              <thead>
+                <tr style={{ background: '#800020', color: '#ffffff' }}>
+                  <th style={{ padding: '8px 10px', borderRadius: '6px 0 0 0' }}>Date</th>
+                  <th style={{ padding: '8px 10px' }}>Receipt #</th>
+                  <th style={{ padding: '8px 10px' }}>Channel / Mode</th>
+                  <th style={{ padding: '8px 10px' }}>Appeal / Purpose</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'right', borderRadius: '0 6px 0 0' }}>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {voluntaryPayments.map((p: any, idx: number) => (
+                  <tr 
+                    key={p.id || idx}
+                    style={{ 
+                      borderBottom: '1px solid #E2E8F0',
+                      background: idx % 2 === 0 ? '#FFFFFF' : '#FFFDFD'
+                    }}
+                  >
+                    <td style={{ padding: '8px 10px', fontWeight: 600 }}>
+                      {formatDisplayDate(p.payment_date)}
+                    </td>
+                    <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: '#64748B' }}>
+                      {p.receipt_no || p.reference_no || '—'}
+                    </td>
+                    <td style={{ padding: '8px 10px', color: '#475569' }}>
+                      {formatMethod(p.payment_method || p.channel)}
+                    </td>
+                    <td style={{ padding: '8px 10px', color: '#334155' }}>
+                      {p.notes || p.month || p.payment_type || 'Voluntary Relief Appeal'}
+                    </td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: '#800020' }}>
+                      {formatCurrency(Number(p.amount || 0))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: '#FFF1F2', borderTop: '2px solid #800020', fontWeight: 800 }}>
+                  <td colSpan={4} style={{ padding: '8px 10px', textAlign: 'right', textTransform: 'uppercase', fontSize: 11 }}>
+                    Total Voluntary Contributions:
+                  </td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', color: '#800020', fontSize: 13 }}>
+                    {formatCurrency(totalVoluntaryPaid)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════════════════════ */}
+        {/* TABLE 3: COMMANDERY WELFARE SCHEME SUBSCRIPTIONS */}
+        {/* ══════════════════════════════════════════════════════════════════════════ */}
+        <div style={{ marginBottom: 28, pageBreakInside: 'avoid' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: 8 
+          }}>
+            <div>
+              <div style={{ 
+                fontSize: 13, 
+                fontWeight: 900, 
+                color: '#6D28D9', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.5px' 
+              }}>
+                3. Commandery Welfare Scheme Subscriptions ({currentYear})
+              </div>
+              <div style={{ fontSize: 11, color: '#64748B' }}>
+                Monthly fraternal welfare dues (Rate: {formatCurrency(welfare?.monthlyRate || 25)}/month) for member & family benefits.
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>
+              {welfarePayments.length} subscription payment{welfarePayments.length === 1 ? '' : 's'}
+            </div>
+          </div>
+
+          {welfarePayments.length === 0 ? (
+            <div style={{ 
+              padding: '14px', 
+              textAlign: 'center', 
+              color: '#64748B', 
+              background: '#FAF5FF', 
+              borderRadius: 8, 
+              border: '1px dashed #E9D5FF',
+              fontSize: 12 
+            }}>
+              No welfare scheme subscriptions recorded for the {currentYear} period.
+            </div>
+          ) : (
+            <table style={{ 
+              width: '100%', 
+              borderCollapse: 'collapse', 
+              fontSize: 12, 
+              textAlign: 'left' 
+            }}>
+              <thead>
+                <tr style={{ background: '#6D28D9', color: '#ffffff' }}>
+                  <th style={{ padding: '8px 10px', borderRadius: '6px 0 0 0' }}>Date</th>
+                  <th style={{ padding: '8px 10px' }}>Receipt / Ref #</th>
+                  <th style={{ padding: '8px 10px' }}>Payment Mode</th>
+                  <th style={{ padding: '8px 10px' }}>Period Covered / Month</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'right', borderRadius: '0 6px 0 0' }}>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {welfarePayments.map((c: any, idx: number) => {
+                  const mName = c.period_month && c.period_month >= 1 && c.period_month <= 12
+                    ? MONTH_NAMES[c.period_month - 1]
+                    : 'Annual Period';
+                  return (
+                    <tr 
+                      key={c.id || idx}
+                      style={{ 
+                        borderBottom: '1px solid #E2E8F0',
+                        background: idx % 2 === 0 ? '#FFFFFF' : '#FAF5FF'
+                      }}
+                    >
+                      <td style={{ padding: '8px 10px', fontWeight: 600 }}>
+                        {formatDisplayDate(c.payment_date)}
+                      </td>
+                      <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: '#64748B' }}>
+                        {c.reference_no || c.receipt_no || '—'}
+                      </td>
+                      <td style={{ padding: '8px 10px', color: '#475569' }}>
+                        {formatMethod(c.payment_method)}
+                      </td>
+                      <td style={{ padding: '8px 10px', color: '#334155' }}>
+                        {mName} {c.period_year || currentYear}
+                        {c.notes ? ` (${c.notes})` : ''}
+                      </td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: '#6D28D9' }}>
+                        {formatCurrency(Number(c.amount || 0))}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: '#F5F3FF', borderTop: '2px solid #6D28D9', fontWeight: 800 }}>
+                  <td colSpan={4} style={{ padding: '8px 10px', textAlign: 'right', textTransform: 'uppercase', fontSize: 11 }}>
+                    Total Welfare Scheme Contributions Paid:
+                  </td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', color: '#6D28D9', fontSize: 13 }}>
+                    {formatCurrency(totalWelfarePaid)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════════════════════ */}
+        {/* CONSOLIDATED FRATERNAL FINANCIAL OUTFLOWS SUMMARY */}
+        {/* ══════════════════════════════════════════════════════════════════════════ */}
+        <div style={{
+          background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+          borderRadius: 10,
+          padding: '16px 20px',
+          color: '#ffffff',
+          marginBottom: 24,
+          pageBreakInside: 'avoid'
+        }}>
+          <div style={{ 
+            fontSize: 11, 
+            fontWeight: 800, 
+            letterSpacing: '1px', 
+            color: '#D4AF37', 
+            textTransform: 'uppercase',
+            marginBottom: 8
+          }}>
+            Consolidated Financial Summary ({currentYear})
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: 14,
+            fontSize: 12.5
+          }}>
+            <div>
+              <span style={{ color: '#94A3B8', fontSize: 11, display: 'block' }}>1. Statutory Dues Paid</span>
+              <strong style={{ fontSize: 16, color: '#34D399' }}>{formatCurrency(totalDuesPaid)}</strong>
+            </div>
+
+            <div>
+              <span style={{ color: '#94A3B8', fontSize: 11, display: 'block' }}>2. Voluntary Relief Appeals</span>
+              <strong style={{ fontSize: 16, color: '#F472B6' }}>{formatCurrency(totalVoluntaryPaid)}</strong>
+            </div>
+
+            <div>
+              <span style={{ color: '#94A3B8', fontSize: 11, display: 'block' }}>3. Welfare Subscriptions</span>
+              <strong style={{ fontSize: 16, color: '#C084FC' }}>{formatCurrency(totalWelfarePaid)}</strong>
+            </div>
+
+            <div style={{ borderLeft: '1px solid #334155', paddingLeft: 14 }}>
+              <span style={{ color: '#FCD34D', fontSize: 11, display: 'block', fontWeight: 800 }}>COMBINED FRATERNAL OUTFLOW</span>
+              <strong style={{ fontSize: 18, color: '#FFFFFF' }}>{formatCurrency(grandTotalOutflows)}</strong>
+            </div>
+          </div>
         </div>
 
         {/* AUDIT POLICY BENCHMARK NOTICE */}
@@ -459,7 +761,8 @@ export default function AnnualDuesStatement({
           marginBottom: 26,
           fontSize: 11.5,
           color: '#78350F',
-          lineHeight: 1.5
+          lineHeight: 1.5,
+          pageBreakInside: 'avoid'
         }}>
           <strong>Audit Benchmark Notice:</strong> {financial.benchmarkName}. Threshold required for good standing at this point in the fraternal year is <strong>{formatCurrency(financial.requiredDuesThreshold)}</strong>.
         </div>
@@ -471,7 +774,8 @@ export default function AnnualDuesStatement({
           gap: 30,
           marginTop: 28,
           paddingTop: 16,
-          borderTop: '1px dashed #CBD5E1'
+          borderTop: '1px dashed #CBD5E1',
+          pageBreakInside: 'avoid'
         }}>
           <div>
             <div style={{ borderBottom: '1px solid #0F172A', width: '75%', marginBottom: 6 }} />
@@ -512,7 +816,6 @@ export default function AnnualDuesStatement({
             border: none !important;
             padding: 16px 20px !important;
             margin: 0 !important;
-            page-break-inside: avoid;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }

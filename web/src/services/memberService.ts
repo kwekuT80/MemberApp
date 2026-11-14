@@ -290,6 +290,7 @@ export interface PersonalReportData {
     totalWelfareAssessed: number;
     welfareOutstanding: number;
     welfareCredit: number;
+    contributions?: any[];
     disbursements: any[];
   };
   attendance: {
@@ -651,6 +652,7 @@ export async function getMemberPersonalReport(memberId: string): Promise<Persona
       totalWelfareAssessed,
       welfareOutstanding,
       welfareCredit,
+      contributions: welfareContribs,
       disbursements: formattedDisbursements
     },
     attendance: {

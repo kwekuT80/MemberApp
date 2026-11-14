@@ -406,6 +406,52 @@ export default function ReportsPage() {
         </Link>
       </div>
 
+      {/* ── BATCH ANNUAL DUES STATEMENTS GENERATOR ── */}
+      <div style={{
+        background: 'linear-gradient(135deg, #10233F 0%, #1E3A8A 100%)',
+        borderRadius: 16,
+        padding: '24px 28px',
+        color: 'white',
+        marginBottom: 24,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 16,
+        boxShadow: '0 10px 25px rgba(16,35,63,0.18)',
+        border: '1px solid #1E3A8A'
+      }} className="no-print">
+        <div>
+          <div style={{ color: '#FCD34D', fontSize: 11, fontWeight: 900, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+            TREASURY & AUDIT TOOLKIT • THREE-PILLAR FINANCIAL STATEMENTS
+          </div>
+          <h2 style={{ margin: '6px 0 4px', fontSize: 20, fontWeight: 900, color: 'white' }}>
+            📄 Annual Fraternal Dues Statements Studio
+          </h2>
+          <p style={{ margin: 0, fontSize: 13, color: '#CBD5E1', maxWidth: 620 }}>
+            Generate, preview, and batch-print official Annual Dues Statements with 3 separate itemized tables: Statutory Dues Assessment, Voluntary Relief Appeals, and Welfare Scheme Subscriptions.
+          </p>
+        </div>
+        <Link
+          href="/registrar/reports/dues-statements"
+          style={{
+            background: '#D4AF37',
+            color: '#0F172A',
+            textDecoration: 'none',
+            padding: '12px 24px',
+            borderRadius: 10,
+            fontWeight: 900,
+            fontSize: 14,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            boxShadow: '0 4px 12px rgba(212, 175, 55, 0.3)'
+          }}
+        >
+          <span>📄 Open Dues Statements Studio</span>
+        </Link>
+      </div>
+
       <div style={{
         background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
         borderRadius: 16,

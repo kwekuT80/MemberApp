@@ -470,6 +470,23 @@ export default function BatchGoodStandingPage() {
                               >
                                 🎖️ Full Certificate
                               </Link>
+                              <Link
+                                href={`/registrar/members/${m.id}/statement`}
+                                style={{
+                                  background: '#10233F',
+                                  color: '#FFFFFF',
+                                  textDecoration: 'none',
+                                  padding: '6px 12px',
+                                  borderRadius: 6,
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4
+                                }}
+                              >
+                                📄 Statement
+                              </Link>
                             </div>
                           </td>
                         </tr>
