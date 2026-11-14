@@ -150,7 +150,7 @@ export default function MyIDCardPage() {
                 <span style={{ fontSize: 10, background: 'rgba(201, 168, 76, 0.2)', border: '1px solid #C9A84C', padding: '2px 8px', borderRadius: 999, color: '#FCD34D', fontWeight: 700 }}>
                   {degreeDetail.icon} {degreeDetail.badgeLabel}
                 </span>
-                {leadership.isPastPresident && (
+                {leadership.isPastPresident && !leadership.activeOffice?.toLowerCase().includes('president') && (
                   <span style={{ fontSize: 10, background: 'rgba(168, 85, 247, 0.2)', border: '1px solid #c084fc', padding: '2px 8px', borderRadius: 999, color: '#e9d5ff', fontWeight: 700 }}>
                     👑 PWP
                   </span>

@@ -163,7 +163,7 @@ export default function VerificationPage() {
             {degreeDetail.templeAffiliation && (
               <span style={templePillStyle}>🏛️ {degreeDetail.templeAffiliation}</span>
             )}
-            {leadership.isPastPresident && (
+            {leadership.isPastPresident && !leadership.activeOffice?.toLowerCase().includes('president') && (
               <span style={leadershipPillStyle}>👑 Past Worthy President</span>
             )}
             {leadership.activeOffice && (

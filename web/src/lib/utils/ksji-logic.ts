@@ -855,15 +855,21 @@ export function getLeadershipOfficeSummary(
       allOfficesHeld.push(title);
     }
 
-    if (title.toLowerCase() === 'president' || title.toLowerCase() === 'worthy president') {
-      isPastPresident = true;
-    }
-
-    // Check if active: MUST have dates and encompass currentYear
+    const titleLower = title.toLowerCase();
     const fromYear = pos.date_from ? parseInt(pos.date_from.substring(0, 4), 10) : null;
     const endYear = pos.date_to ? parseInt(pos.date_to.substring(0, 4), 10) : null;
+    const hasConcludedDate = Boolean(pos.date_to && pos.date_to.trim() !== '' && endYear && endYear < currentYear);
 
-    // Undated claims (no date_from and no date_to) are NEVER active offices
+    // Only flag as Past Worthy President if explicitly recorded as past, or if tenure has concluded
+    if (titleLower.includes('past worthy president') || titleLower === 'pwp') {
+      isPastPresident = true;
+    } else if (titleLower === 'president' || titleLower === 'worthy president') {
+      if (hasConcludedDate) {
+        isPastPresident = true;
+      }
+    }
+
+    // Check if active: MUST have dates and encompass currentYear, or have start date with no end date
     if (fromYear || endYear) {
       const isActive = (fromYear && fromYear <= currentYear && (!endYear || endYear >= currentYear)) ||
                        (endYear && endYear >= currentYear);
@@ -873,10 +879,19 @@ export function getLeadershipOfficeSummary(
     }
   }
 
+  // If the member is CURRENTLY the active/incumbent Worthy President,
+  // they must NOT be displayed as a Past Worthy President
+  const isIncumbentPresident = Boolean(
+    activeOffice && (
+      activeOffice.toLowerCase().includes('worthy president') ||
+      activeOffice.toLowerCase() === 'president'
+    )
+  );
+
   return {
     activeOffice,
-    isPastPresident,
-    pastPresidentTitle: isPastPresident ? 'Past Worthy President (PWP)' : null,
+    isPastPresident: isPastPresident && !isIncumbentPresident,
+    pastPresidentTitle: isPastPresident && !isIncumbentPresident ? 'Past Worthy President (PWP)' : null,
     allOfficesHeld,
   };
 }
